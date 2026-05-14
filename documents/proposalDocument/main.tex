@@ -1,0 +1,55 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{float}
+
+% Colors
+\definecolor{navyblue}{RGB}{0, 0, 128}
+
+% Page geometry
+\geometry{
+    a4paper,
+    total={170mm,257mm},
+    left=25mm,
+    top=25mm,
+}
+
+% Title format
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{navyblue}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{navyblue}}{\thesubsection}{1em}{}
+
+\begin{document}
+
+% Cover page
+\input{coverPage.tex}
+
+\newpage
+\tableofcontents
+\newpage
+
+% Chapters
+\input{sections/introduction.tex}
+\input{sections/objectives.tex}
+
+\input{sections/proposed_solution.tex}
+\input{sections/development_plan.tex}
+\input{sections/resources_costing.tex}
+\input{sections/tools_setup.tex}
+
+\end{document}
