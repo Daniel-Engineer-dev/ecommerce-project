@@ -1,5 +1,5 @@
-const pool = require('../config/db');
-const sendEmail = require('../utils/sendEmail');
+const pool = require('../../config/db');
+const sendEmail = require('../../utils/sendEmail');
 
 class AdminService {
     async getPendingPartners() {

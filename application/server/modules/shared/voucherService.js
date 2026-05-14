@@ -1,7 +1,7 @@
-const pool = require('../config/db');
+const pool = require('../../config/db');
 
-const getVouchers = async (req, res) => {
-    try {
+class VoucherService {
+    async getVouchers() {
         const query = `
             SELECT v.*, p.company_name, c.category_name 
             FROM Vouchers v
@@ -11,34 +11,20 @@ const getVouchers = async (req, res) => {
             ORDER BY v.voucher_id DESC
         `;
         const result = await pool.query(query);
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        return result.rows;
     }
-};
 
-const getCategories = async (req, res) => {
-    try {
+    async getCategories() {
         const result = await pool.query('SELECT * FROM Categories ORDER BY category_name ASC');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        return result.rows;
     }
-};
 
-const getPartnersList = async (req, res) => {
-    try {
+    async getPartnersList() {
         const result = await pool.query("SELECT user_id, company_name FROM Partners WHERE status = 'Approved' ORDER BY company_name ASC");
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        return result.rows;
     }
-};
 
-const getVoucherById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        
+    async getVoucherById(id) {
         // Lấy thông tin voucher, đối tác và danh mục
         const voucherQuery = `
             SELECT v.*, p.company_name, p.representative_name, c.category_name 
@@ -49,19 +35,14 @@ const getVoucherById = async (req, res) => {
         `;
         const voucherResult = await pool.query(voucherQuery, [id]);
         
-        if (voucherResult.rows.length === 0) {
-            return res.status(404).json({ message: "Voucher không tồn tại" });
-        }
+        if (voucherResult.rows.length === 0) return null;
 
         const voucher = voucherResult.rows[0];
 
-        // Lấy danh sách chi nhánh của đối tác này
-        const branchesResult = await pool.query(
-            'SELECT * FROM Branches WHERE partner_id = $1', 
-            [voucher.partner_id]
-        );
+        // Lấy danh sách chi nhánh
+        const branchesResult = await pool.query('SELECT * FROM Branches WHERE partner_id = $1', [voucher.partner_id]);
 
-        // Lấy danh sách đánh giá kèm tên khách hàng
+        // Lấy danh sách đánh giá
         const reviewsQuery = `
             SELECT r.*, c.full_name 
             FROM Reviews r
@@ -82,16 +63,11 @@ const getVoucherById = async (req, res) => {
             voucher.average_rating = 0;
         }
 
-        res.json(voucher);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: "Lỗi khi lấy chi tiết voucher" });
+        return voucher;
     }
-};
 
-const searchVouchers = async (req, res) => {
-    try {
-        const { q, category, minPrice, maxPrice, minDiscount, area, partner } = req.query;
+    async searchVouchers(filters) {
+        const { q, category, minPrice, maxPrice, minDiscount, area, partner } = filters;
         
         let query = `
             SELECT DISTINCT v.*, p.company_name, c.category_name 
@@ -105,21 +81,16 @@ const searchVouchers = async (req, res) => {
         const values = [];
         let count = 1;
 
-        // Tìm kiếm theo từ khóa (Tiêu đề hoặc Mô tả)
         if (q) {
             query += ` AND (v.title ILIKE $${count} OR v.description ILIKE $${count})`;
             values.push(`%${q}%`);
             count++;
         }
-
-        // Lọc theo danh mục
         if (category) {
             query += ` AND v.category_id = $${count}`;
             values.push(category);
             count++;
         }
-
-        // Lọc theo khoảng giá
         if (minPrice) {
             query += ` AND v.sale_price >= $${count}`;
             values.push(minPrice);
@@ -130,22 +101,16 @@ const searchVouchers = async (req, res) => {
             values.push(maxPrice);
             count++;
         }
-
-        // Lọc theo mức giảm giá (%)
         if (minDiscount) {
             query += ` AND v.discount_percent >= $${count}`;
             values.push(minDiscount);
             count++;
         }
-
-        // Lọc theo đối tác
         if (partner) {
             query += ` AND v.partner_id = $${count}`;
             values.push(partner);
             count++;
         }
-
-        // Lọc theo khu vực (Địa chỉ chi nhánh)
         if (area) {
             query += ` AND b.address ILIKE $${count}`;
             values.push(`%${area}%`);
@@ -153,14 +118,9 @@ const searchVouchers = async (req, res) => {
         }
 
         query += ` ORDER BY v.voucher_id DESC`;
-
         const result = await pool.query(query, values);
-        res.json(result.rows);
-
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: "Lỗi khi tìm kiếm voucher" });
+        return result.rows;
     }
-};
+}
 
-module.exports = { getVouchers, getVoucherById, searchVouchers, getCategories, getPartnersList };
+module.exports = new VoucherService();

@@ -2,9 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const voucherRoutes = require('./routes/voucherRoutes');
-const authRoutes = require('./routes/authRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const voucherRoutes = require('./modules/shared/voucherRoutes');
+const authRoutes = require('./modules/auth/authRoutes');
+const adminRoutes = require('./modules/admin/adminRoutes');
 
 const app = express();
 app.use(cors());

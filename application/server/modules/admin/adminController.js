@@ -1,4 +1,4 @@
-const adminService = require('../services/adminService');
+const adminService = require('./adminService');
 
 const getPendingPartners = async (req, res) => {
     try {

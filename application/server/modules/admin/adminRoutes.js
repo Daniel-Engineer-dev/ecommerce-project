@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getPendingPartners, approvePartner, rejectPartner } = require('../controllers/adminController');
-const auth = require('../middleware/authMiddleware');
+const { getPendingPartners, approvePartner, rejectPartner } = require('./adminController');
+const auth = require('../../middleware/authMiddleware');
 
 // Middleware kiểm tra quyền Admin
 const adminOnly = (req, res, next) => {

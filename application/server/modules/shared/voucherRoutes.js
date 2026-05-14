@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getVouchers, getVoucherById, searchVouchers, getCategories, getPartnersList } = require('../controllers/voucherController');
+const { getVouchers, getVoucherById, searchVouchers, getCategories, getPartnersList } = require('./voucherController');
 
 router.get('/', getVouchers);
 router.get('/categories', getCategories);
