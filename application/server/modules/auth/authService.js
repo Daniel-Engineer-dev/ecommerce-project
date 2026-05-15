@@ -118,10 +118,46 @@ class AuthService {
                     [data.company_name, data.representative_name, data.tax_id, data.headquarters, userId]
                 );
                 if (data.branches) {
-                    await client.query('DELETE FROM Branches WHERE partner_id = $1', [userId]);
+                    const keptBranchIds = data.branches
+                        .map((b) => Number(b.branch_id))
+                        .filter(Boolean);
+
+                    if (keptBranchIds.length > 0) {
+                        await client.query(
+                            `DELETE FROM Branches
+                             WHERE partner_id = $1
+                             AND NOT (branch_id = ANY($2::int[]))
+                             AND NOT EXISTS (
+                                SELECT 1 FROM E_Vouchers ev WHERE ev.used_at_branch_id = Branches.branch_id
+                             )`,
+                            [userId, keptBranchIds]
+                        );
+                    } else {
+                        await client.query(
+                            `DELETE FROM Branches
+                             WHERE partner_id = $1
+                             AND NOT EXISTS (
+                                SELECT 1 FROM E_Vouchers ev WHERE ev.used_at_branch_id = Branches.branch_id
+                             )`,
+                            [userId]
+                        );
+                    }
+
                     for (const b of data.branches) {
                         if (b.branch_name?.trim()) {
-                            await client.query('INSERT INTO Branches (partner_id, branch_name, address, phone) VALUES ($1, $2, $3, $4)', [userId, b.branch_name, b.address, b.phone]);
+                            if (b.branch_id) {
+                                await client.query(
+                                    `UPDATE Branches
+                                     SET branch_name = $1, address = $2, phone = $3
+                                     WHERE branch_id = $4 AND partner_id = $5`,
+                                    [b.branch_name, b.address, b.phone, b.branch_id, userId]
+                                );
+                            } else {
+                                await client.query(
+                                    'INSERT INTO Branches (partner_id, branch_name, address, phone) VALUES ($1, $2, $3, $4)',
+                                    [userId, b.branch_name, b.address, b.phone]
+                                );
+                            }
                         }
                     }
                 }

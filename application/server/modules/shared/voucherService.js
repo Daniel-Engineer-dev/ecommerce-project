@@ -40,7 +40,13 @@ class VoucherService {
         const voucher = voucherResult.rows[0];
 
         // Lấy danh sách chi nhánh
-        const branchesResult = await pool.query('SELECT * FROM Branches WHERE partner_id = $1', [voucher.partner_id]);
+        const branchesResult = await pool.query(`
+            SELECT b.*
+            FROM Voucher_Branches vb
+            JOIN Branches b ON b.branch_id = vb.branch_id
+            WHERE vb.voucher_id = $1
+            ORDER BY b.branch_id
+        `, [id]);
 
         // Lấy danh sách đánh giá
         const reviewsQuery = `

@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS System_Logs CASCADE;
 DROP TABLE IF EXISTS E_Vouchers CASCADE;
 DROP TABLE IF EXISTS Order_Items CASCADE;
 DROP TABLE IF EXISTS Orders CASCADE;
+DROP TABLE IF EXISTS Voucher_Branches CASCADE;
 DROP TABLE IF EXISTS Vouchers CASCADE;
 DROP TABLE IF EXISTS Categories CASCADE;
 DROP TABLE IF EXISTS Branches CASCADE;
@@ -87,6 +88,12 @@ CREATE TABLE Vouchers (
     CONSTRAINT chk_stock CHECK (quantity_stock >= 0 AND quantity_stock <= total_quantity),
     -- RB-03: Thời gian hết hạn phải sau thời gian bắt đầu
     CONSTRAINT chk_dates CHECK (expiry_date > start_date)
+);
+
+CREATE TABLE Voucher_Branches (
+    voucher_id INT REFERENCES Vouchers(voucher_id) ON DELETE CASCADE,
+    branch_id INT REFERENCES Branches(branch_id) ON DELETE CASCADE,
+    PRIMARY KEY (voucher_id, branch_id)
 );
 
 CREATE TABLE Orders (
@@ -282,16 +289,17 @@ FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
 -- ==========================================
 
 -- 3.1. Users & Partners
-INSERT INTO Users (username, password, role) VALUES 
-('sheraton_partner', '123456', 'Partner'),
-('fantastic_travel', '123456', 'Partner'),
-('glow_spa', '123456', 'Partner'),
-('nike_vn', '123456', 'Partner'),
-('hokkaido_sushi', '123456', 'Partner'),
-('cgv_cinemas', '123456', 'Partner'),
-('customer_daniel', '123456', 'Customer'),
-('customer_minh', '123456', 'Customer'),
-('customer_lan', '123456', 'Customer');
+INSERT INTO Users (username, password, email, role) VALUES 
+('admin', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'admin@dealzy.vn', 'Admin'),
+('sheraton_partner', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'sheraton@dealzy.vn', 'Partner'),
+('fantastic_travel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'travel@dealzy.vn', 'Partner'),
+('glow_spa', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'glowspa@dealzy.vn', 'Partner'),
+('nike_vn', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'nike@dealzy.vn', 'Partner'),
+('hokkaido_sushi', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'hokkaido@dealzy.vn', 'Partner'),
+('cgv_cinemas', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'cgv@dealzy.vn', 'Partner'),
+('customer_daniel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'daniel@dealzy.vn', 'Customer'),
+('customer_minh', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'minh@dealzy.vn', 'Customer'),
+('customer_lan', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'lan@dealzy.vn', 'Customer');
 
 INSERT INTO Partners (user_id, company_name, status)
 SELECT user_id, 'Sheraton Hotel', 'Approved' FROM Users WHERE username = 'sheraton_partner' UNION ALL
@@ -300,6 +308,14 @@ SELECT user_id, 'Glow Skin & Spa', 'Approved' FROM Users WHERE username = 'glow_
 SELECT user_id, 'Nike Vietnam', 'Approved' FROM Users WHERE username = 'nike_vn' UNION ALL
 SELECT user_id, 'Hokkaido Sushi', 'Approved' FROM Users WHERE username = 'hokkaido_sushi' UNION ALL
 SELECT user_id, 'CGV Cinemas', 'Approved' FROM Users WHERE username = 'cgv_cinemas';
+
+INSERT INTO Branches (partner_id, branch_name, address, phone)
+SELECT user_id, 'Sheraton Saigon', '88 Dong Khoi, Quan 1, TP.HCM', '02838272828' FROM Users WHERE username = 'sheraton_partner' UNION ALL
+SELECT user_id, 'Fantastic Travel HCM', '12 Nguyen Hue, Quan 1, TP.HCM', '02839390001' FROM Users WHERE username = 'fantastic_travel' UNION ALL
+SELECT user_id, 'Glow Spa District 3', '45 Vo Van Tan, Quan 3, TP.HCM', '02839330002' FROM Users WHERE username = 'glow_spa' UNION ALL
+SELECT user_id, 'Nike Vincom Dong Khoi', '72 Le Thanh Ton, Quan 1, TP.HCM', '02839330003' FROM Users WHERE username = 'nike_vn' UNION ALL
+SELECT user_id, 'Hokkaido Sushi Landmark', '720A Dien Bien Phu, Binh Thanh, TP.HCM', '02839330004' FROM Users WHERE username = 'hokkaido_sushi' UNION ALL
+SELECT user_id, 'CGV Crescent Mall', '101 Ton Dat Tien, Quan 7, TP.HCM', '02839330005' FROM Users WHERE username = 'cgv_cinemas';
 
 INSERT INTO Customers (user_id, full_name, dob, address)
 SELECT user_id, 'Daniel Nguyen', '1995-05-15'::DATE, '123 Quận 1, TP.HCM' FROM Users WHERE username = 'customer_daniel' UNION ALL
@@ -339,6 +355,11 @@ VALUES
 
 
 -- 3.4. Đơn hàng mẫu (Orders)
+INSERT INTO Voucher_Branches (voucher_id, branch_id)
+SELECT v.voucher_id, b.branch_id
+FROM Vouchers v
+JOIN Branches b ON b.partner_id = v.partner_id;
+
 INSERT INTO Orders (customer_id, total_amount, status) VALUES 
 ((SELECT MIN(user_id) FROM Users WHERE role = 'Customer'), 790000, 'Paid'),
 ((SELECT MIN(user_id) FROM Users WHERE role = 'Customer'), 2990000, 'Paid'),
@@ -351,6 +372,12 @@ INSERT INTO Order_Items (order_id, voucher_id, quantity, price_at_purchase) VALU
 (3, 6, 1, 180000);
 
 -- 3.6. Reviews Mẫu
+INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
+VALUES
+(1, 'DLZ-SHER-0001', 'Unused', '2026-12-31'),
+(2, 'DLZ-SAPA-0001', 'Unused', '2026-11-15'),
+(3, 'DLZ-CGV-0001', 'Unused', '2026-08-31');
+
 INSERT INTO Reviews (voucher_id, customer_id, rating, comment) VALUES 
 (1, (SELECT MIN(user_id) FROM Users WHERE role = 'Customer'), 5, 'Đồ ăn rất ngon, hải sản tươi sống, phục vụ chu đáo.'),
 (1, (SELECT MIN(user_id) FROM Users WHERE role = 'Customer'), 4, 'Không gian đẹp nhưng hơi đông vào cuối tuần.'),
