@@ -36,7 +36,8 @@ CREATE TABLE Customers (
     user_id INT PRIMARY KEY REFERENCES Users(user_id) ON DELETE CASCADE,
     full_name VARCHAR(100),
     dob DATE,
-    address TEXT
+    address TEXT,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE Partners (
@@ -283,6 +284,7 @@ FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
 
 -- 3.1. Users & Partners
 INSERT INTO Users (username, password, role) VALUES 
+('admin', '123456', 'Admin'),
 ('sheraton_partner', '123456', 'Partner'),
 ('fantastic_travel', '123456', 'Partner'),
 ('glow_spa', '123456', 'Partner'),
@@ -291,7 +293,8 @@ INSERT INTO Users (username, password, role) VALUES
 ('cgv_cinemas', '123456', 'Partner'),
 ('customer_daniel', '123456', 'Customer'),
 ('customer_minh', '123456', 'Customer'),
-('customer_lan', '123456', 'Customer');
+('customer_lan', '123456', 'Customer'),
+('admin', '$2b$10$a3uchNxGHtnHH6.jn1xfQehXB.2n5JjtC0gsx8wh2tV43rVidZOE6', 'Admin');
 
 INSERT INTO Partners (user_id, company_name, status)
 SELECT user_id, 'Sheraton Hotel', 'Approved' FROM Users WHERE username = 'sheraton_partner' UNION ALL
