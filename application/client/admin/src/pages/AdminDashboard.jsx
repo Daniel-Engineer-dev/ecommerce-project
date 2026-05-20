@@ -105,10 +105,9 @@ const AdminDashboard = () => {
       {/* Upper Headline Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            Tổng Quan Hệ Thống <span className="text-xs font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100">KPI-04</span>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            Tổng Quan
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Báo cáo quản trị tối thiểu về doanh thu, tài khoản, đơn hàng và đối tác kinh doanh.</p>
         </div>
 
         {/* Bộ lọc Mốc thời gian linh hoạt (Tháng / Quý / Năm) */}

@@ -308,8 +308,8 @@ const UserManagement = () => {
             {/* Header */}
             <div className="mb-8 flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                        <Shield className="text-indigo-600" size={24} /> Quản Lý Người Dùng
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        Quản Lý Người Dùng
                     </h1>
                 </div>
             </div>
