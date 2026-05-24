@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import VoucherCard from '../components/VoucherCard';
 import { Search, Filter, X, ChevronDown, MapPin, Tag, CircleDollarSign, Percent } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL, translateCategory } from '../config';
 
 const SearchVouchers = () => {
   const location = useLocation();
@@ -20,14 +21,15 @@ const SearchVouchers = () => {
     minPrice: queryParams.get('minPrice') || '',
     maxPrice: queryParams.get('maxPrice') || '',
     minDiscount: queryParams.get('minDiscount') || '',
-    area: queryParams.get('area') || ''
+    area: queryParams.get('area') || '',
+    sort: queryParams.get('sort') || ''
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     // Lấy danh sách danh mục
-    fetch('http://localhost:5000/api/vouchers/categories') // Giả định có API này, nếu chưa có sẽ tạo sau
+    fetch(`${API_BASE_URL}/api/vouchers/categories`) // Giả định có API này, nếu chưa có sẽ tạo sau
       .then(res => res.json())
       .then(data => setCategories(data))
       .catch(err => console.error("Error fetching categories:", err));
@@ -37,7 +39,7 @@ const SearchVouchers = () => {
 
   const fetchVouchers = () => {
     setLoading(true);
-    const searchUrl = `http://localhost:5000/api/vouchers/search${location.search}`;
+    const searchUrl = `${API_BASE_URL}/api/vouchers/search${location.search}`;
     fetch(searchUrl)
       .then(res => res.json())
       .then(data => {
@@ -63,9 +65,15 @@ const SearchVouchers = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ q: '', category: '', minPrice: '', maxPrice: '', minDiscount: '', area: '' });
+    setFilters({ q: '', category: '', minPrice: '', maxPrice: '', minDiscount: '', area: '', sort: '' });
     navigate('/search');
   };
+
+  const pageTitle = filters.sort === 'new'
+    ? 'Deal mới'
+    : filters.sort === 'best-selling'
+      ? 'Deal bán chạy'
+      : `${vouchers.length} kết quả tìm kiếm`;
 
   return (
     <div style={{ paddingTop: '180px', minHeight: '100vh', background: '#f8fafc' }}>
@@ -84,21 +92,24 @@ const SearchVouchers = () => {
                 background: 'white',
                 borderRadius: '24px',
                 padding: '1.5rem',
-                height: 'fit-content',
+                maxHeight: 'calc(100vh - 220px)',
+                display: 'flex',
+                flexDirection: 'column',
                 position: 'sticky',
                 top: '180px',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                border: '1px solid #f1f5f9'
+                border: '1px solid #f1f5f9',
+                overflow: 'hidden'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Filter size={20} color="var(--primary)" /> Bộ lọc
                 </h3>
                 <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>Xóa tất cả</button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1, overflowY: 'auto', paddingRight: '4px', scrollbarWidth: 'thin' }}>
                 
                 {/* Search Keyword */}
                 <div>
@@ -127,7 +138,7 @@ const SearchVouchers = () => {
                     >
                       <option value="">Tất cả danh mục</option>
                       {categories.map(cat => (
-                        <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+                        <option key={cat.category_id} value={cat.category_id}>{translateCategory(cat.category_name)}</option>
                       ))}
                     </select>
                   </div>
@@ -184,11 +195,13 @@ const SearchVouchers = () => {
                     />
                   </div>
                 </div>
+              </div>
 
+              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', marginTop: '1rem', flexShrink: 0 }}>
                 <button 
                   onClick={applyFilters}
                   className="btn-primary" 
-                  style={{ width: '100%', marginTop: '1rem', height: '48px', borderRadius: '14px' }}
+                  style={{ width: '100%', height: '46px', borderRadius: '12px', fontWeight: 700 }}
                 >
                   Áp dụng
                 </button>
@@ -202,7 +215,7 @@ const SearchVouchers = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
             <div>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>
-                {vouchers.length} kết quả tìm kiếm
+                {pageTitle}
               </h2>
               {filters.q && <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Cho từ khóa: "<b>{filters.q}</b>"</p>}
             </div>

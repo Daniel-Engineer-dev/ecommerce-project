@@ -2,9 +2,10 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const { cartItems, removeFromCart, updateQuantity, totalPrice, totalItems } = useCart();
 
   const formatPrice = (price) => {
@@ -73,6 +74,10 @@ const Cart = () => {
                     <img
                       src={item.image_url}
                       alt={item.title}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80';
+                      }}
                       style={{ width: '100px', height: '100px', borderRadius: '12px', objectFit: 'cover' }}
                     />
                     <div style={{ flex: 1 }}>
@@ -136,6 +141,7 @@ const Cart = () => {
                   </div>
                 </div>
                 <button
+                  onClick={() => navigate('/checkout')}
                   className="btn-primary"
                   style={{ width: '100%', height: '56px', fontSize: '1.1rem', gap: '0.5rem' }}
                 >

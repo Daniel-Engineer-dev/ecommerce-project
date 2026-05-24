@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, User, Mail, Lock, Phone, MapPin, CheckCircle2, Plus, Trash2, ArrowLeft, Briefcase, ChevronRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import { API_BASE_URL } from '../config';
 
 const PartnerRegistration = () => {
     const navigate = useNavigate();
@@ -67,7 +68,7 @@ const PartnerRegistration = () => {
         setError('');
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/auth/register', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

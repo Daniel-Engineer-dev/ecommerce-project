@@ -4,6 +4,7 @@ import { Mail, Lock, User, ArrowLeft, ChevronRight, Users, Building, Phone } fro
 import { useNavigate, Link } from 'react-router-dom';
 import authVideo from '../assets/my-auth-video.mp4';
 import logo from '../assets/logo.png';
+import { API_BASE_URL } from '../config';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const AuthPage = () => {
     const payload = { username: formData.username, password: formData.password };
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -59,7 +60,7 @@ const AuthPage = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/forgot-password', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

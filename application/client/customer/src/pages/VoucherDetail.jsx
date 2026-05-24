@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
+import { API_BASE_URL, translateCategory } from '../config';
 
 const VoucherDetail = () => {
   const { id } = useParams();
@@ -17,7 +18,7 @@ const VoucherDetail = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetch(`http://localhost:5000/api/vouchers/${id}`)
+    fetch(`${API_BASE_URL}/api/vouchers/${id}`)
       .then(res => {
         if (!res.ok) throw new Error("Không thể tải thông tin voucher");
         return res.json();
@@ -79,8 +80,12 @@ const VoucherDetail = () => {
               style={{ position: 'relative', borderRadius: '32px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }}
             >
               <img 
-                src={voucher.image_url || 'https://via.placeholder.com/800x500'} 
+                src={voucher.image_url} 
                 alt={voucher.title} 
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80';
+                }}
                 style={{ width: '100%', height: '500px', objectFit: 'cover' }}
               />
               <div style={{ 
@@ -176,7 +181,7 @@ const VoucherDetail = () => {
                   fontSize: '0.85rem', 
                   fontWeight: 700 
                 }}>
-                  {voucher.category_name}
+                  {translateCategory(voucher.category_name)}
                 </span>
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '1rem', marginBottom: '0.5rem' }}>{voucher.title}</h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
