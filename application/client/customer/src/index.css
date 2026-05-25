@@ -1318,7 +1318,7 @@ h3 {
 
 .home-category-rail {
   position: sticky;
-  top: 206px;
+  top: 170px;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1327,6 +1327,7 @@ h3 {
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  border-bottom: 3px solid var(--primary);
   z-index: 50;
 }
 
@@ -1443,7 +1444,7 @@ h3 {
   }
 
   .home-category-rail {
-    top: 188px;
+    top: 160px;
     flex-direction: row;
     overflow-x: auto;
     z-index: 20;

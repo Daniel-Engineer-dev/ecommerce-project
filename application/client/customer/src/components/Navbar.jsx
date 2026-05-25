@@ -87,6 +87,7 @@ const Navbar = () => {
 
   const [categories, setCategories] = useState([]);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   const categoryIcons = {
     Dining: <Utensils size={18} />,
@@ -169,8 +170,16 @@ const Navbar = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    if (searchQuery.trim() || selectedCategories.length > 0) {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.append("q", encodeURIComponent(searchQuery));
+      }
+      if (selectedCategories.length > 0) {
+        params.append("category", selectedCategories.join(","));
+      }
+      navigate(`/search?${params.toString()}`);
+      setShowSuggestions(false);
     }
   };
 
@@ -287,6 +296,7 @@ const Navbar = () => {
             style={{ position: "relative" }}
           >
             <div
+              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
               style={{
                 padding: "0 1rem",
                 borderRight: "1px solid var(--border-color)",
@@ -299,8 +309,183 @@ const Navbar = () => {
                 fontWeight: 500,
               }}
             >
-              Tất cả danh mục <ChevronDown size={14} />
+              {selectedCategories.length > 0 ? (
+                <>
+                  <span>{selectedCategories.length} danh mục</span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      transform: isCategoryDropdownOpen
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 0.2s",
+                    }}
+                  />
+                </>
+              ) : (
+                <>
+                  Tất cả danh mục{" "}
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      transform: isCategoryDropdownOpen
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
+                      transition: "transform 0.2s",
+                    }}
+                  />
+                </>
+              )}
             </div>
+
+            {/* Category Dropdown */}
+            <AnimatePresence>
+              {isCategoryDropdownOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    width: "300px",
+                    backgroundColor: "white",
+                    borderRadius: "12px",
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
+                    border: "1px solid #f1f5f9",
+                    marginTop: "8px",
+                    overflow: "hidden",
+                    zIndex: 999,
+                    maxHeight: "350px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {/* Header với nút "Chọn tất cả" và "Bỏ chọn" */}
+                  <div
+                    style={{
+                      padding: "0.75rem 1rem",
+                      borderBottom: "1px solid #f1f5f9",
+                      display: "flex",
+                      gap: "0.5rem",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedCategories(
+                          categories.map((c) => c.category_id),
+                        )
+                      }
+                      style={{
+                        flex: 1,
+                        padding: "0.4rem",
+                        background: "var(--primary)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Chọn tất cả
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      style={{
+                        flex: 1,
+                        padding: "0.4rem",
+                        background: "#f1f5f9",
+                        color: "#1e293b",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Bỏ chọn
+                    </button>
+                  </div>
+
+                  {/* Category List */}
+                  {categories.length > 0 ? (
+                    <div>
+                      {categories.map((category) => (
+                        <label
+                          key={category.category_id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            padding: "0.75rem 1rem",
+                            cursor: "pointer",
+                            borderBottom: "1px solid #f8fafc",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#f8fafc";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor =
+                              "transparent";
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(
+                              category.category_id,
+                            )}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCategories([
+                                  ...selectedCategories,
+                                  category.category_id,
+                                ]);
+                              } else {
+                                setSelectedCategories(
+                                  selectedCategories.filter(
+                                    (id) => id !== category.category_id,
+                                  ),
+                                );
+                              }
+                            }}
+                            style={{
+                              cursor: "pointer",
+                              width: "18px",
+                              height: "18px",
+                              accentColor: "var(--primary)",
+                            }}
+                          />
+                          <span
+                            style={{
+                              fontSize: "0.9rem",
+                              color: "#1e293b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {category.category_name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "2rem 1rem",
+                        textAlign: "center",
+                        color: "#94a3b8",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Đang tải danh mục...
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <input
               type="text"
               placeholder="Tìm kiếm sản phẩm / khuyến mãi..."
@@ -550,9 +735,17 @@ const Navbar = () => {
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(
-                            `/search?q=${encodeURIComponent(searchQuery)}`,
-                          );
+                          const params = new URLSearchParams();
+                          if (searchQuery.trim()) {
+                            params.append("q", encodeURIComponent(searchQuery));
+                          }
+                          if (selectedCategories.length > 0) {
+                            params.append(
+                              "category",
+                              selectedCategories.join(","),
+                            );
+                          }
+                          navigate(`/search?${params.toString()}`);
                           setShowSuggestions(false);
                         }}
                         style={{
