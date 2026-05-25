@@ -238,6 +238,16 @@ Quy ước cột hoàn thành:
 | 153 | KPI-05 | Documentation | Tài liệu học thuật đầy đủ | Kiểm báo cáo, ERD, use case, activity, test plan, script, slide/video | [ ] | Phục vụ nộp bài |
 | 154 | AC-05 | Presentation | Bài thuyết trình liên hệ yêu cầu và giải pháp | Mỗi BR chính có màn hình/API/demo tương ứng | [ ] | Gắn BR vào demo script |
 
+### 2.13. Các trường hợp bổ sung đề xuất
+
+| STT | Mã yêu cầu | Vai trò | Yêu cầu test | Gợi ý luồng test | Hoàn thành | Ghi chú |
+|---:|---|---|---|---|---|---|
+| 155 | BR-01, BR-CUS-02 | Customer | Chặn đăng nhập bằng username không tồn tại | Nhập username chưa từng đăng ký -> submit | [ ] | Phải báo lỗi và không tạo session/token |
+| 156 | BR-03, BR-CUS-06 | Customer | Không cho checkout khi giỏ hàng trống | Vào checkout mà không có sản phẩm trong giỏ | [ ] | Hiển thị thông báo rõ và quay về giỏ hàng |
+| 157 | BR-03, NFR-03 | Customer | Giỏ hàng được giữ sau refresh nếu có session | Thêm voucher vào giỏ -> refresh trình duyệt | [ ] | Nếu không lưu thì phải thông báo rõ |
+| 158 | BR-05, RB-08 | Partner | Không cho xác nhận code đã hết hạn sau khi chỉnh dữ liệu demo | Cập nhật expiry_date về quá hạn -> nhập code để xác nhận | [ ] | Backend phải từ chối xác nhận |
+| 159 | BR-06, NFR-02 | Admin | Không cho thay đổi vai trò từ request client | Thử gửi request đổi role=Admin hoặc role=Partner | [ ] | Backend phải chặn thay đổi role không hợp lệ |
+
 ## 3. Luồng test nghiệm thu end-to-end nên chạy khi demo
 
 | STT | Luồng nghiệm thu | Các test case liên quan | Hoàn thành | Ghi chú |
@@ -256,8 +266,8 @@ Cập nhật: 2026-05-29.
 
 | Ký hiệu | Ý nghĩa | Số lượng |
 |---|---|---:|
-| `[ ]` | Chưa test | 85 |
+| `[ ]` | Chưa test | 90 |
 | `[x]` | Đã test và đạt | 76 |
 | `[!]` | Đã test nhưng lỗi/chưa đạt | 0 |
 | `[-]` | Không áp dụng hoặc ngoài phạm vi demo | 0 |
-| **Tổng cộng** |  | **161** |
+| **Tổng cộng** |  | **166** |
