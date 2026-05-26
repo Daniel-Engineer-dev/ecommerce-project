@@ -1,50 +1,52 @@
 # Checklist Yeu Cau Do An Dealzy
 
 > Quy uoc: `[x]` da co trong du an hien tai o muc co the doi chieu; `[ ]` chua co hoac moi co mot phan, can tiep tuc hoan thien.
+> Cap nhat 2026-05-23 sau khi fetch toan bo remote va doi chieu cac nhanh `admin`, `customer`, `main`, `partner`.
+> Tom tat: `partner` hien la nhanh day du nhat. Khong co commit moi tren remote sau lan merge admin gan nhat. Da co luong Customer xem/tim/gio hang, Partner tao/quan ly/xac thuc voucher, Admin quan ly user/doi tac/duyet voucher/dashboard. Chua co checkout/thanh toan mo phong/phat hanh voucher code tu don hang tren API/UI.
 
 ## 1. Thong Tin De Tai
 
 1. [x] Xay dung he thong thuong mai dien tu ban voucher giam gia truc tuyen.
 2. [x] He thong co toi thieu 3 vai tro: Khach hang, Doi tac, Quan tri vien.
 3. [x] Su dung co so du lieu quan he.
-4. [ ] Co du quy trinh nghiep vu tu tao voucher den su dung voucher.
+4. [ ] Co du quy trinh nghiep vu tu tao voucher den su dung voucher. Hien co tao/duyet/xac thuc voucher; con thieu checkout/thanh toan/phat hanh code tu don hang.
 
 ## 2. Pham Vi Du An
 
 1. [x] Quan ly nguoi dung.
 2. [x] Quan ly doi tac.
-3. [ ] Quan ly voucher day du vong doi.
+3. [x] Quan ly voucher day du vong doi.
 4. [x] Gio hang.
 5. [ ] Don hang.
 6. [ ] Thanh toan mo phong.
 7. [ ] Phat hanh ma voucher.
-8. [ ] Xac thuc su dung voucher.
+8. [x] Xac thuc su dung voucher.
 9. [ ] Quan ly noi dung.
-10. [ ] Bao cao thong ke.
+10. [x] Bao cao thong ke.
 
 ## 3. Luong Nghiep Vu Tong Quat
 
 1. [x] Doi tac dang ky.
 2. [x] Quan tri vien duyet doi tac.
-3. [ ] Doi tac tao voucher.
-4. [ ] Quan tri vien duyet voucher.
+3. [x] Doi tac tao voucher.
+4. [x] Quan tri vien duyet voucher.
 5. [x] Cong bo voucher da duyet de hien thi ban.
 6. [x] Khach hang tim/xem/chon voucher.
 7. [ ] Khach hang tao don mua voucher.
 8. [ ] Thanh toan mo phong.
 9. [ ] He thong phat hanh ma voucher duy nhat.
-10. [ ] Doi tac xac thuc su dung voucher.
-11. [ ] Ghi nhan bao cao.
+10. [x] Doi tac xac thuc su dung voucher.
+11. [x] Ghi nhan bao cao.
 
 ## 4. Yeu Cau Nghiep Vu Tong The
 
 1. [x] BR-01 - Quan ly tai khoan nguoi dung: dang ky, dang nhap, quen mat khau, doi mat khau, cap nhat ho so, quan ly phien theo vai tro.
-2. [ ] BR-02 - Quan ly danh muc va noi dung voucher: tao, phan loai, hien thi, tam ngung, ngung ban voucher.
+2. [x] BR-02 - Quan ly danh muc va noi dung voucher: tao, phan loai, hien thi, tam ngung, ngung ban voucher.
 3. [ ] BR-03 - Mua hang truc tuyen: chon voucher, gio hang, tao don, thanh toan mo phong, xac nhan don hang.
 4. [ ] BR-04 - Phat hanh va quan ly voucher code: sinh ma dien tu duy nhat cho giao dich hop le va theo doi vong doi su dung.
-5. [ ] BR-05 - Kiem tra va xac thuc voucher: doi tac tra cuu, xac minh, xac nhan su dung voucher tai chi nhanh.
+5. [x] BR-05 - Kiem tra va xac thuc voucher: doi tac tra cuu, xac minh, xac nhan su dung voucher tai chi nhanh.
 6. [ ] BR-06 - Kiem duyet va giam sat he thong: duyet doi tac, duyet voucher, quan ly don hang, giam sat hoat dong.
-7. [ ] BR-07 - Bao cao va phan tich: dashboard doanh thu, don hang, voucher ban ra, voucher da dung, hieu suat doi tac.
+7. [x] BR-07 - Bao cao va phan tich: dashboard doanh thu, don hang, voucher ban ra, voucher da dung, hieu suat doi tac.
 
 ## 5. Yeu Cau Cho Khach Hang
 
@@ -69,12 +71,12 @@
 
 ## 7. Yeu Cau Cho Quan Tri Vien
 
-1. [ ] BR-ADM-01 - Quan ly nguoi dung: xem, tra cuu, khoa/mo khoa tai khoan, phan quyen.
+1. [x] BR-ADM-01 - Quan ly nguoi dung: xem, tra cuu, khoa/mo khoa tai khoan, phan quyen.
 2. [x] BR-ADM-02 - Quan ly doi tac: duyet ho so doi tac, quan ly trang thai doi tac, quan ly chi nhanh.
-3. [ ] BR-ADM-03 - Duyet voucher: xem, duyet, tu choi, thay doi trang thai hien thi, kiem soat vong doi voucher.
+3. [x] BR-ADM-03 - Duyet voucher: xem, duyet, tu choi, thay doi trang thai hien thi, kiem soat vong doi voucher.
 4. [ ] BR-ADM-04 - Quan ly don hang: tra cuu don, xu ly trang thai thanh toan, huy don, ghi nhan hoan tien mo phong.
 5. [ ] BR-ADM-05 - Quan ly noi dung: danh muc, banner, bai viet, popup, noi dung chinh sach.
-6. [ ] BR-ADM-06 - Dashboard quan tri: tong quan nguoi dung, doi tac, voucher, don hang, doanh thu, chi so hieu qua.
+6. [x] BR-ADM-06 - Dashboard quan tri: tong quan nguoi dung, doi tac, voucher, don hang, doanh thu, chi so hieu qua.
 7. [ ] BR-ADM-07 - Nhat ky he thong: tra cuu thao tac quan trong de kiem tra va truy vet.
 
 ## 8. Quy Tac Nghiep Vu
@@ -117,7 +119,7 @@
 
 1. [x] ASM-01 - Thanh toan duoc mo phong, khong bat buoc tich hop cong thanh toan that.
 2. [x] ASM-02 - OTP, email hoac SMS co the mo phong bang thong bao trong he thong.
-3. [ ] ASM-03 - Quet QR co the mo phong bang nhap ma hoac hien thi QR anh.
+3. [x] ASM-03 - Quet QR co the mo phong bang nhap ma hoac hien thi QR anh.
 4. [x] ASM-04 - Du lieu dung cho muc dich hoc tap va demo, khong phai moi truong san xuat.
 5. [x] CON-01 - Sinh vien tu phan tich va thiet ke, khong sao chep nguyen mau tu he thong thuc te.
 6. [x] CON-02 - He thong dung co so du lieu quan he.
@@ -137,8 +139,8 @@
 
 1. [ ] KPI-01 - Hoan tat quy trinh mua voucher tu tim kiem den phat hanh ma va su dung voucher.
 2. [ ] KPI-02 - Trang thai voucher, don hang va voucher code duoc quan ly dung quy tac.
-3. [ ] KPI-03 - Doi tac xac thuc duoc voucher.
-4. [ ] KPI-04 - Co dashboard hoac bao cao ve doanh thu, don hang, voucher va doi tac.
+3. [x] KPI-03 - Doi tac xac thuc duoc voucher.
+4. [x] KPI-04 - Co dashboard hoac bao cao ve doanh thu, don hang, voucher va doi tac.
 5. [ ] KPI-05 - Co BRD, tai lieu phan tich, thiet ke, cai dat va kiem thu.
 
 ## 14. Tieu Chi Nghiem Thu
