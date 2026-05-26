@@ -18,6 +18,7 @@ const AuthPage = () => {
     phone: ''
   });
   const [error, setError] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +49,7 @@ const AuthPage = () => {
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
+    if (isForgotLoading) return;
     setError('');
 
     if (regMethod === 'email' && !formData.email) {
@@ -59,6 +61,7 @@ const AuthPage = () => {
       return;
     }
 
+    setIsForgotLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
@@ -78,6 +81,8 @@ const AuthPage = () => {
       }
     } catch (err) {
       setError('Không thể kết nối đến server');
+    } finally {
+      setIsForgotLoading(false);
     }
   };
 
@@ -134,15 +139,17 @@ const AuthPage = () => {
                   <div style={{ background: '#f1f5f9', padding: '4px', borderRadius: '12px', display: 'flex', marginBottom: '0.5rem' }}>
                     <button
                       type="button"
+                      disabled={isForgotLoading}
                       onClick={() => { setRegMethod('email'); setFormData({ ...formData, phone: '' }); }}
-                      style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: regMethod === 'email' ? 'white' : 'transparent', color: regMethod === 'email' ? '#2563eb' : '#64748b', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: '0.3s', boxShadow: regMethod === 'email' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: regMethod === 'email' ? 'white' : 'transparent', color: regMethod === 'email' ? '#2563eb' : '#64748b', fontWeight: 700, fontSize: '0.75rem', cursor: isForgotLoading ? 'wait' : 'pointer', transition: '0.3s', boxShadow: regMethod === 'email' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', opacity: isForgotLoading ? 0.65 : 1 }}
                     >
                       Email
                     </button>
                     <button
                       type="button"
+                      disabled={isForgotLoading}
                       onClick={() => { setRegMethod('phone'); setFormData({ ...formData, email: '' }); }}
-                      style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: regMethod === 'phone' ? 'white' : 'transparent', color: regMethod === 'phone' ? '#2563eb' : '#64748b', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', transition: '0.3s', boxShadow: regMethod === 'phone' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '10px', border: 'none', background: regMethod === 'phone' ? 'white' : 'transparent', color: regMethod === 'phone' ? '#2563eb' : '#64748b', fontWeight: 700, fontSize: '0.75rem', cursor: isForgotLoading ? 'wait' : 'pointer', transition: '0.3s', boxShadow: regMethod === 'phone' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', opacity: isForgotLoading ? 0.65 : 1 }}
                     >
                       Số điện thoại
                     </button>
@@ -151,18 +158,27 @@ const AuthPage = () => {
                   <AnimatePresence mode="wait">
                     {regMethod === 'email' ? (
                       <motion.div key="forgot-email" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-                        <div className="input-group"><Mail size={18} className="input-icon" /><input type="email" placeholder="Email của bạn" className="auth-input" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
+                        <div className="input-group"><Mail size={18} className="input-icon" /><input type="email" placeholder="Email của bạn" className="auth-input" value={formData.email} disabled={isForgotLoading} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
                       </motion.div>
                     ) : (
                       <motion.div key="forgot-phone" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
-                        <div className="input-group"><Phone size={18} className="input-icon" /><input type="text" placeholder="Số điện thoại của bạn" className="auth-input" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
+                        <div className="input-group"><Phone size={18} className="input-icon" /><input type="text" placeholder="Số điện thoại của bạn" className="auth-input" value={formData.phone} disabled={isForgotLoading} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
                   {error && <p style={{ color: '#ef4444', fontSize: '0.8rem' }}>{error}</p>}
-                  <button type="submit" className="btn-primary" style={{ height: '52px', marginTop: '0.5rem' }}>Gửi yêu cầu khôi phục</button>
-                  <button type="button" onClick={() => { setIsForgotPassword(false); setIsLogin(true); }} style={{ color: 'var(--text-muted)', border: 'none', background: 'none', fontWeight: 600, cursor: 'pointer' }}>Quay lại đăng nhập</button>
+                  <button type="submit" className="btn-primary" disabled={isForgotLoading} style={{ height: '52px', marginTop: '0.5rem', opacity: isForgotLoading ? 0.75 : 1, cursor: isForgotLoading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}>
+                    {isForgotLoading && (
+                      <motion.span
+                        style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.55)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block' }}
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                      />
+                    )}
+                    {isForgotLoading ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu khôi phục'}
+                  </button>
+                  <button type="button" disabled={isForgotLoading} onClick={() => { setIsForgotPassword(false); setIsLogin(true); }} style={{ color: 'var(--text-muted)', border: 'none', background: 'none', fontWeight: 600, cursor: isForgotLoading ? 'wait' : 'pointer', opacity: isForgotLoading ? 0.65 : 1 }}>Quay lại đăng nhập</button>
                 </form>
               </motion.div>
 

@@ -139,6 +139,39 @@ h3 {
   transform: scale(0.98);
 }
 
+/* Outlined secondary button */
+.btn-outline {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-outline:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.06),
+    rgba(96, 165, 250, 0.06)
+  );
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.08);
+}
+
+.btn-outline:focus {
+  outline: none;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.06);
+}
+
 .top-bar {
   background: white;
   border-bottom: 1px solid var(--border-color);
@@ -238,6 +271,307 @@ h3 {
 
 .voucher-card:hover .voucher-card__overlay {
   opacity: 1;
+}
+
+/* Partners page: logo slider and hero */
+.partners-hero h1 {
+  font-size: 3rem;
+  font-weight: 800;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+.hero-stat {
+  background: white;
+  padding: 0.9rem 1.2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+  min-width: 160px;
+  text-align: center;
+}
+.hero-stat h4 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+.hero-stat p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.logo-slider {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* fallback CSS animation when auto-scroll class is present */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.logo-slider.auto-scroll {
+  animation: scroll-left 22s linear infinite;
+}
+
+.logo-item {
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+}
+
+/* hide default scrollbar */
+.logo-slider::-webkit-scrollbar {
+  height: 8px;
+}
+.logo-slider::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+}
+.logo-slider::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.slider-control {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.slider-control.left {
+  left: 8px;
+}
+.slider-control.right {
+  right: 8px;
+}
+.slider-control:focus {
+  outline: 3px solid rgba(37, 99, 235, 0.12);
+}
+
+.partners-cta {
+  margin-top: 1.25rem;
+}
+
+/* Feature cards redesign */
+.feature-card {
+  position: relative;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  text-align: center;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1),
+    box-shadow 0.28s;
+  overflow: hidden;
+}
+.feature-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 6px;
+  width: 56px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-bottom-right-radius: 8px;
+}
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.12);
+}
+.feature-icon {
+  width: 64px;
+  height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.06),
+    rgba(124, 58, 237, 0.06)
+  );
+  margin: 0 auto 1rem;
+  color: var(--primary);
+}
+.feature-card h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
+}
+.feature-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Case study polish */
+.case-study {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.case-study .inner {
+  position: relative;
+  z-index: 2;
+}
+.case-study::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      800px 200px at 10% 20%,
+      rgba(255, 255, 255, 0.06),
+      transparent 20%
+    ),
+    radial-gradient(
+      600px 150px at 85% 80%,
+      rgba(255, 255, 255, 0.04),
+      transparent 30%
+    );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.case-study h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.6rem;
+  font-weight: 800;
+}
+.case-study p {
+  opacity: 0.95;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.testimonial-section {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(248, 250, 252, 0.95)
+  );
+  border-radius: 28px;
+  padding: 3rem 2rem;
+  box-shadow: 0 24px 55px rgba(15, 23, 42, 0.08);
+}
+.testimonial-section .eyebrow {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.testimonial-section h2 {
+  font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+  max-width: 760px;
+  margin: 0 auto;
+}
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.testimonial-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 24px;
+  border: 1px solid rgba(37, 99, 235, 0.08);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.testimonial-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--secondary));
+}
+.testimonial-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.15);
+}
+.testimonial-quote {
+  color: var(--text-main);
+  font-size: 1rem;
+  line-height: 1.8;
+  min-height: 7.5rem;
+}
+.testimonial-meta {
+  display: grid;
+  gap: 0.25rem;
+}
+.testimonial-meta strong {
+  font-size: 1rem;
+  color: var(--text-main);
+}
+.testimonial-meta span {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* CTA tweaks */
+.partners-cta .btn-primary {
+  border-radius: 28px;
+  padding: 1.25rem 3.25rem;
+  font-size: 1.15rem;
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.14);
+}
+.partners-cta .subtext {
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .partners-hero h1 {
+    font-size: 2rem;
+  }
+  .hero-stats {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .hero-stat {
+    min-width: 100%;
+  }
+  .logo-slider {
+    gap: 0.75rem;
+  }
 }
 
 .voucher-card__overlay button {

@@ -25,6 +25,7 @@ const Checkout = () => {
   const [qrData, setQrData] = useState(null);
   const [countdown, setCountdown] = useState(600); // 10 phút đếm ngược
   const [confirmingQr, setConfirmingQr] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -68,7 +69,7 @@ const Checkout = () => {
         setCountdown(prev => prev - 1);
       }, 1000);
     } else if (countdown === 0) {
-      setShowQrModal(false);
+      handleCancelOrder('expired');
       setError('Đã hết hạn thời gian thanh toán VietQR. Vui lòng thử lại!');
     }
     return () => clearInterval(timer);
@@ -103,6 +104,19 @@ const Checkout = () => {
     };
     
     try {
+      const validateRes = await fetch(`${API_BASE_URL}/api/orders/validate-cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: payload.items })
+      });
+      const validateData = await validateRes.json();
+      if (!validateRes.ok || !validateData.valid) {
+        throw new Error(validateData.errors?.[0]?.message || validateData.message || 'Cart contains unavailable vouchers.');
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
         method: 'POST',
         headers: {
@@ -127,6 +141,7 @@ const Checkout = () => {
       } 
       else if (paymentMethod === 'VietQR') {
         // Mở popup quét mã QR ngân hàng
+        setActiveOrderId(data.orderId);
         setQrData(data);
         setCountdown(600);
         setShowQrModal(true);
@@ -167,6 +182,27 @@ const Checkout = () => {
     } finally {
       setConfirmingQr(false);
     }
+  };
+
+  const handleCancelOrder = async (reason = 'cancelled') => {
+    const token = localStorage.getItem('token');
+    const orderId = activeOrderId || qrData?.orderId;
+    if (orderId) {
+      try {
+        await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ reason })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setShowQrModal(false);
+    setError(reason === 'expired' ? 'VietQR payment time expired. Please try again.' : 'Order cancelled.');
   };
 
   return (
@@ -629,7 +665,7 @@ const Checkout = () => {
               {/* Nút hành động */}
               <div style={{ display: 'flex', width: '100%', gap: '12px' }}>
                 <button
-                  onClick={() => setShowQrModal(false)}
+                  onClick={() => handleCancelOrder('customer_cancelled')}
                   style={{
                     flex: 1,
                     height: '48px',

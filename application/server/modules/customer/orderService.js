@@ -1,56 +1,115 @@
 const pool = require('../../config/db');
 
+const ORDER_STATUS = {
+    PENDING: 'Pending',
+    PAID: 'Paid',
+    CANCELLED: 'Cancelled',
+    FAILED: 'Failed',
+    EXPIRED: 'Expired',
+};
+
 class OrderService {
-    /**
-     * Tạo đơn hàng mới ở trạng thái Pending
-     */
+    async validateCart(items) {
+        if (!Array.isArray(items) || items.length === 0) {
+            throw new Error('Cart is empty.');
+        }
+
+        const normalized = this.normalizeItems(items);
+
+        if (normalized.some((item) => !Number.isInteger(item.voucher_id) || !Number.isInteger(item.quantity) || item.quantity <= 0)) {
+            throw new Error('Cart contains invalid voucher quantities.');
+        }
+
+        const voucherIds = [...new Set(normalized.map((item) => item.voucher_id))];
+        const { rows } = await pool.query(
+            `
+                SELECT voucher_id, title, sale_price, quantity_stock, status, start_date, expiry_date
+                FROM Vouchers
+                WHERE voucher_id = ANY($1::int[])
+            `,
+            [voucherIds]
+        );
+
+        const voucherMap = new Map(rows.map((row) => [Number(row.voucher_id), row]));
+        const validatedItems = [];
+        const errors = [];
+        let totalAmount = 0;
+        const now = new Date();
+
+        for (const item of normalized) {
+            const voucher = voucherMap.get(item.voucher_id);
+            if (!voucher) {
+                errors.push({ voucher_id: item.voucher_id, message: 'Voucher does not exist.' });
+                continue;
+            }
+
+            const valid = voucher.status === 'Approved'
+                && new Date(voucher.start_date) <= now
+                && new Date(voucher.expiry_date) > now
+                && Number(voucher.quantity_stock) >= item.quantity;
+
+            if (!valid) {
+                errors.push({
+                    voucher_id: item.voucher_id,
+                    title: voucher.title,
+                    quantity_stock: Number(voucher.quantity_stock),
+                    status: voucher.status,
+                    message: 'Voucher is not available for checkout.',
+                });
+                continue;
+            }
+
+            const lineTotal = Number(voucher.sale_price) * item.quantity;
+            totalAmount += lineTotal;
+            validatedItems.push({
+                voucher_id: item.voucher_id,
+                quantity: item.quantity,
+                title: voucher.title,
+                sale_price: voucher.sale_price,
+                quantity_stock: Number(voucher.quantity_stock),
+                line_total: lineTotal,
+            });
+        }
+
+        return { valid: errors.length === 0, totalAmount, items: validatedItems, errors };
+    }
+
     async createOrder(customerId, shippingInfo, items, paymentMethod) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            
-            // Lấy địa chỉ động do khách hàng nhập từ shippingInfo
+
+            const normalizedItems = this.normalizeItems(items);
+            const { valid, errors, totalAmount } = await this.validateCartWithClient(client, normalizedItems);
+            if (!valid) {
+                throw new Error(errors[0]?.message || 'Cart contains unavailable vouchers.');
+            }
+
             const { name, phone, email, address } = shippingInfo;
-            
-            // 1. Tính tổng số tiền dựa trên giá trị sale_price thực tế của vouchers trong DB (Chống hack giá client)
-            let totalAmount = 0;
-            for (const item of items) {
-                const voucherRes = await client.query('SELECT sale_price FROM Vouchers WHERE voucher_id = $1', [item.voucher_id]);
-                if (voucherRes.rows.length === 0) {
-                    throw new Error(`Voucher ID ${item.voucher_id} không tồn tại.`);
-                }
-                totalAmount += parseFloat(voucherRes.rows[0].sale_price) * item.quantity;
-            }
-            
-            // 2. Chèn đơn hàng mới ở trạng thái Pending (Đồng thời lưu shipping_address)
-            const orderQuery = `
-                INSERT INTO Orders (customer_id, total_amount, status, payment_method, shipping_name, shipping_phone, shipping_email, shipping_address)
-                VALUES ($1, $2, 'Pending', $3, $4, $5, $6, $7)
-                RETURNING order_id
-            `;
-            const orderRes = await client.query(orderQuery, [
-                customerId, 
-                totalAmount, 
-                paymentMethod, 
-                name, 
-                phone, 
-                email,
-                address || null
-            ]);
+            const orderRes = await client.query(
+                `
+                    INSERT INTO Orders (
+                        customer_id, total_amount, status, payment_method,
+                        shipping_name, shipping_phone, shipping_email, shipping_address
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    RETURNING order_id
+                `,
+                [customerId, totalAmount, ORDER_STATUS.PENDING, paymentMethod, name, phone, email, address || null]
+            );
+
             const orderId = orderRes.rows[0].order_id;
-            
-            // 3. Chèn các mặt hàng chi tiết (Ràng buộc nghiệp vụ tồn kho sẽ tự động chạy qua DB Trigger trg_validate_order_item)
-            const itemQuery = `
-                INSERT INTO Order_Items (order_id, voucher_id, quantity, price_at_purchase)
-                VALUES ($1, $2, $3, $4)
-                RETURNING order_item_id
-            `;
-            for (const item of items) {
+            for (const item of normalizedItems) {
                 const voucherRes = await client.query('SELECT sale_price FROM Vouchers WHERE voucher_id = $1', [item.voucher_id]);
-                const price = voucherRes.rows[0].sale_price;
-                await client.query(itemQuery, [orderId, item.voucher_id, item.quantity, price]);
+                await client.query(
+                    `
+                        INSERT INTO Order_Items (order_id, voucher_id, quantity, price_at_purchase)
+                        VALUES ($1, $2, $3, $4)
+                    `,
+                    [orderId, item.voucher_id, item.quantity, voucherRes.rows[0].sale_price]
+                );
             }
-            
+
             await client.query('COMMIT');
             return { orderId, totalAmount };
         } catch (err) {
@@ -60,62 +119,138 @@ class OrderService {
             client.release();
         }
     }
-    
-    /**
-     * Cập nhật đơn hàng thành công (Paid) và tự động sinh mã E-Vouchers để khách hàng sử dụng
-     */
-    async completeOrder(orderId, transactionRef) {
+
+    async validateCartWithClient(client, items) {
+        if (!Array.isArray(items) || items.length === 0) {
+            throw new Error('Cart is empty.');
+        }
+
+        const normalized = this.normalizeItems(items);
+        const errors = [];
+        let totalAmount = 0;
+
+        for (const item of normalized) {
+            if (!Number.isInteger(item.voucher_id) || !Number.isInteger(item.quantity) || item.quantity <= 0) {
+                errors.push({ voucher_id: item.voucher_id, message: 'Invalid voucher quantity.' });
+                continue;
+            }
+
+            const voucherRes = await client.query(
+                `
+                    SELECT voucher_id, title, sale_price, quantity_stock, status, start_date, expiry_date
+                    FROM Vouchers
+                    WHERE voucher_id = $1
+                    FOR UPDATE
+                `,
+                [item.voucher_id]
+            );
+
+            if (voucherRes.rows.length === 0) {
+                errors.push({ voucher_id: item.voucher_id, message: 'Voucher does not exist.' });
+                continue;
+            }
+
+            const voucher = voucherRes.rows[0];
+            const isAvailable = voucher.status === 'Approved'
+                && new Date(voucher.start_date) <= new Date()
+                && new Date(voucher.expiry_date) > new Date()
+                && Number(voucher.quantity_stock) >= item.quantity;
+
+            if (!isAvailable) {
+                errors.push({
+                    voucher_id: item.voucher_id,
+                    title: voucher.title,
+                    quantity_stock: Number(voucher.quantity_stock),
+                    message: `Voucher "${voucher.title}" is unavailable or out of stock.`,
+                });
+                continue;
+            }
+
+            totalAmount += Number(voucher.sale_price) * item.quantity;
+        }
+
+        return { valid: errors.length === 0, totalAmount, errors };
+    }
+
+    normalizeItems(items) {
+        const merged = new Map();
+        for (const item of items) {
+            const voucherId = Number(item.voucher_id);
+            const quantity = Number(item.quantity);
+            if (!merged.has(voucherId)) {
+                merged.set(voucherId, { voucher_id: voucherId, quantity: 0 });
+            }
+            merged.get(voucherId).quantity += quantity;
+        }
+        return [...merged.values()];
+    }
+
+    async assertCustomerOwnsOrder(orderId, customerId) {
+        const { rows } = await pool.query(
+            'SELECT order_id, status FROM Orders WHERE order_id = $1 AND customer_id = $2',
+            [orderId, customerId]
+        );
+        if (rows.length === 0) {
+            const error = new Error('Order not found.');
+            error.statusCode = 404;
+            throw error;
+        }
+        return rows[0];
+    }
+
+    async completeOrder(orderId, transactionRef, customerId = null) {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            
-            // 1. Kiểm tra đơn hàng hiện tại
-            const orderRes = await client.query('SELECT status, total_amount FROM Orders WHERE order_id = $1', [orderId]);
+
+            const params = customerId ? [orderId, customerId] : [orderId];
+            const orderQuery = customerId
+                ? 'SELECT status FROM Orders WHERE order_id = $1 AND customer_id = $2 FOR UPDATE'
+                : 'SELECT status FROM Orders WHERE order_id = $1 FOR UPDATE';
+            const orderRes = await client.query(orderQuery, params);
+
             if (orderRes.rows.length === 0) {
-                throw new Error('Đơn hàng không tồn tại.');
+                const error = new Error('Order not found.');
+                error.statusCode = 404;
+                throw error;
             }
-            
+
             const order = orderRes.rows[0];
-            if (order.status === 'Paid') {
-                // Đã xử lý thanh toán trước đó (Chống lặp lệnh thanh toán kép từ IPN)
+            if (order.status === ORDER_STATUS.PAID) {
                 await client.query('COMMIT');
                 return true;
             }
-            
-            // 2. Cập nhật trạng thái đơn hàng thành Paid
+            if (order.status !== ORDER_STATUS.PENDING) {
+                throw new Error(`Order cannot be completed from status ${order.status}.`);
+            }
+
             await client.query(
-                `UPDATE Orders SET status = 'Paid', transaction_reference = $1 WHERE order_id = $2`,
-                [transactionRef || 'SYSTEM_AUTO', orderId]
+                `UPDATE Orders SET status = $1, transaction_reference = $2 WHERE order_id = $3`,
+                [ORDER_STATUS.PAID, transactionRef || 'SYSTEM_AUTO', orderId]
             );
-            
-            // 3. Lấy chi tiết các voucher đã mua và thời hạn hết hạn gốc của voucher
-            const itemsQuery = `
-                SELECT oi.order_item_id, oi.voucher_id, oi.quantity, v.expiry_date 
-                FROM Order_Items oi
-                JOIN Vouchers v ON oi.voucher_id = v.voucher_id
-                WHERE oi.order_id = $1
-            `;
-            const itemsRes = await client.query(itemsQuery, [orderId]);
-            
-            // 4. Phát hành mã E-Vouchers tương ứng với từng số lượng (quantity)
-            const evoucherQuery = `
-                INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
-                VALUES ($1, $2, 'Unused', $3)
-            `;
-            
+
+            const itemsRes = await client.query(
+                `
+                    SELECT oi.order_item_id, oi.quantity, v.expiry_date,
+                        COUNT(ev.evoucher_id)::int AS existing_count
+                    FROM Order_Items oi
+                    JOIN Vouchers v ON oi.voucher_id = v.voucher_id
+                    LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                    WHERE oi.order_id = $1
+                    GROUP BY oi.order_item_id, oi.quantity, v.expiry_date
+                    ORDER BY oi.order_item_id
+                `,
+                [orderId]
+            );
+
             for (const item of itemsRes.rows) {
-                for (let i = 0; i < item.quantity; i++) {
-                    const uniqueCode = this.generateUniqueCode();
-                    await client.query(evoucherQuery, [
-                        item.order_item_id, 
-                        uniqueCode, 
-                        item.expiry_date
-                    ]);
+                const missingCount = Number(item.quantity) - Number(item.existing_count);
+                for (let i = 0; i < missingCount; i++) {
+                    await this.insertEVoucher(client, item.order_item_id, item.expiry_date);
                 }
             }
-            
+
             await client.query('COMMIT');
-            console.log(`Đơn hàng #${orderId} hoàn tất! Đã phát hành mã E-Voucher.`);
             return true;
         } catch (err) {
             await client.query('ROLLBACK');
@@ -124,26 +259,105 @@ class OrderService {
             client.release();
         }
     }
-    
-    /**
-     * Lấy danh sách E-Vouchers đã mua của một đơn hàng để hiển thị trực quan ở Frontend
-     */
-    async getOrderEVouchers(orderId) {
-        const query = `
-            SELECT ev.unique_code, ev.status, ev.expiry_date, v.title, v.image_url, p.company_name
-            FROM E_Vouchers ev
-            JOIN Order_Items oi ON ev.order_item_id = oi.order_item_id
-            JOIN Vouchers v ON oi.voucher_id = v.voucher_id
-            JOIN Partners p ON v.partner_id = p.user_id
-            WHERE oi.order_id = $1
-        `;
-        const res = await pool.query(query, [orderId]);
+
+    async insertEVoucher(client, orderItemId, expiryDate) {
+        for (let attempts = 0; attempts < 5; attempts++) {
+            try {
+                await client.query(
+                    `
+                        INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
+                        VALUES ($1, $2, 'Unused', $3)
+                    `,
+                    [orderItemId, this.generateUniqueCode(), expiryDate]
+                );
+                return;
+            } catch (error) {
+                if (error.code !== '23505') throw error;
+            }
+        }
+        throw new Error('Could not generate a unique e-voucher code.');
+    }
+
+    async restoreStockForOrder(client, orderId) {
+        await client.query(
+            `
+                UPDATE Vouchers v
+                SET quantity_stock = LEAST(v.total_quantity, v.quantity_stock + oi.quantity)
+                FROM Order_Items oi
+                WHERE oi.order_id = $1 AND oi.voucher_id = v.voucher_id
+            `,
+            [orderId]
+        );
+    }
+
+    async cancelOrder(orderId, customerId, reason = null) {
+        return this.closePendingOrder(orderId, customerId, ORDER_STATUS.CANCELLED, reason);
+    }
+
+    async markOrderFailed(orderId, customerId, transactionRef = null) {
+        return this.closePendingOrder(orderId, customerId, ORDER_STATUS.FAILED, transactionRef);
+    }
+
+    async closePendingOrder(orderId, customerId, status, transactionRef = null) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const orderRes = await client.query(
+                'SELECT status FROM Orders WHERE order_id = $1 AND customer_id = $2 FOR UPDATE',
+                [orderId, customerId]
+            );
+            if (orderRes.rows.length === 0) {
+                const error = new Error('Order not found.');
+                error.statusCode = 404;
+                throw error;
+            }
+            if (orderRes.rows[0].status !== ORDER_STATUS.PENDING) {
+                throw new Error('Only pending orders can be changed.');
+            }
+
+            await this.restoreStockForOrder(client, orderId);
+            await client.query(
+                'UPDATE Orders SET status = $1, transaction_reference = COALESCE($2, transaction_reference) WHERE order_id = $3',
+                [status, transactionRef, orderId]
+            );
+            await client.query('COMMIT');
+            return true;
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getOrderEVouchers(orderId, customerId) {
+        const order = await this.assertCustomerOwnsOrder(orderId, customerId);
+        if (order.status !== ORDER_STATUS.PAID) {
+            const error = new Error('E-vouchers are only available after payment.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const res = await pool.query(
+            `
+                SELECT ev.evoucher_id, ev.unique_code, ev.status, ev.expiry_date,
+                    ev.used_at_branch_id, ev.used_date,
+                    b.branch_name AS used_branch_name,
+                    v.voucher_id, v.title, v.image_url, p.company_name
+                FROM E_Vouchers ev
+                JOIN Order_Items oi ON ev.order_item_id = oi.order_item_id
+                JOIN Orders o ON oi.order_id = o.order_id
+                JOIN Vouchers v ON oi.voucher_id = v.voucher_id
+                JOIN Partners p ON v.partner_id = p.user_id
+                LEFT JOIN Branches b ON ev.used_at_branch_id = b.branch_id
+                WHERE oi.order_id = $1 AND o.customer_id = $2 AND o.status = $3
+                ORDER BY ev.evoucher_id
+            `,
+            [orderId, customerId, ORDER_STATUS.PAID]
+        );
         return res.rows;
     }
-    
-    /**
-     * Sinh mã E-Voucher ngẫu nhiên 12 ký tự duy nhất
-     */
+
     generateUniqueCode() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let code = 'DLZ';
@@ -153,71 +367,115 @@ class OrderService {
         return code;
     }
 
-    /**
-     * Lấy toàn bộ danh sách E-Vouchers đã mua của khách hàng đăng nhập
-     */
     async getCustomerEVouchers(customerId) {
-        const query = `
-            SELECT 
-                ev.unique_code, 
-                ev.status, 
-                ev.expiry_date, 
-                v.voucher_id,
-                v.title, 
-                v.image_url, 
-                p.company_name,
-                o.order_id,
-                o.order_date as purchase_date,
-                EXISTS (
-                    SELECT 1 FROM Reviews r 
-                    WHERE r.customer_id = $1 AND r.voucher_id = v.voucher_id
-                ) as is_reviewed
-            FROM E_Vouchers ev
-            JOIN Order_Items oi ON ev.order_item_id = oi.order_item_id
-            JOIN Vouchers v ON oi.voucher_id = v.voucher_id
-            JOIN Partners p ON v.partner_id = p.user_id
-            JOIN Orders o ON oi.order_id = o.order_id
-            WHERE o.customer_id = $1 AND o.status = 'Paid'
-            ORDER BY o.order_date DESC
-        `;
-        const res = await pool.query(query, [customerId]);
+        const res = await pool.query(
+            `
+                SELECT ev.evoucher_id, ev.unique_code, ev.status, ev.expiry_date,
+                    ev.used_at_branch_id, ev.used_date,
+                    b.branch_name AS used_branch_name,
+                    v.voucher_id, v.title, v.image_url, p.company_name,
+                    o.order_id, o.order_date AS purchase_date,
+                    EXISTS (
+                        SELECT 1 FROM Reviews r
+                        WHERE r.customer_id = $1 AND r.voucher_id = v.voucher_id
+                    ) AS is_reviewed
+                FROM E_Vouchers ev
+                JOIN Order_Items oi ON ev.order_item_id = oi.order_item_id
+                JOIN Vouchers v ON oi.voucher_id = v.voucher_id
+                JOIN Partners p ON v.partner_id = p.user_id
+                JOIN Orders o ON oi.order_id = o.order_id
+                LEFT JOIN Branches b ON ev.used_at_branch_id = b.branch_id
+                WHERE o.customer_id = $1 AND o.status = $2
+                ORDER BY o.order_date DESC, ev.evoucher_id DESC
+            `,
+            [customerId, ORDER_STATUS.PAID]
+        );
         return res.rows;
     }
 
-    /**
-     * Tạo đánh giá mới cho Voucher
-     */
+    async getCustomerOrders(customerId) {
+        const res = await pool.query(
+            `
+                SELECT o.order_id, o.order_date, o.total_amount, o.status, o.payment_method,
+                    o.transaction_reference, o.shipping_name, o.shipping_phone, o.shipping_email,
+                    COUNT(DISTINCT oi.order_item_id)::int AS item_count,
+                    COALESCE(SUM(oi.quantity), 0)::int AS voucher_quantity,
+                    COUNT(ev.evoucher_id)::int AS evoucher_count
+                FROM Orders o
+                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                WHERE o.customer_id = $1
+                GROUP BY o.order_id
+                ORDER BY o.order_date DESC, o.order_id DESC
+            `,
+            [customerId]
+        );
+        return res.rows;
+    }
+
+    async getCustomerOrderDetail(orderId, customerId) {
+        await this.assertCustomerOwnsOrder(orderId, customerId);
+
+        const orderRes = await pool.query(
+            `
+                SELECT order_id, customer_id, order_date, total_amount, status, payment_method,
+                    transaction_reference, shipping_name, shipping_phone, shipping_email, shipping_address
+                FROM Orders
+                WHERE order_id = $1 AND customer_id = $2
+            `,
+            [orderId, customerId]
+        );
+
+        const itemsRes = await pool.query(
+            `
+                SELECT oi.order_item_id, oi.voucher_id, oi.quantity, oi.price_at_purchase,
+                    v.title, v.image_url, p.company_name
+                FROM Order_Items oi
+                JOIN Vouchers v ON oi.voucher_id = v.voucher_id
+                JOIN Partners p ON v.partner_id = p.user_id
+                WHERE oi.order_id = $1
+                ORDER BY oi.order_item_id
+            `,
+            [orderId]
+        );
+
+        const evouchers = orderRes.rows[0].status === ORDER_STATUS.PAID
+            ? await this.getOrderEVouchers(orderId, customerId)
+            : [];
+
+        return { ...orderRes.rows[0], items: itemsRes.rows, evouchers };
+    }
+
     async createReview(customerId, voucherId, rating, comment) {
-        // 1. Kiểm tra khách hàng đã mua voucher này chưa
-        const purchaseCheckQuery = `
-            SELECT 1 FROM Orders o
-            JOIN Order_Items oi ON o.order_id = oi.order_id
-            WHERE o.customer_id = $1 AND oi.voucher_id = $2 AND o.status = 'Paid'
-            LIMIT 1
-        `;
-        const purchaseCheck = await pool.query(purchaseCheckQuery, [customerId, voucherId]);
+        const purchaseCheck = await pool.query(
+            `
+                SELECT 1 FROM Orders o
+                JOIN Order_Items oi ON o.order_id = oi.order_id
+                WHERE o.customer_id = $1 AND oi.voucher_id = $2 AND o.status = $3
+                LIMIT 1
+            `,
+            [customerId, voucherId, ORDER_STATUS.PAID]
+        );
         if (purchaseCheck.rows.length === 0) {
-            throw new Error('Bạn chỉ có thể đánh giá các voucher mà bạn đã mua thành công.');
+            throw new Error('You can only review vouchers from paid orders.');
         }
 
-        // 2. Kiểm tra xem khách hàng đã đánh giá voucher này chưa
-        const reviewCheckQuery = `
-            SELECT 1 FROM Reviews 
-            WHERE customer_id = $1 AND voucher_id = $2
-            LIMIT 1
-        `;
-        const reviewCheck = await pool.query(reviewCheckQuery, [customerId, voucherId]);
+        const reviewCheck = await pool.query(
+            'SELECT 1 FROM Reviews WHERE customer_id = $1 AND voucher_id = $2 LIMIT 1',
+            [customerId, voucherId]
+        );
         if (reviewCheck.rows.length > 0) {
-            throw new Error('Bạn đã đánh giá voucher này rồi.');
+            throw new Error('You have already reviewed this voucher.');
         }
 
-        // 3. Thêm đánh giá mới vào cơ sở dữ liệu
-        const insertQuery = `
-            INSERT INTO Reviews (customer_id, voucher_id, rating, comment)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *
-        `;
-        const res = await pool.query(insertQuery, [customerId, voucherId, rating, comment]);
+        const res = await pool.query(
+            `
+                INSERT INTO Reviews (customer_id, voucher_id, rating, comment)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+            `,
+            [customerId, voucherId, rating, comment]
+        );
         return res.rows[0];
     }
 }

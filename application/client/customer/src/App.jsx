@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer'; // 1. Import Footer mới vào đây
@@ -73,6 +73,16 @@ const PageWrapper = ({ children }) => (
   </motion.div>
 );
 
+const ProtectedRoute = ({ children }) => {
+  const location = useLocation();
+  const token = localStorage.getItem('token');
+  if (!token) {
+    const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
+  }
+  return children;
+};
+
 function AnimatedRoutes() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth' || location.pathname.startsWith('/reset-password/') || location.pathname === '/register-customer' || location.pathname === '/register-partner';
@@ -111,11 +121,11 @@ function AnimatedRoutes() {
             <Route path="/terms" element={<PageWrapper><TermsOfService /></PageWrapper>} />
             <Route path="/privacy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
             <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
-            <Route path="/profile" element={<PageWrapper><Profile /></PageWrapper>} />
+            <Route path="/profile" element={<PageWrapper><ProtectedRoute><Profile /></ProtectedRoute></PageWrapper>} />
             <Route path="/search" element={<PageWrapper><SearchVouchers /></PageWrapper>} />
             <Route path="/voucher/:id" element={<PageWrapper><VoucherDetail /></PageWrapper>} />
-            <Route path="/checkout" element={<PageWrapper><Checkout /></PageWrapper>} />
-            <Route path="/payment/status" element={<PageWrapper><PaymentStatus /></PageWrapper>} />
+            <Route path="/checkout" element={<PageWrapper><ProtectedRoute><Checkout /></ProtectedRoute></PageWrapper>} />
+            <Route path="/payment/status" element={<PageWrapper><ProtectedRoute><PaymentStatus /></ProtectedRoute></PageWrapper>} />
           </Routes>
         </AnimatePresence>
       </div>

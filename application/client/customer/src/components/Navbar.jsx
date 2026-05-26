@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShoppingCart,
   User,
@@ -80,13 +80,17 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchBarRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const [categories, setCategories] = useState([]);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isSearchCategoryDropdownOpen, setIsSearchCategoryDropdownOpen] =
+    useState(false);
+  const [isSubCategoryDropdownOpen, setIsSubCategoryDropdownOpen] =
+    useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   const categoryIcons = {
@@ -152,13 +156,23 @@ const Navbar = () => {
 
   // Tự động đóng dropdown khi click chuột ra ngoài vùng tìm kiếm
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".search-bar-container")) {
+    const handlePointerDownOutside = (event) => {
+      if (
+        searchBarRef.current &&
+        !searchBarRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
+        setIsSearchCategoryDropdownOpen(false);
       }
     };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
+    return () =>
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDownOutside,
+        true,
+      );
   }, []);
 
   const handleLogout = () => {
@@ -180,6 +194,7 @@ const Navbar = () => {
       }
       navigate(`/search?${params.toString()}`);
       setShowSuggestions(false);
+      setIsSearchCategoryDropdownOpen(false);
     }
   };
 
@@ -291,12 +306,15 @@ const Navbar = () => {
 
           {/* Search Bar */}
           <form
+            ref={searchBarRef}
             onSubmit={handleSearch}
             className="search-bar-container"
             style={{ position: "relative" }}
           >
             <div
-              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+              onClick={() =>
+                setIsSearchCategoryDropdownOpen(!isSearchCategoryDropdownOpen)
+              }
               style={{
                 padding: "0 1rem",
                 borderRight: "1px solid var(--border-color)",
@@ -315,7 +333,7 @@ const Navbar = () => {
                   <ChevronDown
                     size={14}
                     style={{
-                      transform: isCategoryDropdownOpen
+                      transform: isSearchCategoryDropdownOpen
                         ? "rotate(180deg)"
                         : "rotate(0deg)",
                       transition: "transform 0.2s",
@@ -328,7 +346,7 @@ const Navbar = () => {
                   <ChevronDown
                     size={14}
                     style={{
-                      transform: isCategoryDropdownOpen
+                      transform: isSearchCategoryDropdownOpen
                         ? "rotate(180deg)"
                         : "rotate(0deg)",
                       transition: "transform 0.2s",
@@ -340,7 +358,7 @@ const Navbar = () => {
 
             {/* Category Dropdown */}
             <AnimatePresence>
-              {isCategoryDropdownOpen && (
+              {isSearchCategoryDropdownOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -600,6 +618,7 @@ const Navbar = () => {
                           onClick={() => {
                             navigate(`/voucher/${voucher.voucher_id}`);
                             setShowSuggestions(false);
+                            setIsSearchCategoryDropdownOpen(false);
                             setSearchQuery("");
                           }}
                           style={{
@@ -747,6 +766,7 @@ const Navbar = () => {
                           }
                           navigate(`/search?${params.toString()}`);
                           setShowSuggestions(false);
+                          setIsSearchCategoryDropdownOpen(false);
                         }}
                         style={{
                           padding: "0.75rem 1.25rem",
@@ -806,6 +826,7 @@ const Navbar = () => {
           {/* Cart & User */}
           <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
             <Link
+              id="cart-target"
               to="/cart"
               style={{
                 position: "relative",
@@ -964,15 +985,15 @@ const Navbar = () => {
                 display: "flex",
                 alignItems: "center",
               }}
-              onMouseEnter={() => setIsCategoryDropdownOpen(true)}
-              onMouseLeave={() => setIsCategoryDropdownOpen(false)}
+              onMouseEnter={() => setIsSubCategoryDropdownOpen(true)}
+              onMouseLeave={() => setIsSubCategoryDropdownOpen(false)}
             >
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "0.75rem",
-                  background: isCategoryDropdownOpen
+                  background: isSubCategoryDropdownOpen
                     ? "rgba(255,255,255,0.25)"
                     : "rgba(255,255,255,0.15)",
                   height: "100%",
@@ -987,7 +1008,7 @@ const Navbar = () => {
                 <ChevronDown
                   size={16}
                   style={{
-                    transform: isCategoryDropdownOpen
+                    transform: isSubCategoryDropdownOpen
                       ? "rotate(180deg)"
                       : "rotate(0deg)",
                     transition: "0.3s",
@@ -996,7 +1017,7 @@ const Navbar = () => {
               </div>
 
               <AnimatePresence>
-                {isCategoryDropdownOpen && (
+                {isSubCategoryDropdownOpen && (
                   <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1022,7 +1043,7 @@ const Navbar = () => {
                         <Link
                           key={cat.category_id}
                           to={`/search?category=${cat.category_id}`}
-                          onClick={() => setIsCategoryDropdownOpen(false)}
+                          onClick={() => setIsSubCategoryDropdownOpen(false)}
                           style={{
                             display: "flex",
                             alignItems: "center",

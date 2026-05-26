@@ -23,6 +23,17 @@ const PaymentStatus = () => {
       return;
     }
 
+    if (status === 'fail' && orderId) {
+      fetch(`${API_BASE_URL}/api/orders/${orderId}/fail`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ transactionRef: paymentMethod || 'PAYMENT_FAIL' })
+      }).catch(err => console.error(err));
+    }
+
     if (status === 'success' && orderId) {
       setLoading(true);
       fetch(`${API_BASE_URL}/api/orders/evouchers/${orderId}`, {
@@ -47,7 +58,9 @@ const PaymentStatus = () => {
           setLoading(false);
         });
     }
-  }, [status, orderId, navigate]);
+  }, [status, orderId, paymentMethod, navigate]);
+
+  const qrCodeUrl = (code) => `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(code)}`;
 
   return (
     <div style={{ paddingTop: '180px', paddingBottom: '80px', minHeight: '100vh', background: '#f8fafc' }}>
@@ -171,14 +184,18 @@ const PaymentStatus = () => {
                       </div>
 
                       {/* Barcode/QR Code Giả lập cho xịn */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '4px', opacity: 0.8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '4px' }}>
+                        <img src={qrCodeUrl(ev.unique_code)} alt={`QR ${ev.unique_code}`} style={{ width: '120px', height: '120px', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                           <Barcode size={24} /> Barcode Active
                         </div>
                         <div style={{ width: '1px', height: '16px', background: '#cbd5e1' }} />
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          <QrCode size={18} /> QR Verified
+                          <QrCode size={18} /> QR scans real code
                         </div>
+                        <button type="button" onClick={() => navigator.clipboard?.writeText(ev.unique_code)} style={{ border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', padding: '0.35rem 0.6rem', fontWeight: 700, cursor: 'pointer' }}>
+                          Copy code
+                        </button>
                       </div>
                     </div>
 

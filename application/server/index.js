@@ -6,6 +6,7 @@ const voucherRoutes = require('./modules/shared/voucherRoutes');
 const authRoutes = require('./modules/auth/authRoutes');
 const adminRoutes = require('./modules/admin/adminRoutes');
 const orderRoutes = require('./modules/customer/orderRoutes');
+const complaintRoutes = require('./modules/customer/complaintRoutes');
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.use('/api/vouchers', voucherRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/complaints', complaintRoutes);
 
 // Health check
 app.get('/', (req, res) => res.send('API TMDT Voucher is running...'));

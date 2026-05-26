@@ -24,14 +24,15 @@ export const CartProvider = ({ children }) => {
   const addToCart = (voucher) => {
     setCartItems(prev => {
       const existing = prev.find(item => item.voucher_id === voucher.voucher_id);
+      const stock = Number(voucher.quantity_stock || existing?.quantity_stock || 1);
       if (existing) {
         return prev.map(item =>
           item.voucher_id === voucher.voucher_id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: Math.min(stock, item.quantity + 1), quantity_stock: stock }
             : item
         );
       }
-      return [...prev, { ...voucher, quantity: 1 }];
+      return [...prev, { ...voucher, quantity: 1, quantity_stock: stock }];
     });
   };
 
@@ -46,7 +47,9 @@ export const CartProvider = ({ children }) => {
     }
     setCartItems(prev =>
       prev.map(item =>
-        item.voucher_id === voucherId ? { ...item, quantity } : item
+        item.voucher_id === voucherId
+          ? { ...item, quantity: Math.min(Number(item.quantity_stock || quantity), quantity) }
+          : item
       )
     );
   };

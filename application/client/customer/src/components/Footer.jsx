@@ -63,7 +63,6 @@ const bottomLinks = [
   { to: "/terms", label: "Điều khoản dịch vụ" },
   { to: "/privacy", label: "Chính sách bảo mật" },
   { to: "/privacy", label: "Cookie" },
-  { to: "/search", label: "Sơ đồ trang" },
 ];
 
 const socialLinks = [
