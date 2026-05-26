@@ -56,10 +56,10 @@ const Checkout = () => {
 
     fetchProfile();
     
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && !showQrModal && !activeOrderId) {
       navigate('/cart');
     }
-  }, [navigate, cartItems]);
+  }, [navigate, cartItems, showQrModal, activeOrderId]);
 
   // Bộ đếm ngược cho VietQR
   useEffect(() => {
@@ -132,10 +132,9 @@ const Checkout = () => {
         throw new Error(data.message || 'Thanh toán đơn hàng thất bại.');
       }
       
-      // Xóa giỏ hàng local vì đơn hàng đã được chốt ở Server
-      clearCart();
-      
       if (paymentMethod === 'VNPay' || paymentMethod === 'MoMo' || paymentMethod === 'PayPal') {
+        // External gateways leave the checkout page immediately, so clear the local cart now.
+        clearCart();
         // Redirect trực tiếp sang trang cổng thanh toán
         window.location.href = data.paymentUrl;
       } 
@@ -170,6 +169,7 @@ const Checkout = () => {
       });
       
       if (res.ok) {
+        clearCart();
         setShowQrModal(false);
         navigate(`/payment/status?status=success&orderId=${qrData.orderId}&payment=vietqr`);
       } else {
@@ -580,7 +580,8 @@ const Checkout = () => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 10000,
-            padding: '1rem'
+            padding: '1rem',
+            overflowY: 'auto'
           }}>
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
@@ -588,10 +589,12 @@ const Checkout = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               style={{
                 background: 'white',
-                padding: '2.5rem',
-                borderRadius: '32px',
+                padding: '1.5rem',
+                borderRadius: '24px',
                 width: '100%',
                 maxWidth: '480px',
+                maxHeight: 'calc(100vh - 2rem)',
+                overflowY: 'auto',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                 textAlign: 'center',
                 display: 'flex',
@@ -601,21 +604,21 @@ const Checkout = () => {
               }}
             >
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '8px 16px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 700, marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(5, 150, 105, 0.1)', color: '#059669', padding: '8px 16px', borderRadius: '50px', fontSize: '0.85rem', fontWeight: 700, marginBottom: '1rem' }}>
                 <Clock size={16} /> Thời gian thanh toán: {formatTime(countdown)}
               </div>
 
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#1e293b' }}>Quét mã chuyển khoản</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1.5rem' }}>Mở ứng dụng ngân hàng của bạn và quét mã QR bên dưới.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem' }}>Mở ứng dụng ngân hàng của bạn và quét mã QR bên dưới.</p>
 
               {/* QR Code Container */}
               <div style={{ 
-                padding: '1rem', 
+                padding: '0.75rem', 
                 border: '1px solid #e2e8f0', 
                 borderRadius: '24px', 
                 background: '#f8fafc',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
-                marginBottom: '1.5rem',
+                marginBottom: '1rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -623,7 +626,7 @@ const Checkout = () => {
                 <img 
                   src={qrData.qrUrl} 
                   alt="VietQR MBBank" 
-                  style={{ width: '220px', height: '220px', borderRadius: '12px' }}
+                  style={{ width: 'min(200px, 48vh)', height: 'min(200px, 48vh)', borderRadius: '12px' }}
                 />
               </div>
 
@@ -638,7 +641,7 @@ const Checkout = () => {
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: '8px',
-                marginBottom: '2rem'
+                marginBottom: '1.25rem'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Ngân hàng thụ hưởng:</span>

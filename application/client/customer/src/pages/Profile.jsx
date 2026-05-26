@@ -20,6 +20,7 @@ import {
   Check,
   FileText,
   MessageSquare,
+  Barcode,
 } from "lucide-react";
 
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -44,6 +45,7 @@ const Profile = () => {
   });
   const [loadingEvouchers, setLoadingEvouchers] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [selectedEVoucher, setSelectedEVoucher] = useState(null);
 
   // State cho Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -206,6 +208,22 @@ const Profile = () => {
       default:
         return status;
     }
+  };
+
+  const canShowEVoucherCode = (item) =>
+    item?.status === "Unused" && !isExpired(item.expiry_date);
+
+  const getBarcodeBars = (code = "") => {
+    const seed = `*${code}*`;
+    const bars = [];
+    for (const char of seed) {
+      const value = char.charCodeAt(0);
+      for (let i = 0; i < 7; i++) {
+        bars.push(((value >> i) & 1) ? 3 : 1);
+      }
+      bars.push(1);
+    }
+    return bars;
   };
 
   useEffect(() => {
@@ -1423,6 +1441,22 @@ const Profile = () => {
                       {evouchers.map((item, idx) => (
                         <div
                           key={idx}
+                          role={canShowEVoucherCode(item) ? "button" : undefined}
+                          tabIndex={canShowEVoucherCode(item) ? 0 : undefined}
+                          onClick={() => {
+                            if (canShowEVoucherCode(item)) {
+                              setSelectedEVoucher(item);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (
+                              canShowEVoucherCode(item) &&
+                              (e.key === "Enter" || e.key === " ")
+                            ) {
+                              e.preventDefault();
+                              setSelectedEVoucher(item);
+                            }
+                          }}
                           style={{
                             display: "flex",
                             background: "#f8fafc",
@@ -1433,6 +1467,9 @@ const Profile = () => {
                             position: "relative",
                             transition: "transform 0.2s, box-shadow 0.2s",
                             minHeight: "130px",
+                            cursor: canShowEVoucherCode(item)
+                              ? "pointer"
+                              : "default",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform =
@@ -1569,6 +1606,7 @@ const Profile = () => {
                               </div>
                               <Link
                                 to={`/voucher/${item.voucher_id}`}
+                                onClick={(e) => e.stopPropagation()}
                                 style={{ textDecoration: "none" }}
                               >
                                 <h4
@@ -1630,6 +1668,31 @@ const Profile = () => {
                                 marginTop: "0.25rem",
                               }}
                             >
+                              {canShowEVoucherCode(item) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEVoucher(item);
+                                  }}
+                                  style={{
+                                    border: "1px solid #bfdbfe",
+                                    background: "#eff6ff",
+                                    color: "var(--primary)",
+                                    fontWeight: 800,
+                                    fontSize: "0.75rem",
+                                    padding: "0.45rem 0.65rem",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.25rem",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  <Barcode size={14} /> Barcode
+                                </button>
+                              )}
                               <div
                                 style={{
                                   display: "flex",
@@ -2021,6 +2084,260 @@ const Profile = () => {
       </div>
 
       {/* Modal Đánh giá - AnimatePresence */}
+      <AnimatePresence>
+        {selectedEVoucher && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
+            }}
+            onClick={() => setSelectedEVoucher(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", damping: 24, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "520px",
+                maxHeight: "calc(100vh - 2rem)",
+                overflowY: "auto",
+                background: "white",
+                borderRadius: "24px",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      margin: "0 0 0.25rem",
+                      color: "#64748b",
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    E-Voucher chưa dùng
+                  </p>
+                  <h3
+                    style={{
+                      margin: 0,
+                      color: "#0f172a",
+                      fontSize: "1.15rem",
+                      fontWeight: 900,
+                    }}
+                  >
+                    Mã sử dụng voucher
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEVoucher(null)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ padding: "1.5rem" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
+                    alignItems: "center",
+                    marginBottom: "1.25rem",
+                  }}
+                >
+                  <img
+                    src={selectedEVoucher.image_url}
+                    alt={selectedEVoucher.title}
+                    style={{
+                      width: "72px",
+                      height: "72px",
+                      borderRadius: "12px",
+                      objectFit: "cover",
+                      background: "#e2e8f0",
+                    }}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src =
+                        "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=160&auto=format&fit=crop&q=80";
+                    }}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        color: "#94a3b8",
+                        fontSize: "0.75rem",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        marginBottom: "0.25rem",
+                      }}
+                    >
+                      {selectedEVoucher.company_name}
+                    </div>
+                    <h4
+                      style={{
+                        margin: 0,
+                        color: "#0f172a",
+                        fontSize: "1rem",
+                        fontWeight: 900,
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {selectedEVoucher.title}
+                    </h4>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "18px",
+                    padding: "1rem",
+                    background: "#f8fafc",
+                    textAlign: "center",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <div
+                    aria-label={`Barcode ${selectedEVoucher.unique_code}`}
+                    style={{
+                      minHeight: "96px",
+                      padding: "1rem",
+                      background: "white",
+                      borderRadius: "14px",
+                      display: "flex",
+                      alignItems: "stretch",
+                      justifyContent: "center",
+                      gap: "2px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {getBarcodeBars(selectedEVoucher.unique_code).map(
+                      (width, index) => (
+                        <span
+                          key={`${selectedEVoucher.unique_code}-${index}`}
+                          style={{
+                            width: `${width}px`,
+                            background:
+                              index % 2 === 0 ? "#0f172a" : "transparent",
+                          }}
+                        />
+                      ),
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: "0.85rem",
+                      fontFamily: "monospace",
+                      fontSize: "1.35rem",
+                      fontWeight: 900,
+                      letterSpacing: "0.08em",
+                      color: "#0f172a",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {selectedEVoucher.unique_code}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.75rem",
+                    marginBottom: "1rem",
+                    color: "#64748b",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  <div>
+                    Ngày mua
+                    <strong style={{ display: "block", color: "#0f172a" }}>
+                      {new Date(
+                        selectedEVoucher.purchase_date,
+                      ).toLocaleDateString("vi-VN")}
+                    </strong>
+                  </div>
+                  <div>
+                    Hạn dùng
+                    <strong style={{ display: "block", color: "#0f172a" }}>
+                      {new Date(
+                        selectedEVoucher.expiry_date,
+                      ).toLocaleDateString("vi-VN")}
+                    </strong>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedEVoucher.unique_code);
+                    setCopiedCode(selectedEVoucher.unique_code);
+                    setTimeout(() => setCopiedCode(null), 2000);
+                  }}
+                  style={{
+                    width: "100%",
+                    height: "48px",
+                    border: "none",
+                    borderRadius: "12px",
+                    background: "var(--primary)",
+                    color: "white",
+                    fontWeight: 900,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {copiedCode === selectedEVoucher.unique_code ? (
+                    <>
+                      <Check size={18} /> Đã sao chép
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={18} /> Sao chép mã
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isReviewModalOpen && selectedVoucherForReview && (
           <div
