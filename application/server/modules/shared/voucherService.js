@@ -113,9 +113,28 @@ class VoucherService {
             count++;
         }
         if (category) {
-            query += ` AND v.category_id = $${count}`;
-            values.push(category);
-            count++;
+            const categoryIds = String(category)
+                .split(',')
+                .map((id) => Number.parseInt(id, 10))
+                .filter((id) => Number.isInteger(id) && id > 0);
+
+            if (categoryIds.length > 0) {
+                query += ` AND v.category_id = ANY($${count}::int[])`;
+                values.push(categoryIds);
+                count++;
+            }
+        }
+        if (filters.categoryIds) {
+            const categoryIds = String(filters.categoryIds)
+                .split(',')
+                .map((id) => Number.parseInt(id, 10))
+                .filter((id) => Number.isInteger(id) && id > 0);
+
+            if (categoryIds.length > 0) {
+                query += ` AND v.category_id = ANY($${count}::int[])`;
+                values.push(categoryIds);
+                count++;
+            }
         }
         if (minPrice) {
             query += ` AND v.sale_price >= $${count}`;

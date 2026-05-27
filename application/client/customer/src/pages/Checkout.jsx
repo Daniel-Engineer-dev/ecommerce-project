@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../apiClient';
 import { ArrowLeft, CreditCard, Wallet, QrCode, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
 
 const Checkout = () => {
@@ -37,9 +38,7 @@ const Checkout = () => {
     // Nạp sẵn thông tin khách hàng từ API thay vì hardcode
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await apiFetch(`${API_BASE_URL}/api/auth/profile`);
         const data = await res.json();
         if (res.ok) {
           setShippingInfo({
@@ -93,7 +92,6 @@ const Checkout = () => {
     setLoading(true);
     setError(null);
     
-    const token = localStorage.getItem('token');
     const payload = {
       shippingInfo,
       items: cartItems.map(item => ({
@@ -104,11 +102,10 @@ const Checkout = () => {
     };
     
     try {
-      const validateRes = await fetch(`${API_BASE_URL}/api/orders/validate-cart`, {
+      const validateRes = await apiFetch(`${API_BASE_URL}/api/orders/validate-cart`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ items: payload.items })
       });
@@ -117,11 +114,10 @@ const Checkout = () => {
         throw new Error(validateData.errors?.[0]?.message || validateData.message || 'Cart contains unavailable vouchers.');
       }
 
-      const res = await fetch(`${API_BASE_URL}/api/orders/checkout`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/orders/checkout`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -156,14 +152,11 @@ const Checkout = () => {
   // Giả lập khách hàng bấm xác nhận chuyển khoản cho VietQR
   const handleConfirmVietQR = async () => {
     setConfirmingQr(true);
-    const token = localStorage.getItem('token');
-    
     try {
-      const res = await fetch(`${API_BASE_URL}/api/orders/confirm-vietqr`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/orders/confirm-vietqr`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ orderId: qrData.orderId })
       });
@@ -185,15 +178,13 @@ const Checkout = () => {
   };
 
   const handleCancelOrder = async (reason = 'cancelled') => {
-    const token = localStorage.getItem('token');
     const orderId = activeOrderId || qrData?.orderId;
     if (orderId) {
       try {
-        await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
+        await apiFetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ reason })
         });
@@ -433,8 +424,8 @@ const Checkout = () => {
                       <QrCode size={22} />
                     </div>
                     <div>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Chuyển khoản VietQR</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Quét mã chuyển khoản ngân hàng động miễn phí cực tiện</p>
+                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Chuyển khoản VietQR demo</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Quét mã và xác nhận mô phỏng để hoàn tất đơn hàng demo</p>
                     </div>
                   </div>
                   <div style={{ 
@@ -702,7 +693,7 @@ const Checkout = () => {
                 >
                   {confirmingQr ? 'Đang xác nhận...' : (
                     <>
-                      <CheckCircle2 size={18} /> Tôi đã chuyển khoản
+                      <CheckCircle2 size={18} /> Xác nhận thanh toán mô phỏng
                     </>
                   )}
                 </button>

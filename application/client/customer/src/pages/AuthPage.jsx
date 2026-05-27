@@ -48,7 +48,10 @@ const AuthPage = () => {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data.accessToken || data.token);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/');
       } else {

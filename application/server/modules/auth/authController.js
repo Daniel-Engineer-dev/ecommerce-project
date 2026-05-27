@@ -18,6 +18,15 @@ const login = async (req, res) => {
     }
 };
 
+const refreshToken = async (req, res) => {
+    try {
+        const result = await authService.refreshToken(req.body.refreshToken);
+        res.json(result);
+    } catch (err) {
+        res.status(401).json({ message: err.message || 'Invalid refresh token' });
+    }
+};
+
 const getProfile = async (req, res) => {
     try {
         const profile = await authService.getProfile(req.user.id, req.user.role);
@@ -84,6 +93,7 @@ const checkAvailability = async (req, res) => {
 module.exports = {
     register,
     login,
+    refreshToken,
     getProfile,
     updateProfile,
     changePassword,

@@ -25,6 +25,7 @@ import {
 
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../config";
+import { apiFetch } from "../apiClient";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -42,7 +43,11 @@ const Profile = () => {
     title: "",
     content: "",
     priority: "Normal",
+    orderId: "",
+    voucherIds: [],
   });
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [loadingComplaintDetail, setLoadingComplaintDetail] = useState(false);
   const [loadingEvouchers, setLoadingEvouchers] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const [selectedEVoucher, setSelectedEVoucher] = useState(null);
@@ -62,10 +67,7 @@ const Profile = () => {
     setLoadingEvouchers(true);
     setError("");
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/orders/my-evouchers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`${API_BASE_URL}/api/orders/my-evouchers`);
       const data = await res.json();
       if (res.ok) {
         setEvouchers(data.evouchers || []);
@@ -80,40 +82,60 @@ const Profile = () => {
   };
 
   const fetchOrders = async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_BASE_URL}/api/orders/my-orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await apiFetch(`${API_BASE_URL}/api/orders/my-orders`);
     const data = await res.json();
     if (res.ok) setOrders(data.orders || []);
   };
 
   const fetchComplaints = async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_BASE_URL}/api/complaints/my`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await apiFetch(`${API_BASE_URL}/api/complaints/my`);
     const data = await res.json();
     if (res.ok) setComplaints(data.complaints || []);
+  };
+
+  const fetchComplaintDetail = async (complaintId) => {
+    setLoadingComplaintDetail(true);
+    setError("");
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/complaints/${complaintId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSelectedComplaint(data.complaint);
+      } else {
+        setError(data.message || "Không thể tải chi tiết khiếu nại");
+      }
+    } catch (err) {
+      setError("Lỗi kết nối server khi tải chi tiết khiếu nại");
+    } finally {
+      setLoadingComplaintDetail(false);
+    }
   };
 
   const handleCreateComplaint = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${API_BASE_URL}/api/complaints`, {
+    const res = await apiFetch(`${API_BASE_URL}/api/complaints`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(complaintForm),
+      body: JSON.stringify({
+        ...complaintForm,
+        orderId: complaintForm.orderId || null,
+        voucherIds: complaintForm.voucherIds,
+      }),
     });
     const data = await res.json();
     if (res.ok) {
       setSuccess("Gửi khiếu nại thành công!");
-      setComplaintForm({ title: "", content: "", priority: "Normal" });
+      setComplaintForm({
+        title: "",
+        content: "",
+        priority: "Normal",
+        orderId: "",
+        voucherIds: [],
+      });
       fetchComplaints();
     } else {
       setError(data.message || "Không thể gửi khiếu nại");
@@ -129,6 +151,8 @@ const Profile = () => {
     }
     if (activeTab === "complaints") {
       fetchComplaints();
+      fetchOrders();
+      fetchCustomerEVouchers();
     }
   }, [activeTab]);
 
@@ -144,12 +168,10 @@ const Profile = () => {
     setReviewSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/orders/reviews`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/orders/reviews`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           voucherId: selectedVoucherForReview.voucher_id,
@@ -244,10 +266,7 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`${API_BASE_URL}/api/auth/profile`);
       const data = await res.json();
       if (res.ok) {
         setProfile(data);
@@ -287,12 +306,10 @@ const Profile = () => {
     setError("");
     setSuccess("");
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/auth/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(profile),
       });
@@ -318,12 +335,10 @@ const Profile = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           oldPassword: passwords.oldPassword,
@@ -1998,6 +2013,92 @@ const Profile = () => {
                       <option value="High">High</option>
                       <option value="Urgent">Urgent</option>
                     </select>
+                    <select
+                      className="auth-input"
+                      value={complaintForm.orderId}
+                      onChange={(e) =>
+                        setComplaintForm({
+                          ...complaintForm,
+                          orderId: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Không gắn đơn hàng</option>
+                      {orders.map((order) => (
+                        <option key={order.order_id} value={order.order_id}>
+                          Đơn #{order.order_id} - {order.status} -{" "}
+                          {Number(order.total_amount).toLocaleString("vi-VN")}đ
+                        </option>
+                      ))}
+                    </select>
+                    {evouchers.length > 0 && (
+                      <div
+                        style={{
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "12px",
+                          padding: "1rem",
+                          background: "#f8fafc",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 800,
+                            color: "#334155",
+                            marginBottom: "0.75rem",
+                          }}
+                        >
+                          Voucher liên quan
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            gap: "0.75rem",
+                            maxHeight: "180px",
+                            overflowY: "auto",
+                          }}
+                        >
+                          {Array.from(
+                            new Map(
+                              evouchers.map((item) => [item.voucher_id, item]),
+                            ).values(),
+                          ).map((item) => {
+                            const isChecked = complaintForm.voucherIds.includes(
+                              item.voucher_id,
+                            );
+                            return (
+                              <label
+                                key={item.voucher_id}
+                                style={{
+                                  display: "flex",
+                                  gap: "0.5rem",
+                                  alignItems: "flex-start",
+                                  fontSize: "0.85rem",
+                                  color: "#475569",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    setComplaintForm((prev) => ({
+                                      ...prev,
+                                      voucherIds: e.target.checked
+                                        ? [...prev.voucherIds, item.voucher_id]
+                                        : prev.voucherIds.filter(
+                                            (id) => id !== item.voucher_id,
+                                          ),
+                                    }));
+                                  }}
+                                />
+                                <span>{item.title}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <textarea
                       value={complaintForm.content}
                       onChange={(e) =>
@@ -2044,11 +2145,23 @@ const Profile = () => {
                     {complaints.map((complaint) => (
                       <div
                         key={complaint.complaint_id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() =>
+                          fetchComplaintDetail(complaint.complaint_id)
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            fetchComplaintDetail(complaint.complaint_id);
+                          }
+                        }}
                         style={{
                           border: "1px solid #e2e8f0",
                           borderRadius: "12px",
                           padding: "1rem",
                           background: "#f8fafc",
+                          cursor: "pointer",
                         }}
                       >
                         <div
@@ -2070,9 +2183,36 @@ const Profile = () => {
                           {complaint.content}
                         </p>
                         <small>
+                          {complaint.order_id ? `Đơn #${complaint.order_id} - ` : ""}
                           {complaint.priority} - {complaint.response_count || 0}{" "}
                           phản hồi
                         </small>
+                        {complaint.vouchers?.length > 0 && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "0.5rem",
+                              flexWrap: "wrap",
+                              marginTop: "0.75rem",
+                            }}
+                          >
+                            {complaint.vouchers.map((voucher) => (
+                              <span
+                                key={voucher.voucher_id}
+                                style={{
+                                  padding: "0.25rem 0.5rem",
+                                  borderRadius: "999px",
+                                  background: "#e0f2fe",
+                                  color: "#0369a1",
+                                  fontSize: "0.75rem",
+                                  fontWeight: 700,
+                                }}
+                              >
+                                {voucher.title}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2084,6 +2224,154 @@ const Profile = () => {
       </div>
 
       {/* Modal Đánh giá - AnimatePresence */}
+      <AnimatePresence>
+        {selectedComplaint && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
+            }}
+            onClick={() => setSelectedComplaint(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "560px",
+                maxHeight: "calc(100vh - 2rem)",
+                overflowY: "auto",
+                background: "white",
+                borderRadius: "24px",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid #e2e8f0",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 900 }}>
+                    {selectedComplaint.title ||
+                      `Khiếu nại #${selectedComplaint.complaint_id}`}
+                  </h3>
+                  <p style={{ margin: "0.35rem 0 0", color: "#64748b" }}>
+                    {selectedComplaint.status} - {selectedComplaint.priority}
+                    {selectedComplaint.order_id
+                      ? ` - Đơn #${selectedComplaint.order_id}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedComplaint(null)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div style={{ padding: "1.5rem" }}>
+                {loadingComplaintDetail ? (
+                  <p style={{ color: "#64748b" }}>Đang tải chi tiết...</p>
+                ) : (
+                  <>
+                    <p style={{ color: "#334155", lineHeight: 1.7, marginTop: 0 }}>
+                      {selectedComplaint.content}
+                    </p>
+                    {selectedComplaint.vouchers?.length > 0 && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <b>Voucher liên quan</b>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            flexWrap: "wrap",
+                            marginTop: "0.5rem",
+                          }}
+                        >
+                          {selectedComplaint.vouchers.map((voucher) => (
+                            <span
+                              key={voucher.voucher_id}
+                              style={{
+                                padding: "0.35rem 0.6rem",
+                                borderRadius: "999px",
+                                background: "#e0f2fe",
+                                color: "#0369a1",
+                                fontSize: "0.78rem",
+                                fontWeight: 800,
+                              }}
+                            >
+                              {voucher.title}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <b>Phản hồi xử lý</b>
+                      {selectedComplaint.responses?.length > 0 ? (
+                        selectedComplaint.responses.map((response) => (
+                          <div
+                            key={response.response_id}
+                            style={{
+                              marginTop: "0.75rem",
+                              padding: "0.85rem",
+                              borderRadius: "12px",
+                              background: "#f8fafc",
+                              border: "1px solid #e2e8f0",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                color: "#0f172a",
+                                marginBottom: "0.25rem",
+                              }}
+                            >
+                              {response.responder_name || "Dealzy"} -{" "}
+                              {response.responder_role || "Support"}
+                            </div>
+                            <div style={{ color: "#475569" }}>
+                              {response.content}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p style={{ color: "#64748b" }}>
+                          Chưa có phản hồi xử lý.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {selectedEVoucher && (
           <div

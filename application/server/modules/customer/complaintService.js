@@ -11,6 +11,33 @@ class ComplaintService {
         }
     }
 
+    async assertVouchersBelongToCustomer(voucherIds, customerId) {
+        const normalizedIds = [...new Set((voucherIds || [])
+            .map((id) => Number.parseInt(id, 10))
+            .filter((id) => Number.isInteger(id) && id > 0))];
+
+        if (normalizedIds.length === 0) return [];
+
+        const { rows } = await pool.query(
+            `
+                SELECT DISTINCT oi.voucher_id
+                FROM Orders o
+                JOIN Order_Items oi ON o.order_id = oi.order_id
+                WHERE o.customer_id = $1
+                    AND o.status = 'Paid'
+                    AND oi.voucher_id = ANY($2::int[])
+            `,
+            [customerId, normalizedIds]
+        );
+        const ownedIds = new Set(rows.map((row) => Number(row.voucher_id)));
+        const invalidIds = normalizedIds.filter((id) => !ownedIds.has(id));
+        if (invalidIds.length > 0) {
+            throw new Error('Some selected vouchers are not eligible for complaint.');
+        }
+
+        return normalizedIds;
+    }
+
     async createComplaint(customerId, data) {
         const client = await pool.connect();
         try {
@@ -22,19 +49,20 @@ class ComplaintService {
             if (orderId) {
                 await this.assertOrderBelongsToCustomer(orderId, customerId);
             }
+            const normalizedVoucherIds = await this.assertVouchersBelongToCustomer(voucherIds, customerId);
 
             await client.query('BEGIN');
             const complaintRes = await client.query(
                 `
-                    INSERT INTO Complaints (customer_id, title, content, status, priority)
-                    VALUES ($1, $2, $3, 'Pending', $4)
+                    INSERT INTO Complaints (customer_id, order_id, title, content, status, priority)
+                    VALUES ($1, $2, $3, $4, 'Pending', $5)
                     RETURNING *
                 `,
-                [customerId, title || null, content, priority]
+                [customerId, orderId || null, title || null, content, priority]
             );
 
             const complaint = complaintRes.rows[0];
-            for (const voucherId of voucherIds || []) {
+            for (const voucherId of normalizedVoucherIds) {
                 await client.query(
                     `
                         INSERT INTO Complaint_Vouchers (complaint_id, voucher_id)
@@ -59,16 +87,20 @@ class ComplaintService {
         const { rows } = await pool.query(
             `
                 SELECT c.*,
+                    o.total_amount AS order_total_amount,
+                    o.status AS order_status,
+                    o.payment_method AS order_payment_method,
                     COALESCE(json_agg(
                         DISTINCT jsonb_build_object('voucher_id', v.voucher_id, 'title', v.title)
                     ) FILTER (WHERE v.voucher_id IS NOT NULL), '[]') AS vouchers,
                     COUNT(cr.response_id)::int AS response_count
                 FROM Complaints c
+                LEFT JOIN Orders o ON c.order_id = o.order_id
                 LEFT JOIN Complaint_Vouchers cv ON c.complaint_id = cv.complaint_id
                 LEFT JOIN Vouchers v ON cv.voucher_id = v.voucher_id
                 LEFT JOIN Complaint_Responses cr ON c.complaint_id = cr.complaint_id
                 WHERE c.customer_id = $1
-                GROUP BY c.complaint_id
+                GROUP BY c.complaint_id, o.order_id
                 ORDER BY c.created_at DESC, c.complaint_id DESC
             `,
             [customerId]
@@ -78,7 +110,13 @@ class ComplaintService {
 
     async getComplaintDetail(complaintId, customerId) {
         const complaintRes = await pool.query(
-            'SELECT * FROM Complaints WHERE complaint_id = $1 AND customer_id = $2',
+            `
+                SELECT c.*, o.total_amount AS order_total_amount,
+                    o.status AS order_status, o.payment_method AS order_payment_method
+                FROM Complaints c
+                LEFT JOIN Orders o ON c.order_id = o.order_id
+                WHERE c.complaint_id = $1 AND c.customer_id = $2
+            `,
             [complaintId, customerId]
         );
         if (complaintRes.rows.length === 0) {

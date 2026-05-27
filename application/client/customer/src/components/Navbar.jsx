@@ -177,6 +177,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     setUser(null);
     navigate("/");
@@ -187,7 +188,7 @@ const Navbar = () => {
     if (searchQuery.trim() || selectedCategories.length > 0) {
       const params = new URLSearchParams();
       if (searchQuery.trim()) {
-        params.append("q", encodeURIComponent(searchQuery));
+        params.append("q", searchQuery.trim());
       }
       if (selectedCategories.length > 0) {
         params.append("category", selectedCategories.join(","));
@@ -756,7 +757,7 @@ const Navbar = () => {
                           e.stopPropagation();
                           const params = new URLSearchParams();
                           if (searchQuery.trim()) {
-                            params.append("q", encodeURIComponent(searchQuery));
+                            params.append("q", searchQuery.trim());
                           }
                           if (selectedCategories.length > 0) {
                             params.append(
@@ -1092,8 +1093,8 @@ const Navbar = () => {
 
           {/* OTHER SUB LINKS */}
           <div style={{ display: "flex", gap: "2rem" }}>
-            <SubLink to="/search?category=hot">Deal Mới</SubLink>
-            <SubLink to="/search?category=hot">Deal Bán Chạy</SubLink>
+            <SubLink to="/search?sort=new">Deal Mới</SubLink>
+            <SubLink to="/search?sort=best-selling">Deal Bán Chạy</SubLink>
             <SubLink to="/partners">Đối Tác</SubLink>
           </div>
         </div>

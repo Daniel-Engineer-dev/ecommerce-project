@@ -6,6 +6,22 @@ const { sendEmail } = require("../../utils/sendEmail");
 const sendSms = require("../../utils/sendSms");
 
 class AuthService {
+  createAccessToken(user) {
+    return jwt.sign(
+      { id: user.user_id, role: user.role },
+      process.env.JWT_SECRET || "secretkey_tmdt",
+      { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "15m" },
+    );
+  }
+
+  createRefreshToken(user) {
+    return jwt.sign(
+      { id: user.user_id, role: user.role, type: "refresh" },
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "secretkey_tmdt",
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" },
+    );
+  }
+
   async register(data) {
     const client = await pool.connect();
     try {
@@ -124,13 +140,40 @@ class AuthService {
         throw new Error("Tài khoản đã bị từ chối");
     }
 
-    const token = jwt.sign(
-      { id: user.user_id, role: user.role },
-      process.env.JWT_SECRET || "secretkey_tmdt",
-      { expiresIn: "1d" },
-    );
+    const accessToken = this.createAccessToken(user);
+    const refreshToken = this.createRefreshToken(user);
     return {
-      token,
+      token: accessToken,
+      accessToken,
+      refreshToken,
+      user: { id: user.user_id, username: user.username, role: user.role },
+    };
+  }
+
+  async refreshToken(refreshToken) {
+    if (!refreshToken) throw new Error("Refresh token is required.");
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || "secretkey_tmdt",
+    );
+    if (decoded.type !== "refresh") {
+      throw new Error("Invalid refresh token.");
+    }
+
+    const { rows } = await pool.query(
+      "SELECT user_id, username, role FROM Users WHERE user_id = $1",
+      [decoded.id],
+    );
+    if (rows.length === 0) throw new Error("User not found.");
+
+    const user = rows[0];
+    const accessToken = this.createAccessToken(user);
+    const nextRefreshToken = this.createRefreshToken(user);
+    return {
+      token: accessToken,
+      accessToken,
+      refreshToken: nextRefreshToken,
       user: { id: user.user_id, username: user.username, role: user.role },
     };
   }

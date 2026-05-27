@@ -9,6 +9,9 @@ const auth = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey_tmdt');
+        if (decoded.type === 'refresh') {
+            return res.status(401).json({ message: "Token khÃ´ng há»£p lá»‡" });
+        }
         req.user = decoded;
         next();
     } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import VoucherCard from "../components/VoucherCard";
 import {
@@ -16,10 +16,23 @@ import { API_BASE_URL, translateCategory } from "../config";
 
 const SEARCH_RESULT_LIMIT = 12;
 
+const getFiltersFromSearch = (search) => {
+  const params = new URLSearchParams(search);
+  return {
+    q: params.get("q") || "",
+    category: params.get("category") || "",
+    minPrice: params.get("minPrice") || "",
+    maxPrice: params.get("maxPrice") || "",
+    minDiscount: params.get("minDiscount") || "",
+    area: params.get("area") || "",
+    partner: params.get("partner") || "",
+    sort: params.get("sort") || "",
+  };
+};
+
 const SearchVouchers = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
 
   const [vouchers, setVouchers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -29,16 +42,9 @@ const SearchVouchers = () => {
   const [hasMore, setHasMore] = useState(false);
 
   // States cho bộ lọc
-  const [filters, setFilters] = useState({
-    q: queryParams.get("q") || "",
-    category: queryParams.get("category") || "",
-    minPrice: queryParams.get("minPrice") || "",
-    maxPrice: queryParams.get("maxPrice") || "",
-    minDiscount: queryParams.get("minDiscount") || "",
-    area: queryParams.get("area") || "",
-    partner: queryParams.get("partner") || "",
-    sort: queryParams.get("sort") || "",
-  });
+  const [filters, setFilters] = useState(() =>
+    getFiltersFromSearch(location.search),
+  );
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -54,10 +60,9 @@ const SearchVouchers = () => {
       .then((data) => setPartners(data))
       .catch((err) => console.error("Error fetching partners:", err));
 
-    fetchVouchers();
-  }, [location.search]);
+  }, []);
 
-  const fetchVouchers = (offset = 0) => {
+  const fetchVouchers = useCallback((offset = 0) => {
     if (offset === 0) {
       setLoading(true);
     } else {
@@ -80,7 +85,12 @@ const SearchVouchers = () => {
         setLoading(false);
         setLoadingMore(false);
       });
-  };
+  }, [location.search]);
+
+  useEffect(() => {
+    setFilters(getFiltersFromSearch(location.search));
+    fetchVouchers();
+  }, [fetchVouchers, location.search]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));

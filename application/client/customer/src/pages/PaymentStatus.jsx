@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../apiClient';
 import { CheckCircle, XCircle, Tag, Calendar, QrCode, Barcode, ShoppingCart, Home } from 'lucide-react';
 
 const PaymentStatus = () => {
@@ -24,11 +25,10 @@ const PaymentStatus = () => {
     }
 
     if (status === 'fail' && orderId) {
-      fetch(`${API_BASE_URL}/api/orders/${orderId}/fail`, {
+      apiFetch(`${API_BASE_URL}/api/orders/${orderId}/fail`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ transactionRef: paymentMethod || 'PAYMENT_FAIL' })
       }).catch(err => console.error(err));
@@ -36,11 +36,7 @@ const PaymentStatus = () => {
 
     if (status === 'success' && orderId) {
       setLoading(true);
-      fetch(`${API_BASE_URL}/api/orders/evouchers/${orderId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      apiFetch(`${API_BASE_URL}/api/orders/evouchers/${orderId}`)
         .then(res => {
           if (!res.ok) throw new Error('Không thể tải mã E-Voucher.');
           return res.json();

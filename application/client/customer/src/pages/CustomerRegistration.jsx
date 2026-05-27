@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -18,7 +18,7 @@ import { API_BASE_URL } from "../config";
 const CustomerRegistration = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [regMethod, setRegMethod] = useState("email"); // 'email' hoặc 'phone'
+  const [regMethod, setRegMethod] = useState("email"); // 'email' hoáº·c 'phone'
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -32,6 +32,8 @@ const CustomerRegistration = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationInput, setVerificationInput] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -42,15 +44,15 @@ const CustomerRegistration = () => {
     setError("");
     if (step === 1) {
       if (!formData.full_name || !formData.username || !formData.password) {
-        setError("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
+        setError("Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin báº¯t buá»™c (*)");
         return;
       }
       if (regMethod === "email" && !formData.email) {
-        setError("Vui lòng nhập Email");
+        setError("Vui lÃ²ng nháº­p Email");
         return;
       }
       if (regMethod === "phone" && !formData.phone) {
-        setError("Vui lòng nhập Số điện thoại");
+        setError("Vui lÃ²ng nháº­p Sá»‘ Ä‘iá»‡n thoáº¡i");
         return;
       }
     }
@@ -68,12 +70,21 @@ const CustomerRegistration = () => {
         const data = await res.json();
         if (!res.ok || !data.available) {
           setError(
-            `Thông tin đã tồn tại: ${(data.conflicts || []).join(", ")}`,
+            `ThÃ´ng tin Ä‘Ã£ tá»“n táº¡i: ${(data.conflicts || []).join(", ")}`,
           );
           return;
         }
+        const demoCode = Math.floor(100000 + Math.random() * 900000).toString();
+        setVerificationCode(demoCode);
+        setVerificationInput("");
       } catch (err) {
-        setError("Không thể kiểm tra tài khoản. Vui lòng thử lại.");
+        setError("KhÃ´ng thá»ƒ kiá»ƒm tra tÃ i khoáº£n. Vui lÃ²ng thá»­ láº¡i.");
+        return;
+      }
+    }
+    if (step === 2) {
+      if (verificationInput.trim() !== verificationCode) {
+        setError("MÃ£ xÃ¡c thá»±c demo khÃ´ng chÃ­nh xÃ¡c.");
         return;
       }
     }
@@ -103,10 +114,10 @@ const CustomerRegistration = () => {
       if (res.ok) {
         setSuccess(true);
       } else {
-        setError(data.message || "Có lỗi xảy ra");
+        setError(data.message || "CÃ³ lá»—i xáº£y ra");
       }
     } catch (err) {
-      setError("Không thể kết nối đến server");
+      setError("KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server");
     } finally {
       setLoading(false);
     }
@@ -159,7 +170,7 @@ const CustomerRegistration = () => {
               marginBottom: "1rem",
             }}
           >
-            Chào mừng bạn!
+            Chao mung ban!
           </h1>
           <p
             style={{
@@ -168,15 +179,15 @@ const CustomerRegistration = () => {
               lineHeight: 1.6,
             }}
           >
-            Tài khoản của bạn đã được khởi tạo thành công. Hãy bắt đầu trải
-            nghiệm Dealzy ngay bây giờ.
+            Tai khoan cua ban da duoc khoi tao thanh cong. Hay bat dau trai
+            nghiem Dealzy ngay bay gio.
           </p>
           <button
             onClick={() => navigate("/auth")}
             className="btn-primary"
             style={{ width: "100%", height: "56px" }}
           >
-            Đăng nhập ngay
+            ÄÄƒng nháº­p ngay
           </button>
         </motion.div>
       </div>
@@ -184,8 +195,9 @@ const CustomerRegistration = () => {
   }
 
   const steps = [
-    { id: 1, label: "Cơ bản", icon: <User size={18} /> },
-    { id: 2, label: "Cá nhân", icon: <MapPin size={18} /> },
+    { id: 1, label: "CÆ¡ báº£n", icon: <User size={18} /> },
+    { id: 2, label: "Xac thuc", icon: <CheckCircle2 size={18} /> },
+    { id: 3, label: "Ca nhan", icon: <MapPin size={18} /> },
   ];
 
   return (
@@ -225,7 +237,7 @@ const CustomerRegistration = () => {
               fontSize: "0.85rem",
             }}
           >
-            <ArrowLeft size={16} /> Quay lại
+            <ArrowLeft size={16} /> Quay láº¡i
           </Link>
 
           {/* Progress Bar */}
@@ -292,12 +304,12 @@ const CustomerRegistration = () => {
                   margin: 0,
                 }}
               >
-                Tạo tài khoản
+                Tao tai khoan
               </h1>
             </div>
           </div>
 
-          <form onSubmit={step === 2 ? handleSubmit : handleNext}>
+          <form onSubmit={step === 3 ? handleSubmit : handleNext}>
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div
@@ -315,7 +327,7 @@ const CustomerRegistration = () => {
                     <User size={18} className="input-icon" />
                     <input
                       name="full_name"
-                      placeholder="Họ và tên *"
+                      placeholder="Há» vÃ  tÃªn *"
                       required
                       value={formData.full_name}
                       onChange={handleChange}
@@ -326,7 +338,7 @@ const CustomerRegistration = () => {
                     <User size={18} className="input-icon" />
                     <input
                       name="username"
-                      placeholder="Tên đăng nhập *"
+                      placeholder="TÃªn Ä‘Äƒng nháº­p *"
                       required
                       value={formData.username}
                       onChange={handleChange}
@@ -378,7 +390,7 @@ const CustomerRegistration = () => {
                         transition: "0.3s",
                       }}
                     >
-                      SĐT
+                      SÄT
                     </button>
                   </div>
 
@@ -388,7 +400,7 @@ const CustomerRegistration = () => {
                       <input
                         name="email"
                         type="email"
-                        placeholder="Email của bạn *"
+                        placeholder="Email cá»§a báº¡n *"
                         required
                         value={formData.email}
                         onChange={handleChange}
@@ -400,7 +412,7 @@ const CustomerRegistration = () => {
                       <Phone size={18} className="input-icon" />
                       <input
                         name="phone"
-                        placeholder="Số điện thoại *"
+                        placeholder="Sá»‘ Ä‘iá»‡n thoáº¡i *"
                         required
                         value={formData.phone}
                         onChange={handleChange}
@@ -414,7 +426,7 @@ const CustomerRegistration = () => {
                     <input
                       name="password"
                       type="password"
-                      placeholder="Mật khẩu *"
+                      placeholder="Máº­t kháº©u *"
                       required
                       value={formData.password}
                       onChange={handleChange}
@@ -427,6 +439,55 @@ const CustomerRegistration = () => {
               {step === 2 && (
                 <motion.div
                   key="step2"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -20, opacity: 0 }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "1rem",
+                      borderRadius: "16px",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      color: "#1e3a8a",
+                      lineHeight: 1.6,
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Nhap ma xac thuc demo de tiep tuc dang ky. Ma demo cua ban
+                    la{" "}
+                    <strong
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: "1.1rem",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {verificationCode}
+                    </strong>
+                    .
+                  </div>
+                  <div className="input-group">
+                    <CheckCircle2 size={18} className="input-icon" />
+                    <input
+                      value={verificationInput}
+                      onChange={(e) => setVerificationInput(e.target.value)}
+                      placeholder="Nhap ma xac thuc demo"
+                      required
+                      className="auth-input"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div
+                  key="step3"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -20, opacity: 0 }}
@@ -451,7 +512,7 @@ const CustomerRegistration = () => {
                     <MapPin size={18} className="input-icon" />
                     <input
                       name="address"
-                      placeholder="Địa chỉ / Thành phố"
+                      placeholder="Äá»‹a chá»‰ / ThÃ nh phá»‘"
                       value={formData.address}
                       onChange={handleChange}
                       className="auth-input"
@@ -489,7 +550,7 @@ const CustomerRegistration = () => {
                     cursor: "pointer",
                   }}
                 >
-                  Quay lại
+                  Quay láº¡i
                 </button>
               )}
               <button
@@ -499,10 +560,10 @@ const CustomerRegistration = () => {
                 style={{ flex: 2, height: "56px" }}
               >
                 {loading
-                  ? "Đang xử lý..."
-                  : step === 2
-                    ? "Hoàn tất đăng ký"
-                    : "Tiếp theo"}{" "}
+                  ? "Äang xá»­ lÃ½..."
+                  : step === 3
+                    ? "Hoan tat dang ky"
+                    : "Tiáº¿p theo"}{" "}
                 <ChevronRight size={20} />
               </button>
             </div>

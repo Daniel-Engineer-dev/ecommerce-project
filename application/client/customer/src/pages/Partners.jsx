@@ -7,23 +7,36 @@ const logoModules = import.meta.glob("../assets/logos/*.{png,jpg,jpeg,svg}", {
 });
 const partnerLogos = Object.values(logoModules).map((m) => m.default);
 
-const Partners = () => {
-  // small count-up hook
-  const useCountUp = (end, duration = 1500) => {
-    const [value, setValue] = useState(0);
-    useEffect(() => {
-      let start = null;
-      const step = (timestamp) => {
-        if (!start) start = timestamp;
-        const progress = Math.min((timestamp - start) / duration, 1);
-        setValue(Math.round(progress * end));
-        if (progress < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }, [end, duration]);
-    return value;
-  };
+const useCountUp = (end, duration = 1500) => {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    let start = null;
+    const step = (timestamp) => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      setValue(Math.round(progress * end));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [end, duration]);
+  return value;
+};
 
+const HeroStat = ({ end, suffix = "", label }) => {
+  const value = useCountUp(end, 1400);
+  const display = end >= 1000 ? value.toLocaleString("vi-VN") : value;
+  return (
+    <div className="hero-stat">
+      <h4>
+        {display}
+        {suffix}
+      </h4>
+      <p>{label}</p>
+    </div>
+  );
+};
+
+const Partners = () => {
   const sliderRef = useRef(null);
   useEffect(() => {
     // add auto-scroll class after mount so CSS animation applies
@@ -36,22 +49,6 @@ const Partners = () => {
       if (el) el.classList.remove("auto-scroll");
     };
   }, []);
-
-  // Small component for stat card
-  const HeroStat = ({ end, suffix = "", label }) => {
-    const value = useCountUp(end, 1400);
-    // format large numbers
-    const display = end >= 1000 ? value.toLocaleString("vi-VN") : value;
-    return (
-      <div className="hero-stat">
-        <h4>
-          {display}
-          {suffix}
-        </h4>
-        <p>{label}</p>
-      </div>
-    );
-  };
 
   return (
     <div style={{ paddingTop: "180px", paddingBottom: "80px" }}>
