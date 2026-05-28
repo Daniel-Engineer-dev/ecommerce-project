@@ -104,7 +104,13 @@ CREATE TABLE Orders (
     customer_id INT REFERENCES Customers(user_id),
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(12,2),
-    status VARCHAR(20) DEFAULT 'Pending'
+    status VARCHAR(20) DEFAULT 'Pending',
+    payment_method VARCHAR(50),
+    transaction_reference VARCHAR(100),
+    shipping_name VARCHAR(100),
+    shipping_phone VARCHAR(20),
+    shipping_email VARCHAR(100),
+    shipping_address TEXT
 );
 
 CREATE TABLE Order_Items (
@@ -134,6 +140,16 @@ CREATE TABLE System_Logs (
     table_name VARCHAR(50),
     record_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Content_Items (
+    content_id SERIAL PRIMARY KEY,
+    content_key VARCHAR(80) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    type VARCHAR(30) NOT NULL DEFAULT 'policy',
+    body TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE Reviews (

@@ -39,7 +39,7 @@ const rejectVoucher = async (req, res) => {
 const toggleVisibility = async (req, res) => {
     try {
         const { currentStatus } = req.body;
-        const result = await adminVoucherService.toggleVisibility(req.params.id, currentStatus);
+        const result = await adminVoucherService.toggleVisibility(req.params.id, currentStatus, req.user.id);
         res.json({ message: "Đã thay đổi trạng thái vận hành của voucher", voucher: result });
     } catch (err) {
         res.status(400).json({ error: err.message });

@@ -1,8 +1,8 @@
 # Checklist Yeu Cau Do An Dealzy
 
 > Quy uoc: `[x]` da co trong du an hien tai o muc co the doi chieu; `[ ]` chua co hoac moi co mot phan, can tiep tuc hoan thien.
-> Cap nhat 2026-05-28 sau khi merge nhanh `origin/customer` vao `partner`.
-> Tom tat: `partner` hien la nhanh tong hop day du nhat. Da co luong Customer xem/tim/gio hang/checkout/thanh toan mo phong/nhan E-Voucher, Partner tao/quan ly/xac thuc voucher, Admin quan ly user/doi tac/duyet voucher/dashboard. Con thieu admin quan ly don hang, quan ly noi dung, audit log day du, slide va video demo.
+> Cap nhat 2026-05-28 sau khi merge `origin/customer` vao `partner` va bo sung admin order/content/log.
+> Tom tat: `partner` hien la nhanh tong hop day du nhat. Da co luong Customer xem/tim/gio hang/checkout/thanh toan mo phong/nhan E-Voucher, Partner tao/quan ly/xac thuc voucher, Admin quan ly user/doi tac/duyet voucher/don hang/khieu nai/noi dung/nhat ky/dashboard. Con thieu video demo ghi hinh thuc te va toi uu san xuat.
 
 ## 1. Thong Tin De Tai
 
@@ -21,7 +21,7 @@
 6. [x] Thanh toan mo phong.
 7. [x] Phat hanh ma voucher.
 8. [x] Xac thuc su dung voucher.
-9. [ ] Quan ly noi dung.
+9. [x] Quan ly noi dung.
 10. [x] Bao cao thong ke.
 
 ## 3. Luong Nghiep Vu Tong Quat
@@ -45,7 +45,7 @@
 3. [x] BR-03 - Mua hang truc tuyen: chon voucher, gio hang, tao don, thanh toan mo phong, xac nhan don hang.
 4. [x] BR-04 - Phat hanh va quan ly voucher code: sinh ma dien tu duy nhat cho giao dich hop le va theo doi vong doi su dung.
 5. [x] BR-05 - Kiem tra va xac thuc voucher: doi tac tra cuu, xac minh, xac nhan su dung voucher tai chi nhanh.
-6. [ ] BR-06 - Kiem duyet va giam sat he thong: da co duyet doi tac/duyet voucher; con thieu admin quan ly don hang va giam sat hoat dong day du.
+6. [x] BR-06 - Kiem duyet va giam sat he thong: da co duyet doi tac, duyet voucher, quan ly don hang, xu ly khieu nai va nhat ky he thong.
 7. [x] BR-07 - Bao cao va phan tich: dashboard doanh thu, don hang, voucher ban ra, voucher da dung, hieu suat doi tac.
 
 ## 5. Yeu Cau Cho Khach Hang
@@ -74,10 +74,10 @@
 1. [x] BR-ADM-01 - Quan ly nguoi dung: xem, tra cuu, khoa/mo khoa tai khoan, phan quyen.
 2. [x] BR-ADM-02 - Quan ly doi tac: duyet ho so doi tac, quan ly trang thai doi tac, quan ly chi nhanh.
 3. [x] BR-ADM-03 - Duyet voucher: xem, duyet, tu choi, thay doi trang thai hien thi, kiem soat vong doi voucher.
-4. [ ] BR-ADM-04 - Quan ly don hang: tra cuu don, xu ly trang thai thanh toan, huy don, ghi nhan hoan tien mo phong.
-5. [ ] BR-ADM-05 - Quan ly noi dung: danh muc, banner, bai viet, popup, noi dung chinh sach.
+4. [x] BR-ADM-04 - Quan ly don hang: tra cuu don, xu ly trang thai thanh toan, huy don, ghi nhan hoan tien mo phong.
+5. [x] BR-ADM-05 - Quan ly noi dung: danh muc, banner, bai viet, popup, noi dung chinh sach.
 6. [x] BR-ADM-06 - Dashboard quan tri: tong quan nguoi dung, doi tac, voucher, don hang, doanh thu, chi so hieu qua.
-7. [ ] BR-ADM-07 - Nhat ky he thong: tra cuu thao tac quan trong de kiem tra va truy vet.
+7. [x] BR-ADM-07 - Nhat ky he thong: tra cuu thao tac quan trong de kiem tra va truy vet.
 
 ## 8. Quy Tac Nghiep Vu
 
@@ -92,9 +92,9 @@
 9. [x] RB-09 - Doi tac chi duoc xac thuc voucher thuoc pham vi chi nhanh hoac chuong trinh cua minh.
 10. [x] RB-10 - Nguoi dung chi duoc danh gia voucher sau khi da mua hoac da su dung theo quy dinh.
 11. [x] RB-11 - So luong ban ra khong duoc vuot qua so luong phat hanh.
-12. [ ] RB-12 - Thao tac quan tri quan trong phai duoc luu vet trong nhat ky he thong.
+12. [x] RB-12 - Thao tac quan tri quan trong phai duoc luu vet trong nhat ky he thong.
 13. [x] RB-13 - Don hang da huy khong duoc phat hanh voucher.
-14. [ ] RB-14 - Chinh sach huy va hoan tien phai bam theo dieu kien voucher hoac chinh sach san.
+14. [x] RB-14 - Chinh sach huy va hoan tien phai bam theo dieu kien voucher hoac chinh sach san.
 15. [x] RB-15 - Tai thoi diem dat mua va thanh toan, he thong phai kiem tra ton kho voucher de tranh ban vuot.
 
 ## 9. Yeu Cau Du Lieu Nghiep Vu
@@ -108,12 +108,12 @@
 
 ## 10. Yeu Cau Phi Chuc Nang
 
-1. [ ] NFR-01 - Hieu nang: thao tac chinh phan hoi hop ly trong moi truong demo; tra cuu voucher/don hang khong gay gian doan.
+1. [x] NFR-01 - Hieu nang: thao tac chinh phan hoi hop ly trong moi truong demo; tra cuu voucher/don hang khong gay gian doan.
 2. [x] NFR-02 - Bao mat: mat khau ma hoa, phan quyen theo vai tro, khong lo voucher code khi chua thanh toan, kiem soat truy cap admin.
 3. [x] NFR-03 - Tinh on dinh: xu ly loi hop ly, han che mat du lieu nghiep vu trong pham vi demo.
-4. [ ] NFR-04 - Kha nang mo rong: mo rong loai voucher, bao cao, marketing, thanh toan that trong tuong lai.
-5. [ ] NFR-05 - Kha nang su dung: giao dien de hieu, luong mua hang ro rang, responsive tren thiet bi di dong.
-6. [ ] NFR-06 - Kha nang kiem toan: thao tac quan tri va giao dich quan trong co nhat ky truy vet.
+4. [x] NFR-04 - Kha nang mo rong: mo rong loai voucher, bao cao, marketing, thanh toan that trong tuong lai.
+5. [x] NFR-05 - Kha nang su dung: giao dien de hieu, luong mua hang ro rang, responsive tren thiet bi di dong.
+6. [x] NFR-06 - Kha nang kiem toan: thao tac quan tri va giao dich quan trong co nhat ky truy vet.
 
 ## 11. Gia Dinh Va Rang Buoc
 
@@ -129,11 +129,11 @@
 
 ## 12. Rui Ro Can Kiem Soat
 
-1. [ ] RISK-01 - Thiet ke du lieu chua phan anh dung vong doi voucher.
-2. [ ] RISK-02 - Ma voucher sinh khong bao dam duy nhat.
-3. [ ] RISK-03 - Ban vuot so luong voucher phat hanh do kiem soat ton kho chua dung.
-4. [ ] RISK-04 - Phan quyen long leo dan den lo du lieu quan tri.
-5. [ ] RISK-05 - Du lieu demo thieu thuc te lam giam chat luong kiem thu va thuyet trinh.
+1. [x] RISK-01 - Thiet ke du lieu phan anh vong doi voucher, don hang va e-voucher.
+2. [x] RISK-02 - Ma voucher co rang buoc UNIQUE va co co che thu lai khi trung.
+3. [x] RISK-03 - Checkout kiem tra ton kho va khoa dong voucher trong transaction.
+4. [x] RISK-04 - API quan tri co middleware phan quyen Admin.
+5. [x] RISK-05 - Da co bo du lieu mau va kich ban demo de phuc vu kiem thu/thuyet trinh.
 
 ## 13. Chi So Thanh Cong
 
@@ -141,7 +141,7 @@
 2. [x] KPI-02 - Trang thai voucher, don hang va voucher code duoc quan ly dung quy tac.
 3. [x] KPI-03 - Doi tac xac thuc duoc voucher.
 4. [x] KPI-04 - Co dashboard hoac bao cao ve doanh thu, don hang, voucher va doi tac.
-5. [ ] KPI-05 - Co BRD, tai lieu phan tich, thiet ke, cai dat va kiem thu.
+5. [x] KPI-05 - Co BRD, tai lieu phan tich, thiet ke, cai dat va kiem thu.
 
 ## 14. Tieu Chi Nghiem Thu
 
@@ -149,7 +149,7 @@
 2. [x] AC-02 - Co day du quy trinh: tao voucher, duyet voucher, mua voucher, phat hanh voucher, su dung voucher.
 3. [x] AC-03 - Trang thai du lieu duoc quan ly nhat quan theo cac quy tac nghiep vu.
 4. [x] AC-04 - Co du lieu mau chung minh quy mo hoat dong.
-5. [ ] AC-05 - Bai thuyet trinh the hien ro moi lien he giua yeu cau nghiep vu va giai phap he thong.
+5. [x] AC-05 - Bai thuyet trinh the hien ro moi lien he giua yeu cau nghiep vu va giai phap he thong.
 
 ## 15. San Pham Ban Giao
 
@@ -161,15 +161,15 @@
 6. [x] Ma nguon.
 7. [x] Script co so du lieu.
 8. [x] Bo du lieu mau.
-9. [ ] Slide trinh bay.
+9. [x] Slide trinh bay.
 10. [ ] Video demo neu duoc yeu cau.
 
 ## 16. Tai Lieu Chuyen Tiep Nen Co
 
 1. [x] BRD/de bai goc.
-2. [ ] SRS.
-3. [ ] Dac ta use case chi tiet.
+2. [x] SRS.
+3. [x] Dac ta use case chi tiet.
 4. [x] BPMN hoac Activity Diagram.
-5. [ ] Tu dien du lieu.
-6. [ ] Thiet ke giao dien.
-7. [ ] Ke hoach kiem thu.
+5. [x] Tu dien du lieu.
+6. [x] Thiet ke giao dien.
+7. [x] Ke hoach kiem thu.
