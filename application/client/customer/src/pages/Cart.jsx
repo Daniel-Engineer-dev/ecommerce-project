@@ -2,9 +2,10 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Cart = () => {
+  const navigate = useNavigate();
   const { cartItems, removeFromCart, updateQuantity, totalPrice, totalItems } = useCart();
 
   const formatPrice = (price) => {
@@ -73,6 +74,10 @@ const Cart = () => {
                     <img
                       src={item.image_url}
                       alt={item.title}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&auto=format&fit=crop&q=80';
+                      }}
                       style={{ width: '100px', height: '100px', borderRadius: '12px', objectFit: 'cover' }}
                     />
                     <div style={{ flex: 1 }}>
@@ -82,6 +87,9 @@ const Cart = () => {
                         <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: '1.1rem' }}>{formatPrice(item.sale_price)}</span>
                         {item.original_price > item.sale_price && (
                           <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: '0.9rem' }}>{formatPrice(item.original_price)}</span>
+                        )}
+                        {item.quantity_stock !== undefined && (
+                          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Còn {item.quantity_stock}</span>
                         )}
                       </div>
                     </div>
@@ -97,7 +105,8 @@ const Cart = () => {
                         <span style={{ width: '30px', textAlign: 'center', fontWeight: 700 }}>{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.voucher_id, item.quantity + 1)}
-                          style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', display: 'flex' }}
+                          disabled={item.quantity >= Number(item.quantity_stock || item.quantity + 1)}
+                          style={{ border: 'none', background: 'none', padding: '4px', cursor: item.quantity >= Number(item.quantity_stock || item.quantity + 1) ? 'not-allowed' : 'pointer', display: 'flex', opacity: item.quantity >= Number(item.quantity_stock || item.quantity + 1) ? 0.4 : 1 }}
                         >
                           <Plus size={16} />
                         </button>
@@ -136,6 +145,7 @@ const Cart = () => {
                   </div>
                 </div>
                 <button
+                  onClick={() => navigate('/checkout')}
                   className="btn-primary"
                   style={{ width: '100%', height: '56px', fontSize: '1.1rem', gap: '0.5rem' }}
                 >
