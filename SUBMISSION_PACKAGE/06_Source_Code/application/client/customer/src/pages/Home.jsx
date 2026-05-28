@@ -1,189 +1,308 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import VoucherCard from '../components/VoucherCard';
-import { 
-  Utensils, Sparkles, Heart, Activity, Scissors, GraduationCap, 
-  Stethoscope, Coffee, Plane, Hotel, ChevronRight, Zap, Trophy, UserCheck
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Activity,
+  ArrowRight,
+  BadgeCheck,
+  ChevronRight,
+  Coffee,
+  Crown,
+  GraduationCap,
+  Heart,
+  Hotel,
+  Plane,
+  Scissors,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Stethoscope,
+  TicketPercent,
+  Utensils,
+  Zap,
+} from "lucide-react";
+import VoucherCard from "../components/VoucherCard";
+import { API_BASE_URL, translateCategory } from "../config";
 
-const Home = () => {
-  const navigate = useNavigate();
-  const [vouchers, setVouchers] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('hot');
+const VOUCHERS_PER_SECTION = 8;
+const SECTION_LOAD_MORE_STEP = 4;
 
-  useEffect(() => {
-    fetch('http://localhost:5000/api/vouchers')
-      .then(res => res.json())
-      .then(data => {
-        setVouchers(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching vouchers:", err);
-        setLoading(false);
-      });
+const categoryIcons = {
+  Dining: Utensils,
+  Shopping: ShoppingBag,
+  Entertainment: Activity,
+  Beauty: Heart,
+  Travel: Plane,
+  Health: Stethoscope,
+  Education: GraduationCap,
+  Spa: Scissors,
+  Hotels: Hotel,
+  Cafe: Coffee,
+};
 
-    fetch('http://localhost:5000/api/vouchers/categories')
-      .then(res => res.json())
-      .then(data => setCategories(data));
-  }, []);
+const heroTiles = [
+  {
+    title: "Fine dining",
+    copy: "Set menu, buffet va nha hang duoc chon loc.",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=82&w=900",
+  },
+  {
+    title: "Wellness",
+    copy: "Spa, lam dep va cham soc suc khoe cuoi tuan.",
+    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=82&w=900",
+  },
+];
 
-  const categoryIcons = {
-    'Dining': <Utensils size={18} />,
-    'Beauty': <Heart size={18} />,
-    'Entertainment': <Activity size={18} />,
-    'Travel': <Plane size={18} />,
-    'Education': <GraduationCap size={18} />,
-    'Health': <Stethoscope size={18} />,
-    'Spa': <Scissors size={18} />,
-    'Hotels': <Hotel size={18} />,
-  };
-
+const isSameDay = (value, date = new Date()) => {
+  if (!value) return false;
+  const target = new Date(value);
   return (
-    <div style={{ background: '#f1f5f9', minHeight: '100vh', paddingTop: '180px', paddingBottom: '5rem' }}>
-      <div className="container">
-        
-        {/* TOP LAYOUT: SIDEBAR + BANNER AREA */}
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-          
-          {/* LEFT SIDEBAR */}
-          <aside className="category-sidebar">
-            <div style={{ background: 'var(--primary)', color: 'white', padding: '12px 16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-               DANH MỤC
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Link to="/search?category=hot" className="category-item" style={{ color: '#ef4444' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Zap size={18} fill="#ef4444" /> KHUYẾN MÃI HOT
-                </div>
-                <ChevronRight size={14} />
-              </Link>
-              {categories.map(cat => (
-                <Link key={cat.category_id} to={`/search?category=${cat.category_id}`} className="category-item">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {categoryIcons[cat.category_name] || <Sparkles size={18} />}
-                    {cat.category_name}
-                  </div>
-                  <ChevronRight size={14} />
-                </Link>
-              ))}
-            </div>
-          </aside>
-
-          {/* MAIN HERO AREA */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1rem' }}>
-            {/* LARGE CAROUSEL */}
-            <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', position: 'relative' }}>
-              <img 
-                src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&q=80&w=1200" 
-                alt="Banner" 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', color: 'white', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.5rem' }}>VUI CẢ NGÀY DÀI</h1>
-                <p style={{ fontSize: '1.2rem', fontWeight: 600 }}>GIÁ SIÊU ƯU ĐÃI CHỈ TỪ 255.000Đ</p>
-              </div>
-            </div>
-
-            {/* SIDE BANNERS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ flex: 1, background: '#fee2e2', borderRadius: '12px', overflow: 'hidden' }}>
-                <img src="https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=400" alt="ad" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <div style={{ flex: 1, background: '#dcfce7', borderRadius: '12px', overflow: 'hidden' }}>
-                <img src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80&w=400" alt="ad" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* BRAND LOGOS SLIDER (Simplified) */}
-        <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', display: 'flex', justifyContent: 'space-around', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
-          {['NIKKO SAIGON', 'GRANDSKINCARE', 'HOTEL MAJESTIC', 'DAM SEN PARK', 'HUNG NGUYEN'].map(brand => (
-            <div key={brand} style={{ textAlign: 'center', cursor: 'pointer' }}>
-               <div style={{ width: '60px', height: '60px', background: '#f8fafc', borderRadius: '50%', margin: '0 auto 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <Building2Icon size={24} color="var(--primary)" />
-               </div>
-               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)' }}>{brand}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* DEALS TABS */}
-        <div style={{ borderBottom: '2px solid #e2e8f0', marginBottom: '2rem', display: 'flex', gap: '2rem' }}>
-          {[
-            { id: 'hot', label: 'DEAL NỔI BẬT' },
-            { id: 'today', label: 'DEAL HÔM NAY' },
-            { id: 'for-you', label: 'DÀNH CHO BẠN' }
-          ].map(tab => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '1rem 0.5rem',
-                border: 'none',
-                background: 'transparent',
-                fontSize: '1rem',
-                fontWeight: 800,
-                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
-                borderBottom: activeTab === tab.id ? '3px solid var(--primary)' : '3px solid transparent',
-                cursor: 'pointer',
-                transition: '0.2s',
-                marginBottom: '-2px'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* PRODUCT GRID */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>
-            Đang tải dữ liệu...
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '1.5rem'
-          }}>
-            {vouchers.map(v => (
-              <VoucherCard key={v.voucher_id} voucher={v} />
-            ))}
-          </div>
-        )}
-
-        {/* SEE MORE BUTTON */}
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-           <button style={{ padding: '0.8rem 3rem', borderRadius: '12px', border: '1px solid var(--primary)', background: 'white', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', transition: '0.3s' }} onMouseEnter={e => { e.target.style.background = 'var(--primary)'; e.target.style.color = 'white'; }} onMouseLeave={e => { e.target.style.background = 'white'; e.target.style.color = 'var(--primary)'; }}>
-              XEM THÊM DEAL MỚI
-           </button>
-        </div>
-
-      </div>
-    </div>
+    target.getFullYear() === date.getFullYear() &&
+    target.getMonth() === date.getMonth() &&
+    target.getDate() === date.getDate()
   );
 };
 
-// Helper for brand icons
-const Building2Icon = ({ size, color }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
-    <path d="M9 22v-4h6v4" />
-    <path d="M8 6h.01" />
-    <path d="M16 6h.01" />
-    <path d="M12 6h.01" />
-    <path d="M12 10h.01" />
-    <path d="M12 14h.01" />
-    <path d="M16 10h.01" />
-    <path d="M16 14h.01" />
-    <path d="M8 10h.01" />
-    <path d="M8 14h.01" />
-  </svg>
-);
+const Home = () => {
+  const [vouchers, setVouchers] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("hot");
+  const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [visibleByCategory, setVisibleByCategory] = useState({});
+  const sectionRefs = useRef({});
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/vouchers`).then((res) => res.json()),
+      fetch(`${API_BASE_URL}/api/vouchers/categories`).then((res) => res.json()),
+    ])
+      .then(([voucherData, categoryData]) => {
+        setVouchers(Array.isArray(voucherData) ? voucherData : []);
+        setCategories(Array.isArray(categoryData) ? categoryData : []);
+      })
+      .catch((error) => console.error("Error loading home data:", error))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const tabVouchers = useMemo(() => {
+    if (activeTab === "today") {
+      return vouchers
+        .filter((voucher) => isSameDay(voucher.start_date))
+        .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+    }
+
+    if (activeTab === "for-you") {
+      return [...vouchers].sort((a, b) => Number(b.discount_percent || 0) - Number(a.discount_percent || 0));
+    }
+
+    return vouchers;
+  }, [activeTab, vouchers]);
+
+  const groupedSections = useMemo(() => {
+    return categories
+      .map((category) => ({
+        category,
+        items: tabVouchers.filter((voucher) => Number(voucher.category_id) === Number(category.category_id)),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [categories, tabVouchers]);
+
+  const premiumDeal = useMemo(() => {
+    return [...vouchers].sort((a, b) => Number(b.discount_percent || 0) - Number(a.discount_percent || 0))[0];
+  }, [vouchers]);
+
+  useEffect(() => {
+    setActiveCategoryId(groupedSections[0]?.category.category_id || null);
+    const nextVisible = {};
+    groupedSections.forEach(({ category }) => {
+      nextVisible[category.category_id] = VOUCHERS_PER_SECTION;
+    });
+    setVisibleByCategory(nextVisible);
+  }, [groupedSections, activeTab]);
+
+  useEffect(() => {
+    if (!groupedSections.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const sectionId = visible[0]?.target.getAttribute("data-category-id");
+        if (sectionId) setActiveCategoryId(Number(sectionId));
+      },
+      { rootMargin: "-30% 0px -50% 0px", threshold: [0.2, 0.45, 0.7] },
+    );
+
+    groupedSections.forEach(({ category }) => {
+      const node = sectionRefs.current[category.category_id];
+      if (node) observer.observe(node);
+    });
+
+    return () => observer.disconnect();
+  }, [groupedSections]);
+
+  const jumpToCategory = (categoryId) => {
+    sectionRefs.current[categoryId]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return (
+    <main className="lux-home">
+      <section className="lux-hero">
+        <div className="container lux-hero__grid">
+          <div className="lux-hero__content">
+            <span className="lux-eyebrow"><Crown size={15} /> Curated offers</span>
+            <h1>Voucher dep, trai nghiem that, gia tri ro rang.</h1>
+            <p>
+              Dealzy gom nhung uu dai dang tin cay tu nha hang, spa, du lich va giai tri trong mot trai nghiem mua voucher gon gang nhu mot san pham cao cap.
+            </p>
+            <div className="lux-hero__actions">
+              <Link to="/search" className="lux-button lux-button--primary">
+                Kham pha deal <ArrowRight size={18} />
+              </Link>
+              <Link to="/partners" className="lux-button lux-button--ghost">
+                Xem doi tac
+              </Link>
+            </div>
+            <div className="lux-hero__proof">
+              <span><BadgeCheck size={16} /> Voucher da kiem duyet</span>
+              <span><ShieldCheck size={16} /> Thanh toan demo an toan</span>
+              <span><TicketPercent size={16} /> Ma dien tu tuc thi</span>
+            </div>
+          </div>
+
+          <div className="lux-hero__media">
+            <img
+              src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=82&w=1300"
+              alt="Premium restaurant experience"
+            />
+            <div className="lux-hero__deal">
+              <span>Best saving</span>
+              <strong>{premiumDeal ? `-${premiumDeal.discount_percent || 0}%` : "-50%"}</strong>
+              <small>{premiumDeal?.company_name || "Selected partners"}</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container lux-feature-strip">
+        {[
+          { icon: Sparkles, title: "Lua chon co gu", copy: "Chi hien thi voucher da duyet va con hieu luc." },
+          { icon: Zap, title: "Nhan ma nhanh", copy: "E-voucher duoc phat hanh sau thanh toan thanh cong." },
+          { icon: ShieldCheck, title: "Kiem soat ro", copy: "Trang thai don, ma va su dung duoc ghi nhan." },
+        ].map(({ icon: Icon, title, copy }) => (
+          <div key={title} className="lux-feature">
+            <Icon size={20} />
+            <span>
+              <strong>{title}</strong>
+              <small>{copy}</small>
+            </span>
+          </div>
+        ))}
+      </section>
+
+      <section className="container lux-editorial-grid">
+        {heroTiles.map((tile) => (
+          <Link key={tile.title} to="/search" className="lux-editorial-card">
+            <img src={tile.image} alt={tile.title} />
+            <span>
+              <strong>{tile.title}</strong>
+              <small>{tile.copy}</small>
+            </span>
+          </Link>
+        ))}
+      </section>
+
+      <section className="container lux-market">
+        <div className="lux-market__header">
+          <div>
+            <span className="lux-eyebrow">Marketplace</span>
+            <h2>Uu dai dang chu y</h2>
+          </div>
+          <div className="lux-tabs" role="tablist" aria-label="Voucher tabs">
+            {[
+              { id: "hot", label: "Noi bat" },
+              { id: "today", label: "Hom nay" },
+              { id: "for-you", label: "Giam sau" },
+            ].map((tab) => (
+              <button key={tab.id} type="button" className={activeTab === tab.id ? "active" : ""} onClick={() => setActiveTab(tab.id)}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="lux-loading">Dang chon nhung voucher tot nhat...</div>
+        ) : groupedSections.length ? (
+          <div className="lux-home-layout">
+            <aside className="lux-category-rail" aria-label="Danh muc">
+              {groupedSections.map(({ category }) => {
+                const Icon = categoryIcons[category.category_name] || Sparkles;
+                const isActive = Number(activeCategoryId) === Number(category.category_id);
+                return (
+                  <button
+                    key={category.category_id}
+                    type="button"
+                    className={isActive ? "active" : ""}
+                    title={translateCategory(category.category_name)}
+                    onClick={() => jumpToCategory(category.category_id)}
+                  >
+                    <Icon size={18} />
+                  </button>
+                );
+              })}
+            </aside>
+
+            <div className="lux-sections">
+              {groupedSections.map(({ category, items }) => (
+                <section
+                  key={category.category_id}
+                  data-category-id={category.category_id}
+                  ref={(node) => {
+                    if (node) sectionRefs.current[category.category_id] = node;
+                  }}
+                  className="lux-section"
+                >
+                  <div className="lux-section__head">
+                    <div>
+                      <span>{items.length} voucher</span>
+                      <h3>{translateCategory(category.category_name)}</h3>
+                    </div>
+                    <Link to={`/search?category=${category.category_id}`}>Xem tat ca <ChevronRight size={16} /></Link>
+                  </div>
+                  <div className="lux-voucher-grid">
+                    {items.slice(0, visibleByCategory[category.category_id] || VOUCHERS_PER_SECTION).map((voucher) => (
+                      <VoucherCard key={voucher.voucher_id} voucher={voucher} />
+                    ))}
+                  </div>
+                  {(visibleByCategory[category.category_id] || VOUCHERS_PER_SECTION) < items.length && (
+                    <div className="lux-section__more">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setVisibleByCategory((current) => ({
+                            ...current,
+                            [category.category_id]: (current[category.category_id] || VOUCHERS_PER_SECTION) + SECTION_LOAD_MORE_STEP,
+                          }))
+                        }
+                      >
+                        Tai them voucher
+                      </button>
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="lux-empty">
+            <Sparkles size={34} />
+            <h3>Chua co deal phu hop</h3>
+            <p>Thu doi bo loc hoac quay lai sau khi doi tac phat hanh voucher moi.</p>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+};
 
 export default Home;

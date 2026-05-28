@@ -1,81 +1,121 @@
-import { ShoppingCart, User, Tag } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { useState } from "react";
+import { ArrowRight, Eye, MapPin, ShoppingCart, TicketPercent, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+
+const fallbackImage = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=82";
+
+const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}d`;
 
 const VoucherCard = ({ voucher }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [flyItem, setFlyItem] = useState(null);
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
+  const animateToCart = (startRect) => {
+    const cartTarget = document.getElementById("cart-target");
+    const targetRect = cartTarget?.getBoundingClientRect();
+    const size = 70;
+
+    setFlyItem({
+      id: `${voucher.voucher_id}-${Date.now()}`,
+      image: voucher.image_url || fallbackImage,
+      fromX: startRect.left + startRect.width / 2 - size / 2,
+      fromY: startRect.top + startRect.height / 2 - size / 2,
+      toX: (targetRect?.left ?? window.innerWidth - 80) + (targetRect?.width ?? 0) / 2 - size / 2,
+      toY: (targetRect?.top ?? 24) + (targetRect?.height ?? 0) / 2 - size / 2,
+      size,
+    });
+  };
+
+  const addVoucher = (event) => {
+    event.stopPropagation();
+    animateToCart(event.currentTarget.getBoundingClientRect());
     addToCart(voucher);
   };
 
-  const handleCardClick = () => {
-    navigate(`/voucher/${voucher.voucher_id}`);
+  const goToDetail = () => navigate(`/voucher/${voucher.voucher_id}`);
+
+  const imageError = (event) => {
+    event.target.onerror = null;
+    event.target.src = fallbackImage;
   };
 
   return (
-    <motion.div 
-      onClick={handleCardClick}
-      className="product-card"
-      style={{ cursor: 'pointer', position: 'relative' }}
-    >
-      <div style={{ position: 'relative', height: '200px', overflow: 'hidden' }}>
-        <img 
-          src={voucher.image_url} 
-          alt={voucher.title} 
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <div className="hot-badge">HOT</div>
-        <div style={{
-          position: 'absolute',
-          bottom: '10px',
-          left: '10px',
-          background: 'rgba(0,0,0,0.6)',
-          color: 'white',
-          padding: '2px 8px',
-          borderRadius: '4px',
-          fontSize: '0.7rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}>
-          E-Voucher
+    <>
+      <motion.article className="lux-voucher-card" onClick={goToDetail} whileHover={{ y: -4 }}>
+        <div className="lux-voucher-card__media">
+          <img src={voucher.image_url || fallbackImage} alt={voucher.title} onError={imageError} />
+          <span className="lux-voucher-card__badge"><TicketPercent size={13} /> -{voucher.discount_percent || 0}%</span>
+          <button type="button" className="lux-voucher-card__quick" onClick={(event) => { event.stopPropagation(); setShowQuickView(true); }} aria-label="Xem nhanh">
+            <Eye size={16} />
+          </button>
         </div>
-      </div>
 
-      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ 
-          fontSize: '0.95rem', 
-          marginBottom: '0.75rem', 
-          fontWeight: 600, 
-          lineHeight: '1.4', 
-          height: '2.8rem', 
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical'
-        }}>
-          {voucher.title}
-        </h3>
-        
-        <div style={{ marginTop: 'auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <span className="price-red">{Number(voucher.sale_price).toLocaleString('vi-VN')}đ</span>
-            <span className="discount-tag">-{voucher.discount_percent}%</span>
+        <div className="lux-voucher-card__body">
+          <div className="lux-voucher-card__merchant">
+            <MapPin size={13} />
+            {voucher.company_name || "Dealzy Partner"}
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="price-old">{Number(voucher.original_price).toLocaleString('vi-VN')}đ</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              <User size={12} /> <span>7,347</span>
-            </div>
+          <h3>{voucher.title}</h3>
+          <div className="lux-voucher-card__price">
+            <strong>{formatMoney(voucher.sale_price)}</strong>
+            <span>{formatMoney(voucher.original_price)}</span>
+          </div>
+          <div className="lux-voucher-card__footer">
+            <small>{voucher.category_name || "E-voucher"}</small>
+            <button type="button" onClick={addVoucher} aria-label="Them vao gio hang">
+              <ShoppingCart size={17} />
+            </button>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.article>
+
+      {flyItem && (
+        <motion.img
+          src={flyItem.image}
+          alt=""
+          className="lux-fly-item"
+          style={{ left: flyItem.fromX, top: flyItem.fromY, width: flyItem.size, height: flyItem.size }}
+          initial={{ opacity: 0.95, scale: 0.9 }}
+          animate={{ x: flyItem.toX - flyItem.fromX, y: flyItem.toY - flyItem.fromY, scale: 0.25, opacity: 0 }}
+          transition={{ duration: 0.75, ease: "easeInOut" }}
+          onAnimationComplete={() => setFlyItem(null)}
+        />
+      )}
+
+      <AnimatePresence>
+        {showQuickView && (
+          <motion.div className="lux-quick-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowQuickView(false)}>
+            <motion.div className="lux-quick-view__dialog" initial={{ opacity: 0, y: 22, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: 0.97 }} onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="lux-quick-view__close" onClick={() => setShowQuickView(false)} aria-label="Dong">
+                <X size={19} />
+              </button>
+              <img src={voucher.image_url || fallbackImage} alt={voucher.title} onError={imageError} />
+              <div className="lux-quick-view__content">
+                <span>{voucher.company_name || "Dealzy Partner"}</span>
+                <h2>{voucher.title}</h2>
+                <p>{voucher.description || "Voucher uu dai duoc Dealzy kiem duyet, san sang phat hanh ma dien tu sau khi thanh toan thanh cong."}</p>
+                <div className="lux-quick-view__price">
+                  <strong>{formatMoney(voucher.sale_price)}</strong>
+                  <small>{formatMoney(voucher.original_price)}</small>
+                </div>
+                <div className="lux-quick-view__actions">
+                  <button type="button" className="lux-button lux-button--primary" onClick={addVoucher}>
+                    <ShoppingCart size={18} /> Them vao gio
+                  </button>
+                  <button type="button" className="lux-button lux-button--ghost" onClick={goToDetail}>
+                    Chi tiet <ArrowRight size={17} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

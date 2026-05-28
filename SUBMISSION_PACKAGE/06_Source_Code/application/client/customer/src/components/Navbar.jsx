@@ -1,150 +1,301 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, User, LogOut, ShieldCheck, Search, MapPin, Phone, Mail, ChevronDown, List } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Activity,
+  BriefcaseBusiness,
+  ChevronDown,
+  ChevronRight,
+  Coffee,
+  GraduationCap,
+  Heart,
+  Hotel,
+  LogOut,
+  Menu,
+  Plane,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
+  ShoppingCart,
+  Sparkles,
+  Stethoscope,
+  User,
+  Utensils,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import logo from "../assets/logo.png";
+import { API_BASE_URL, translateCategory } from "../config";
+import { useCart } from "../context/CartContext";
 
-import { useCart } from '../context/CartContext';
+const categoryIcons = {
+  Dining: Utensils,
+  Shopping: ShoppingBag,
+  Entertainment: Activity,
+  Beauty: Heart,
+  Travel: Plane,
+  Health: Stethoscope,
+  Education: GraduationCap,
+  Hotels: Hotel,
+  Cafe: Coffee,
+};
+
+const navLinks = [
+  { to: "/search?sort=new", label: "Deal moi" },
+  { to: "/search?sort=best", label: "Ban chay" },
+  { to: "/partners", label: "Doi tac" },
+  { to: "/support", label: "Ho tro" },
+];
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { totalItems } = useCart();
-  const [isScrolled, setIsScrolled] = useState(false);
+  const searchRef = useRef(null);
+
   const [user, setUser] = useState(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isUserOpen, setIsUserOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll);
 
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) setUser(JSON.parse(savedUser));
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        localStorage.removeItem("user");
+      }
+    }
 
-    return () => window.removeEventListener('scroll', handleScroll);
+    fetch(`${API_BASE_URL}/api/vouchers/categories`)
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(() => setCategories([]));
+
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    navigate('/');
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setIsCategoryOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, []);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      setLoadingSuggestions(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setLoadingSuggestions(true);
+      fetch(`${API_BASE_URL}/api/vouchers/search?q=${encodeURIComponent(query.trim())}`)
+        .then((res) => res.json())
+        .then((data) => setSuggestions(Array.isArray(data) ? data.slice(0, 6) : []))
+        .catch(() => setSuggestions([]))
+        .finally(() => setLoadingSuggestions(false));
+    }, 260);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const submitSearch = (event) => {
+    event?.preventDefault();
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (selectedCategories.length) params.set("category", selectedCategories.join(","));
+    navigate(params.toString() ? `/search?${params.toString()}` : "/search");
+    setShowSuggestions(false);
+    setIsCategoryOpen(false);
+    setIsMobileOpen(false);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-    }
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setIsUserOpen(false);
+    navigate("/");
+  };
+
+  const pickSuggestion = (voucher) => {
+    setQuery("");
+    setShowSuggestions(false);
+    navigate(`/voucher/${voucher.voucher_id}`);
   };
 
   return (
-    <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: 'white', boxShadow: isScrolled ? '0 4px 20px rgba(0,0,0,0.05)' : 'none', transition: '0.3s' }}>
-      {/* 1. TOP BAR */}
-      <div className="top-bar">
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-              <MapPin size={14} /> <span>Hồ Chí Minh</span> <ChevronDown size={12} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Phone size={14} /> <span>Hotline: 1900 6760</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Mail size={14} /> <span>cs@dealzy.vn</span>
-            </div>
-            {!user && (
-              <Link to="/auth" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Đăng ký / Đăng nhập</Link>
-            )}
-          </div>
+    <header className={`lux-nav ${isScrolled ? "is-scrolled" : ""}`}>
+      <div className="lux-nav__trust">
+        <div className="container lux-nav__trust-inner">
+          <span><ShieldCheck size={14} /> Voucher verified by Dealzy</span>
+          <span>Ho Chi Minh City</span>
+          <span>Hotline 1900 6760</span>
         </div>
       </div>
 
-      {/* 2. MAIN HEADER */}
-      <div style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)' }}>
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '3rem' }}>
-          {/* Logo */}
-          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img src={logo} alt="Logo" style={{ height: '45px', width: '45px', objectFit: 'contain' }} />
-            <span style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--primary)', letterSpacing: '-1px' }}>DEALZY</span>
+      <div className="container lux-nav__main">
+        <Link to="/" className="lux-brand" aria-label="Dealzy home">
+          <span className="lux-brand__mark"><img src={logo} alt="" /></span>
+          <span>
+            <strong>Dealzy</strong>
+            <small>Premium voucher marketplace</small>
+          </span>
+        </Link>
+
+        <form ref={searchRef} className="lux-search" onSubmit={submitSearch}>
+          <button
+            type="button"
+            className="lux-search__category"
+            onClick={() => setIsCategoryOpen((value) => !value)}
+          >
+            {selectedCategories.length ? `${selectedCategories.length} danh muc` : "Tat ca"}
+            <ChevronDown size={15} />
+          </button>
+
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            placeholder="Tim nha hang, spa, du lich, giai tri..."
+          />
+          <button type="submit" className="lux-search__submit" aria-label="Tim kiem">
+            <Search size={19} />
+          </button>
+
+          <AnimatePresence>
+            {isCategoryOpen && (
+              <motion.div className="lux-category-popover" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+                <div className="lux-category-popover__actions">
+                  <button type="button" onClick={() => setSelectedCategories(categories.map((item) => item.category_id))}>Chon tat ca</button>
+                  <button type="button" onClick={() => setSelectedCategories([])}>Bo chon</button>
+                </div>
+                <div className="lux-category-popover__list">
+                  {categories.map((category) => {
+                    const Icon = categoryIcons[category.category_name] || Sparkles;
+                    const checked = selectedCategories.includes(category.category_id);
+                    return (
+                      <label key={category.category_id}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            setSelectedCategories((current) =>
+                              event.target.checked
+                                ? [...current, category.category_id]
+                                : current.filter((id) => id !== category.category_id),
+                            );
+                          }}
+                        />
+                        <Icon size={16} />
+                        <span>{translateCategory(category.category_name)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showSuggestions && query.trim() && (
+              <motion.div className="lux-suggestions" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+                {loadingSuggestions ? (
+                  <div className="lux-suggestions__empty">Dang tim deal phu hop...</div>
+                ) : suggestions.length ? (
+                  <>
+                    {suggestions.map((voucher) => (
+                      <button key={voucher.voucher_id} type="button" onClick={() => pickSuggestion(voucher)}>
+                        <img src={voucher.image_url} alt="" />
+                        <span>
+                          <strong>{voucher.title}</strong>
+                          <small>{voucher.company_name || "Dealzy Partner"}</small>
+                        </span>
+                        <b>{Number(voucher.sale_price).toLocaleString("vi-VN")}d</b>
+                      </button>
+                    ))}
+                    <button type="button" className="lux-suggestions__all" onClick={submitSearch}>
+                      Xem tat ca ket qua <ChevronRight size={15} />
+                    </button>
+                  </>
+                ) : (
+                  <div className="lux-suggestions__empty">Chua co voucher phu hop.</div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
+
+        <nav className="lux-nav__links">
+          {navLinks.map((item) => (
+            <Link key={item.to} to={item.to}>{item.label}</Link>
+          ))}
+        </nav>
+
+        <div className="lux-nav__actions">
+          <Link id="cart-target" to="/cart" className="lux-icon-button" aria-label="Gio hang">
+            <ShoppingCart size={20} />
+            {totalItems > 0 && <span>{totalItems}</span>}
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="search-bar-container">
-            <div style={{ padding: '0 1rem', borderRight: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '0.9rem', fontWeight: 500 }}>
-              Tất cả danh mục <ChevronDown size={14} />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm sản phẩm / khuyến mãi..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ flex: 1, border: 'none', background: 'transparent', padding: '0.75rem 1rem', outline: 'none', fontSize: '0.95rem' }} 
-            />
-            <button type="submit" style={{ background: 'var(--primary)', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '8px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Search size={20} strokeWidth={2.5} />
-            </button>
-          </form>
-
-          {/* Cart & User */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <Link to="/cart" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'var(--text-main)', fontWeight: 700 }}>
-              <div style={{ position: 'relative' }}>
-                <ShoppingCart size={28} />
-                {totalItems > 0 && (
-                  <span style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: 'white', width: '20px', height: '20px', borderRadius: '50%', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, border: '2px solid white' }}>
-                    {totalItems}
-                  </span>
+          {user ? (
+            <div className="lux-user" onMouseEnter={() => setIsUserOpen(true)} onMouseLeave={() => setIsUserOpen(false)}>
+              <button type="button" className="lux-user__trigger">
+                <User size={17} />
+                <span>{user.username}</span>
+              </button>
+              <AnimatePresence>
+                {isUserOpen && (
+                  <motion.div className="lux-user__menu" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
+                    <Link to="/profile">Tai khoan</Link>
+                    <button type="button" onClick={logout}><LogOut size={15} /> Dang xuat</button>
+                  </motion.div>
                 )}
-              </div>
-              GIỎ HÀNG
-            </Link>
+              </AnimatePresence>
+            </div>
+          ) : (
+            <Link className="lux-login" to={`/auth?redirect=${encodeURIComponent(location.pathname)}`}>Dang nhap</Link>
+          )}
 
-            {user && (
-              <div 
-                style={{ position: 'relative', cursor: 'pointer' }}
-                onMouseEnter={() => setIsDropdownOpen(true)}
-                onMouseLeave={() => setIsDropdownOpen(false)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.5rem 1rem', borderRadius: '12px', fontWeight: 600 }}>
-                  <User size={20} />
-                  <span>{user.username}</span>
-                </div>
-                
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      style={{ position: 'absolute', top: '100%', right: 0, width: '200px', background: 'white', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '0.5rem', border: '1px solid #f1f5f9', marginTop: '0.5rem' }}
-                    >
-                      <Link to="/profile" style={{ display: 'block', padding: '0.75rem 1rem', textDecoration: 'none', color: 'var(--text-main)', borderRadius: '8px', fontSize: '0.9rem' }} onMouseEnter={e => e.target.style.background = '#f8fafc'} onMouseLeave={e => e.target.style.background = 'transparent'}>Tài khoản</Link>
-                      <button onClick={handleLogout} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, borderRadius: '8px', cursor: 'pointer' }} onMouseEnter={e => e.target.style.background = '#fef2f2'} onMouseLeave={e => e.target.style.background = 'transparent'}>Đăng xuất</button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
+          <button type="button" className="lux-mobile-toggle" onClick={() => setIsMobileOpen((value) => !value)} aria-label="Menu">
+            {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </div>
 
-      {/* 3. SUB HEADER / NAVIGATION */}
-      <div style={{ background: 'var(--primary)', color: 'white', height: '42px', display: 'flex', alignItems: 'center' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.15)', height: '42px', padding: '0 1.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>
-            <List size={20} /> DANH MỤC <ChevronDown size={16} />
-          </div>
-          <div style={{ display: 'flex', gap: '2rem' }}>
-            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Deal Mới</Link>
-            <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Deal Bán Chạy</Link>
-            <Link to="/partners" style={{ color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase' }}>Đối Tác</Link>
-          </div>
-        </div>
-      </div>
+      <AnimatePresence>
+        {isMobileOpen && (
+          <motion.div className="lux-mobile-panel" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+            <div className="container">
+              {navLinks.map((item) => (
+                <Link key={item.to} to={item.to} onClick={() => setIsMobileOpen(false)}>{item.label}</Link>
+              ))}
+              <Link to="/register-partner" onClick={() => setIsMobileOpen(false)}>
+                <BriefcaseBusiness size={16} /> Hop tac doanh nghiep
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

@@ -49,25 +49,25 @@ const apiFetch = async (path, options = {}) => {
 };
 
 const shell = {
-  page: { padding: '28px', display: 'flex', flexDirection: 'column', gap: '22px' },
+  page: { padding: '30px', display: 'flex', flexDirection: 'column', gap: '22px' },
   card: {
     background: 'white',
-    border: '1px solid #e2e8f0',
-    borderRadius: '16px',
-    boxShadow: '0 10px 28px rgba(15, 23, 42, 0.05)',
+    border: '1px solid #e7e2d8',
+    borderRadius: '10px',
+    boxShadow: '0 16px 38px rgba(17, 24, 39, 0.07)',
   },
   input: {
     width: '100%',
-    border: '1px solid #cbd5e1',
-    borderRadius: '10px',
+    border: '1px solid #d8d0c4',
+    borderRadius: '8px',
     padding: '10px 12px',
     font: 'inherit',
     background: '#fff',
   },
-  label: { fontSize: '0.78rem', fontWeight: 800, color: '#475569', marginBottom: '6px', display: 'block' },
+  label: { fontSize: '0.78rem', fontWeight: 800, color: '#475467', marginBottom: '6px', display: 'block' },
   button: {
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     padding: '10px 14px',
     fontWeight: 800,
     cursor: 'pointer',
@@ -652,23 +652,23 @@ function Sidebar() {
   };
 
   return (
-    <aside style={{ width: '270px', background: '#0f172a', color: '#cbd5e1', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column' }}>
+    <aside style={{ width: '270px', background: '#0f2742', color: '#d0d5dd', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', boxShadow: '18px 0 45px rgba(17, 24, 39, 0.16)' }}>
       <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'white', fontWeight: 900, fontSize: '1.2rem' }}>
-        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#2563eb', display: 'grid', placeItems: 'center' }}><Building2 size={22} /></div>
+        <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#047857', display: 'grid', placeItems: 'center', boxShadow: '0 12px 26px rgba(4, 120, 87, 0.28)' }}><Building2 size={22} /></div>
         PartnerHub
       </div>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 14px', flex: 1 }}>
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', color: active ? 'white' : '#cbd5e1', background: active ? '#2563eb' : 'transparent', textDecoration: 'none', fontWeight: 800 }}>
+            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '8px', color: active ? 'white' : '#d0d5dd', background: active ? '#047857' : 'transparent', textDecoration: 'none', fontWeight: 800 }}>
               <item.icon size={20} /> {item.label}
             </Link>
           );
         })}
       </nav>
       <div style={{ padding: '16px' }}>
-        <button onClick={logout} style={{ ...shell.button, width: '100%', background: '#1e293b', color: '#fecaca' }}><LogOut size={18} /> Đăng xuất</button>
+        <button onClick={logout} style={{ ...shell.button, width: '100%', background: 'rgba(255,255,255,0.08)', color: '#fecaca' }}><LogOut size={18} /> Đăng xuất</button>
       </div>
     </aside>
   );
@@ -676,12 +676,12 @@ function Sidebar() {
 
 function PartnerShell() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f4ef' }}>
       <Sidebar />
       <main style={{ flex: 1, minWidth: 0 }}>
-        <header style={{ height: '68px', background: 'rgba(255,255,255,0.92)', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#475569', fontWeight: 800 }}><Eye size={18} /> Cổng đối tác Dealzy</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#64748b', fontWeight: 700 }}><User size={18} /> {JSON.parse(localStorage.getItem('partnerUser') || '{}').username || 'Partner'}</div>
+        <header style={{ height: '68px', background: 'rgba(255,255,255,0.92)', borderBottom: '1px solid #e7e2d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(14px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0f2742', fontWeight: 900 }}><Eye size={18} /> Cổng đối tác Dealzy</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#667085', fontWeight: 800 }}><User size={18} /> {JSON.parse(localStorage.getItem('partnerUser') || '{}').username || 'Partner'}</div>
         </header>
         <Routes>
           <Route path="/" element={<Dashboard />} />
