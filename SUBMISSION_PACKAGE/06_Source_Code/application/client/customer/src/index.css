@@ -2636,56 +2636,119 @@ body {
 .lux-category-popover {
   top: calc(100% + 0.55rem);
   left: 0;
-  width: 310px;
+  width: min(340px, calc(100vw - 1.5rem));
+  padding: 0.55rem;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 24px 55px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 .lux-category-popover__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--lux-line);
+  padding: 0;
+  margin-bottom: 0.45rem;
 }
 
 .lux-category-popover__actions button {
-  min-height: 34px;
+  min-height: 38px;
   border: none;
   border-radius: 7px;
   background: #f7f4ee;
   color: var(--lux-navy);
   font-weight: 900;
   cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .lux-category-popover__actions button:first-child {
   background: var(--lux-navy);
   color: #ffffff;
+  box-shadow: 0 10px 22px rgba(10, 31, 56, 0.18);
+}
+
+.lux-category-popover__actions button:hover {
+  transform: translateY(-1px);
+  background: #eee8df;
+}
+
+.lux-category-popover__actions button:first-child:hover {
+  background: #16365b;
 }
 
 .lux-category-popover__list {
   max-height: 320px;
   overflow: auto;
-  padding: 0.35rem;
+  padding: 0.15rem;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .lux-category-popover label {
   display: flex;
   align-items: center;
-  gap: 0.62rem;
-  min-height: 42px;
-  padding: 0 0.65rem;
+  gap: 0.65rem;
+  min-height: 44px;
+  padding: 0 0.65rem 0 0.45rem;
   border-radius: 7px;
   color: var(--lux-ink);
   font-weight: 800;
   cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 
 .lux-category-popover label:hover {
-  background: #f7f4ee;
+  background: #fbf8f2;
+  border-color: #eee8df;
+  transform: translateX(1px);
 }
 
 .lux-category-popover input {
-  accent-color: var(--lux-emerald);
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lux-category-popover__check {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid #d8d2c8;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 2px #ffffff;
+  flex: 0 0 auto;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.lux-category-popover label > svg {
+  color: var(--lux-navy);
+  flex: 0 0 auto;
+}
+
+.lux-category-popover label > span:last-child {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.lux-category-popover label.is-selected {
+  background: #eefaf5;
+  border-color: rgba(4, 120, 87, 0.22);
+  color: #063f30;
+}
+
+.lux-category-popover label.is-selected .lux-category-popover__check {
+  background: var(--lux-emerald);
+  border-color: var(--lux-emerald);
+  box-shadow: 0 8px 18px rgba(4, 120, 87, 0.18);
+}
+
+.lux-category-popover label.is-selected > svg {
+  color: var(--lux-emerald);
 }
 
 .lux-suggestions {
@@ -2800,14 +2863,29 @@ body {
   align-items: center;
 }
 
-.lux-hero__content h1 {
-  max-width: 620px;
-  margin: 0.8rem 0 1rem;
+.lux-hero-title {
+  max-width: 660px;
+  margin: 0.9rem 0 1.05rem;
   color: var(--lux-navy);
-  font-size: clamp(2.35rem, 4.6vw, 5.6rem);
-  line-height: 0.98;
+  font-size: clamp(2.7rem, 4.2vw, 4.95rem);
+  line-height: 0.96;
   letter-spacing: 0;
   font-weight: 950;
+}
+
+.lux-hero-title span {
+  display: block;
+}
+
+.lux-hero-title span:nth-child(2) {
+  color: #047857;
+}
+
+.lux-hero-title span:nth-child(3) {
+  font-size: 0.76em;
+  line-height: 1.08;
+  color: #1f3b57;
+  font-weight: 900;
 }
 
 .lux-hero__content p {
@@ -3737,8 +3815,13 @@ body {
     overflow: hidden;
   }
 
-  .lux-hero__content h1 {
-    font-size: 2.35rem;
+  .lux-hero-title {
+    font-size: 2.75rem;
+    line-height: 1;
+  }
+
+  .lux-hero-title span:nth-child(3) {
+    font-size: 0.82em;
   }
 
   .lux-hero__media,
@@ -3758,5 +3841,18 @@ body {
   .lux-footer__bottom {
     align-items: flex-start;
     padding: 1rem 1.5rem;
+  }
+}
+
+.access-portal__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (max-width: 920px) {
+  .access-portal__grid {
+    grid-template-columns: 1fr;
   }
 }

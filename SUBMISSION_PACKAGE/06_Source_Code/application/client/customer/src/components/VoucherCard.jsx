@@ -6,7 +6,7 @@ import { useCart } from "../context/CartContext";
 
 const fallbackImage = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=900&auto=format&fit=crop&q=82";
 
-const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}d`;
+const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 
 const VoucherCard = ({ voucher }) => {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ const VoucherCard = ({ voucher }) => {
           </div>
           <div className="lux-voucher-card__footer">
             <small>{voucher.category_name || "E-voucher"}</small>
-            <button type="button" onClick={addVoucher} aria-label="Them vao gio hang">
+            <button type="button" onClick={addVoucher} aria-label="Thêm vào giỏ hàng">
               <ShoppingCart size={17} />
             </button>
           </div>
@@ -90,24 +90,24 @@ const VoucherCard = ({ voucher }) => {
         {showQuickView && (
           <motion.div className="lux-quick-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowQuickView(false)}>
             <motion.div className="lux-quick-view__dialog" initial={{ opacity: 0, y: 22, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: 0.97 }} onClick={(event) => event.stopPropagation()}>
-              <button type="button" className="lux-quick-view__close" onClick={() => setShowQuickView(false)} aria-label="Dong">
+              <button type="button" className="lux-quick-view__close" onClick={() => setShowQuickView(false)} aria-label="Đóng">
                 <X size={19} />
               </button>
               <img src={voucher.image_url || fallbackImage} alt={voucher.title} onError={imageError} />
               <div className="lux-quick-view__content">
                 <span>{voucher.company_name || "Dealzy Partner"}</span>
                 <h2>{voucher.title}</h2>
-                <p>{voucher.description || "Voucher uu dai duoc Dealzy kiem duyet, san sang phat hanh ma dien tu sau khi thanh toan thanh cong."}</p>
+                <p>{voucher.description || "Voucher ưu đãi được Dealzy kiểm duyệt, sẵn sàng phát hành mã điện tử sau khi thanh toán thành công."}</p>
                 <div className="lux-quick-view__price">
                   <strong>{formatMoney(voucher.sale_price)}</strong>
                   <small>{formatMoney(voucher.original_price)}</small>
                 </div>
                 <div className="lux-quick-view__actions">
                   <button type="button" className="lux-button lux-button--primary" onClick={addVoucher}>
-                    <ShoppingCart size={18} /> Them vao gio
+                    <ShoppingCart size={18} /> Thêm vào giỏ
                   </button>
                   <button type="button" className="lux-button lux-button--ghost" onClick={goToDetail}>
-                    Chi tiet <ArrowRight size={17} />
+                    Chi tiết <ArrowRight size={17} />
                   </button>
                 </div>
               </div>

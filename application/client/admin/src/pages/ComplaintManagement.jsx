@@ -69,16 +69,16 @@ const ComplaintManagement = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
-            <MessageSquareWarning size={28} /> Xu ly khieu nai
+            <MessageSquareWarning size={28} /> Xử lý khiếu nại
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Theo doi, phan hoi va cap nhat trang thai khieu nai cua khach hang.</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Theo dõi, phản hồi và cập nhật trạng thái khiếu nại của khách hàng.</p>
         </div>
         <div className="flex gap-2">
           <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white">
-            {statuses.map((item) => <option key={item} value={item}>{item || 'Tat ca'}</option>)}
+            {statuses.map((item) => <option key={item} value={item}>{item || 'Tất cả'}</option>)}
           </select>
           <button onClick={fetchComplaints} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tai lai
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tải lại
           </button>
         </div>
       </div>
@@ -95,7 +95,7 @@ const ComplaintManagement = () => {
                   <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700">{item.priority}</span>
                   <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">{item.status}</span>
                 </div>
-                <h2 className="text-lg font-black text-slate-900 mt-2">{item.title || 'Khieu nai khong tieu de'}</h2>
+                <h2 className="text-lg font-black text-slate-900 mt-2">{item.title || 'Khiếu nại không tiêu đề'}</h2>
                 <p className="text-sm text-slate-600 mt-1">{item.content}</p>
                 <p className="text-xs text-slate-400 mt-2">{item.full_name || item.username} - {item.email}</p>
               </div>
@@ -108,16 +108,16 @@ const ComplaintManagement = () => {
                 value={reply[item.complaint_id] || ''}
                 onChange={(e) => setReply((prev) => ({ ...prev, [item.complaint_id]: e.target.value }))}
                 rows="2"
-                placeholder="Nhap phan hoi cho khach hang"
+                placeholder="Nhập phản hồi cho khách hàng"
                 className="flex-1 rounded-xl border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button onClick={() => sendReply(item.complaint_id)} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-black flex items-center justify-center gap-2">
-                <Send size={16} /> Gui
+                <Send size={16} /> Gửi
               </button>
             </div>
           </div>
         ))}
-        {!loading && complaints.length === 0 && <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 font-bold">Khong co khieu nai phu hop.</div>}
+        {!loading && complaints.length === 0 && <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 font-bold">Không có khiếu nại phù hợp.</div>}
       </div>
     </div>
   );

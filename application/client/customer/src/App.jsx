@@ -2,9 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer'; // 1. Import Footer mới vào đây
+import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
+import AccessPortal from './pages/AccessPortal';
 
 import AuthPage from './pages/AuthPage';
 import Partners from './pages/Partners';
@@ -88,7 +89,6 @@ function AnimatedRoutes() {
   const isAuthPage = location.pathname === '/auth' || location.pathname.startsWith('/reset-password/') || location.pathname === '/register-customer' || location.pathname === '/register-partner';
 
   return (
-    // Dùng cấu trúc Flexbox flex-col và min-h-screen để đẩy footer xuống cuối trang hợp lý hơn
     <div className="flex flex-col min-h-screen">
       <AnimatePresence>
         {!isAuthPage && (
@@ -104,13 +104,13 @@ function AnimatedRoutes() {
         )}
       </AnimatePresence>
 
-      {/* Thêm padding-top nếu Navbar của bạn cố định (fixed) để không đè lên nội dung các trang */}
       <div className={`flex-grow ${!isAuthPage ? 'pt-16' : ''}`}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/auth" element={<PageWrapper><AuthPage /></PageWrapper>} />
             <Route path="/reset-password/:token" element={<PageWrapper><ResetPassword /></PageWrapper>} />
             <Route path="/" element={<PageWrapper><Home /></PageWrapper>} />
+            <Route path="/access" element={<PageWrapper><AccessPortal /></PageWrapper>} />
 
             <Route path="/partners" element={<PageWrapper><Partners /></PageWrapper>} />
             <Route path="/register-partner" element={<PageWrapper><PartnerRegistration /></PageWrapper>} />
@@ -130,7 +130,6 @@ function AnimatedRoutes() {
         </AnimatePresence>
       </div>
 
-      {/* 2. Hiển thị Footer ở đây nếu không phải là trang Auth */}
       {!isAuthPage && <Footer />}
     </div>
   );

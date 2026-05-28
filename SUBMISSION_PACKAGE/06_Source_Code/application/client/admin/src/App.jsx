@@ -31,7 +31,7 @@ const AdminLayout = () => {
             <Search size={18} className="text-slate-400" />
             <input
               type="text"
-              placeholder="Tim nhanh du lieu quan tri..."
+              placeholder="Tìm nhanh dữ liệu quản trị..."
               className="bg-transparent border-none outline-none text-sm w-full font-medium placeholder:text-slate-400"
             />
           </div>
@@ -44,7 +44,7 @@ const AdminLayout = () => {
             <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-2.5 px-3 py-1.5 bg-emerald-50 border border-emerald-100/60 text-emerald-700 rounded-xl text-xs font-bold tracking-wide">
               <Globe size={14} className="animate-spin-slow" />
-              <span>HE THONG ONLINE</span>
+              <span>HỆ THỐNG ONLINE</span>
             </div>
           </div>
         </header>

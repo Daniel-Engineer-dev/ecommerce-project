@@ -8,6 +8,9 @@ class VoucherService {
             JOIN Partners p ON v.partner_id = p.user_id
             JOIN Categories c ON v.category_id = c.category_id
             WHERE v.status = 'Approved'
+                AND v.start_date <= NOW()
+                AND v.expiry_date > NOW()
+                AND v.quantity_stock > 0
             ORDER BY v.voucher_id DESC
         `;
         const result = await pool.query(query);
@@ -20,7 +23,7 @@ class VoucherService {
     }
 
     async getPartnersList() {
-        const result = await pool.query("SELECT user_id, company_name FROM Partners WHERE status = 'Approved' ORDER BY company_name ASC");
+        const result = await pool.query("SELECT user_id, company_name FROM Partners WHERE COALESCE(status, 'Approved') = 'Approved' ORDER BY company_name ASC");
         return result.rows;
     }
 
@@ -32,6 +35,10 @@ class VoucherService {
             JOIN Partners p ON v.partner_id = p.user_id
             JOIN Categories c ON v.category_id = c.category_id
             WHERE v.voucher_id = $1
+                AND v.status = 'Approved'
+                AND v.start_date <= NOW()
+                AND v.expiry_date > NOW()
+                AND v.quantity_stock > 0
         `;
         const voucherResult = await pool.query(voucherQuery, [id]);
         
@@ -73,15 +80,35 @@ class VoucherService {
     }
 
     async searchVouchers(filters) {
-        const { q, category, minPrice, maxPrice, minDiscount, area, partner } = filters;
+        const { q, category, minPrice, maxPrice, minDiscount, area, partner, sort, limit, offset } = filters;
+        const parsedLimit = Number.parseInt(limit, 10);
+        const resultLimit = Number.isInteger(parsedLimit)
+            ? Math.min(Math.max(parsedLimit, 1), 48)
+            : null;
+        const parsedOffset = Number.parseInt(offset, 10);
+        const resultOffset = Number.isInteger(parsedOffset)
+            ? Math.max(parsedOffset, 0)
+            : null;
         
         let query = `
-            SELECT DISTINCT v.*, p.company_name, c.category_name 
+            SELECT DISTINCT v.*, p.company_name, c.category_name,
+                COALESCE(sold_stats.sold_count, 0) AS sold_count,
+                GREATEST(v.total_quantity - v.quantity_stock, 0) AS issued_count
             FROM Vouchers v
             JOIN Partners p ON v.partner_id = p.user_id
             JOIN Categories c ON v.category_id = c.category_id
             LEFT JOIN Branches b ON v.partner_id = b.partner_id
-            WHERE v.status = 'Approved' AND v.expiry_date > NOW()
+            LEFT JOIN (
+                SELECT oi.voucher_id, SUM(oi.quantity) AS sold_count
+                FROM Order_Items oi
+                JOIN Orders o ON oi.order_id = o.order_id
+                WHERE o.status = 'Paid'
+                GROUP BY oi.voucher_id
+            ) sold_stats ON sold_stats.voucher_id = v.voucher_id
+            WHERE v.status = 'Approved'
+                AND v.start_date <= NOW()
+                AND v.expiry_date > NOW()
+                AND v.quantity_stock > 0
         `;
         
         const values = [];
@@ -93,9 +120,20 @@ class VoucherService {
             count++;
         }
         if (category) {
-            query += ` AND v.category_id = $${count}`;
-            values.push(category);
-            count++;
+            const categoryIds = String(category)
+                .split(',')
+                .map((item) => Number.parseInt(item, 10))
+                .filter(Number.isInteger);
+
+            if (categoryIds.length === 1) {
+                query += ` AND v.category_id = $${count}`;
+                values.push(categoryIds[0]);
+                count++;
+            } else if (categoryIds.length > 1) {
+                query += ` AND v.category_id = ANY($${count}::int[])`;
+                values.push(categoryIds);
+                count++;
+            }
         }
         if (minPrice) {
             query += ` AND v.sale_price >= $${count}`;
@@ -122,8 +160,28 @@ class VoucherService {
             values.push(`%${area}%`);
             count++;
         }
-
-        query += ` ORDER BY v.voucher_id DESC`;
+        if (sort === 'best-selling' || sort === 'best') {
+            query += `
+                ORDER BY
+                    sold_count DESC,
+                    issued_count DESC,
+                    v.discount_percent DESC,
+                    v.voucher_id DESC
+            `;
+        } else if (sort === 'new') {
+            query += ` ORDER BY v.start_date DESC, v.voucher_id DESC`;
+        } else {
+            query += ` ORDER BY v.voucher_id DESC`;
+        }
+        if (resultLimit) {
+            query += ` LIMIT $${count}`;
+            values.push(resultLimit);
+            count++;
+        }
+        if (resultOffset) {
+            query += ` OFFSET $${count}`;
+            values.push(resultOffset);
+        }
         const result = await pool.query(query, values);
         return result.rows;
     }

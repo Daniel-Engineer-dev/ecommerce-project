@@ -66,12 +66,12 @@ const OrderManagement = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
-            <ShoppingBag size={28} /> Quan ly don hang
+            <ShoppingBag size={28} /> Quản lý đơn hàng
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Tra cuu, doi trang thai, hoan tien mo phong va xem e-voucher da phat hanh.</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Tra cứu, đổi trạng thái, hoàn tiền mô phỏng và xem e-voucher đã phát hành.</p>
         </div>
         <button onClick={fetchOrders} className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tai lai
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tải lại
         </button>
       </div>
 
@@ -80,12 +80,12 @@ const OrderManagement = () => {
       <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row gap-3">
         <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 flex-1">
           <Search size={18} className="text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tim theo ma don, khach hang, email, sdt" className="bg-transparent outline-none text-sm w-full" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã đơn, khách hàng, email, SĐT" className="bg-transparent outline-none text-sm w-full" />
         </div>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white">
-          {statuses.map((item) => <option key={item} value={item}>{item || 'Tat ca trang thai'}</option>)}
+          {statuses.map((item) => <option key={item} value={item}>{item || 'Tất cả trạng thái'}</option>)}
         </select>
-        <button onClick={fetchOrders} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">Loc</button>
+        <button onClick={fetchOrders} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">Lọc</button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-6">
@@ -93,11 +93,11 @@ const OrderManagement = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
-                <th className="p-4">Don</th>
-                <th className="p-4">Khach hang</th>
-                <th className="p-4">Thanh toan</th>
-                <th className="p-4">Tong tien</th>
-                <th className="p-4 text-center">Thao tac</th>
+                <th className="p-4">Đơn</th>
+                <th className="p-4">Khách hàng</th>
+                <th className="p-4">Thanh toán</th>
+                <th className="p-4">Tổng tiền</th>
+                <th className="p-4 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -113,9 +113,9 @@ const OrderManagement = () => {
                   </td>
                   <td className="p-4">
                     <span className="text-xs font-black px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700">{order.status}</span>
-                    <div className="text-xs text-slate-400 mt-1">{order.payment_method || 'N/A'} | {order.voucher_quantity || 0} ma</div>
+                    <div className="text-xs text-slate-400 mt-1">{order.payment_method || 'N/A'} | {order.voucher_quantity || 0} mã</div>
                   </td>
-                  <td className="p-4 font-black text-slate-900">{money(order.total_amount)}d</td>
+                  <td className="p-4 font-black text-slate-900">{money(order.total_amount)}đ</td>
                   <td className="p-4 text-center">
                     <button onClick={() => fetchDetail(order.order_id)} className="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold inline-flex items-center gap-1">
                       <Eye size={14} /> Xem
@@ -124,7 +124,7 @@ const OrderManagement = () => {
                 </tr>
               ))}
               {!loading && orders.length === 0 && (
-                <tr><td colSpan="5" className="p-10 text-center text-slate-400 font-bold">Khong co don hang phu hop.</td></tr>
+                <tr><td colSpan="5" className="p-10 text-center text-slate-400 font-bold">Không có đơn hàng phù hợp.</td></tr>
               )}
             </tbody>
           </table>
@@ -132,12 +132,12 @@ const OrderManagement = () => {
 
         <div className="bg-white border border-slate-200 rounded-2xl p-5 min-h-96">
           {!selected ? (
-            <div className="h-full flex items-center justify-center text-slate-400 font-bold">Chon mot don hang de xem chi tiet.</div>
+            <div className="h-full flex items-center justify-center text-slate-400 font-bold">Chọn một đơn hàng để xem chi tiết.</div>
           ) : (
             <div className="space-y-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-black text-slate-900">Don #{selected.order_id}</h2>
+                  <h2 className="text-xl font-black text-slate-900">Đơn #{selected.order_id}</h2>
                   <p className="text-xs text-slate-500">{selected.shipping_name || selected.customer_name} - {selected.shipping_phone || selected.customer_email}</p>
                 </div>
                 <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">{selected.status}</span>
@@ -145,23 +145,23 @@ const OrderManagement = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => updateStatus(selected.order_id, 'Paid')} className="py-2 rounded-xl bg-emerald-600 text-white text-xs font-black flex items-center justify-center gap-1">
-                  <CheckCircle2 size={14} /> Da thanh toan
+                  <CheckCircle2 size={14} /> Đã thanh toán
                 </button>
                 <button onClick={() => updateStatus(selected.order_id, 'Cancelled')} className="py-2 rounded-xl bg-rose-600 text-white text-xs font-black flex items-center justify-center gap-1">
-                  <XCircle size={14} /> Huy don
+                  <XCircle size={14} /> Hủy đơn
                 </button>
                 <button onClick={() => updateStatus(selected.order_id, 'Refunded')} className="py-2 rounded-xl bg-amber-500 text-white text-xs font-black flex items-center justify-center gap-1 col-span-2">
-                  <RotateCcw size={14} /> Hoan tien mo phong
+                  <RotateCcw size={14} /> Hoàn tiền mô phỏng
                 </button>
               </div>
 
               <div>
-                <h3 className="font-black text-sm text-slate-700 mb-2">Voucher trong don</h3>
+                <h3 className="font-black text-sm text-slate-700 mb-2">Voucher trong đơn</h3>
                 <div className="space-y-2">
                   {(selected.items || []).map((item) => (
                     <div key={item.order_item_id} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                       <div className="font-bold text-sm">{item.title}</div>
-                      <div className="text-xs text-slate-500">{item.company_name} | SL {item.quantity} | {money(item.price_at_purchase)}d</div>
+                      <div className="text-xs text-slate-500">{item.company_name} | SL {item.quantity} | {money(item.price_at_purchase)}đ</div>
                     </div>
                   ))}
                 </div>
@@ -176,7 +176,7 @@ const OrderManagement = () => {
                       <div className="text-xs text-indigo-500">{ev.status} | HSD {ev.expiry_date ? new Date(ev.expiry_date).toLocaleDateString('vi-VN') : 'N/A'}</div>
                     </div>
                   ))}
-                  {(selected.evouchers || []).length === 0 && <div className="text-xs text-slate-400 font-bold">Chua phat hanh e-voucher.</div>}
+                  {(selected.evouchers || []).length === 0 && <div className="text-xs text-slate-400 font-bold">Chưa phát hành e-voucher.</div>}
                 </div>
               </div>
             </div>

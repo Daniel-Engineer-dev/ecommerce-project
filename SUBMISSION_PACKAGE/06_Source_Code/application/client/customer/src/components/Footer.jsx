@@ -7,6 +7,7 @@ import {
   CreditCard,
   FileText,
   Heart,
+  KeyRound,
   Mail,
   Phone,
   ShieldCheck,
@@ -25,12 +26,12 @@ const Footer = () => {
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     if (!valid) {
-      setPopup({ type: "error", title: "Email chua hop le", message: "Nhap email hop le de nhan uu dai moi tu Dealzy." });
+      setPopup({ type: "error", title: "Email chưa hợp lệ", message: "Nhập email hợp lệ để nhận ưu đãi mới từ Dealzy." });
       return;
     }
 
     event.currentTarget.reset();
-    setPopup({ type: "success", title: "Da dang ky", message: "Dealzy se gui nhung voucher dang gia nhat den hop thu cua ban." });
+    setPopup({ type: "success", title: "Đã đăng ký", message: "Dealzy sẽ gửi những voucher đáng giá nhất đến hộp thư của bạn." });
   };
 
   return (
@@ -38,15 +39,15 @@ const Footer = () => {
       <section className="lux-footer__newsletter">
         <div className="container">
           <span className="lux-eyebrow"><Sparkles size={14} /> Members first</span>
-          <h2>Nhan uu dai chon loc truoc khi mo ban cong khai.</h2>
+          <h2>Nhận ưu đãi chọn lọc trước khi mở bán công khai.</h2>
           <form onSubmit={submitNewsletter} noValidate>
-            <input name="newsletterEmail" type="email" placeholder="Email cua ban" aria-label="Email cua ban" />
-            <button type="submit">Dang ky</button>
+            <input name="newsletterEmail" type="email" placeholder="Email của bạn" aria-label="Email của bạn" />
+            <button type="submit">Đăng ký</button>
           </form>
           <div className="lux-footer__badges">
-            <span><ShieldCheck size={15} /> Bao mat</span>
-            <span><BadgeCheck size={15} /> Doi tac xac thuc</span>
-            <span><TicketPercent size={15} /> Deal doc quyen</span>
+            <span><ShieldCheck size={15} /> Bảo mật</span>
+            <span><BadgeCheck size={15} /> Đối tác xác thực</span>
+            <span><TicketPercent size={15} /> Deal độc quyền</span>
           </div>
         </div>
       </section>
@@ -61,28 +62,30 @@ const Footer = () => {
             </span>
           </Link>
           <p>
-            Nen tang voucher cho cac trai nghiem an uong, du lich, lam dep va giai tri duoc chon loc. Tap trung vao su ro rang, tin cay va cam giac mua hang cao cap.
+            Nền tảng voucher cho các trải nghiệm ăn uống, du lịch, làm đẹp và giải trí được chọn lọc. Tập trung vào sự rõ ràng, tin cậy và cảm giác mua hàng cao cấp.
           </p>
         </div>
 
         <nav className="lux-footer__column">
-          <h3>San pham</h3>
-          <Link to="/search">Tat ca voucher</Link>
-          <Link to="/search?sort=new">Deal moi</Link>
-          <Link to="/partners">Doi tac</Link>
-          <Link to="/register-partner">Hop tac doanh nghiep</Link>
+          <h3>Sản phẩm</h3>
+          <Link to="/search">Tất cả voucher</Link>
+          <Link to="/search?sort=new">Deal mới</Link>
+          <Link to="/search?sort=best-selling">Bán chạy</Link>
+          <Link to="/partners">Đối tác</Link>
+          <Link to="/register-partner">Hợp tác doanh nghiệp</Link>
         </nav>
 
         <nav className="lux-footer__column">
-          <h3>Ho tro</h3>
-          <Link to="/support"><CircleHelp size={15} /> Trung tam ho tro</Link>
-          <Link to="/guide"><FileText size={15} /> Huong dan su dung</Link>
-          <Link to="/refund-policy"><CreditCard size={15} /> Hoan tien</Link>
-          <Link to="/terms">Dieu khoan</Link>
+          <h3>Hỗ trợ</h3>
+          <Link to="/access"><KeyRound size={15} /> Cổng truy cập</Link>
+          <Link to="/support"><CircleHelp size={15} /> Trung tâm hỗ trợ</Link>
+          <Link to="/guide"><FileText size={15} /> Hướng dẫn sử dụng</Link>
+          <Link to="/refund-policy"><CreditCard size={15} /> Hoàn tiền</Link>
+          <Link to="/terms">Điều khoản</Link>
         </nav>
 
         <div className="lux-footer__column">
-          <h3>Lien he</h3>
+          <h3>Liên hệ</h3>
           <a href="tel:19006760"><Phone size={15} /> 1900 6760</a>
           <a href="mailto:cs@dealzy.vn"><Mail size={15} /> cs@dealzy.vn</a>
           <span><Building2 size={15} /> Ho Chi Minh City</span>
@@ -97,7 +100,7 @@ const Footer = () => {
       {popup && (
         <div className="lux-newsletter-modal" onClick={() => setPopup(null)}>
           <div className="lux-newsletter-modal__dialog" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setPopup(null)} aria-label="Dong"><X size={18} /></button>
+            <button type="button" onClick={() => setPopup(null)} aria-label="Đóng"><X size={18} /></button>
             <div className={popup.type}>{popup.type === "success" ? <ShieldCheck size={28} /> : <CircleHelp size={28} />}</div>
             <h2>{popup.title}</h2>
             <p>{popup.message}</p>

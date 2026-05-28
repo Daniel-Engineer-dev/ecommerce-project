@@ -22,12 +22,13 @@ const VoucherCard = ({ voucher }) => {
       onClick={handleCardClick}
       className="glass-effect"
       style={{
-        borderRadius: '24px',
+        borderRadius: 'var(--radius-lg, 12px)',
         overflow: 'hidden',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         position: 'relative',
-        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)'
+        boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))',
+        border: '1px solid var(--border-color, #e4e4e7)'
       }}
     >
       <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
@@ -40,14 +41,13 @@ const VoucherCard = ({ voucher }) => {
           position: 'absolute',
           top: '12px',
           right: '12px',
-          background: 'var(--secondary)',
+          background: 'var(--primary, #18181b)',
           color: 'white',
           padding: '4px 12px',
-          borderRadius: 'full',
           fontSize: '0.8rem',
           fontWeight: 700,
-          borderRadius: '20px',
-          boxShadow: '0 4px 12px rgba(219, 70, 239, 0.4)'
+          borderRadius: 'var(--radius-full, 9999px)',
+          boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))'
         }}>
           -{voucher.discount_percent}%
         </div>
@@ -84,9 +84,9 @@ const VoucherCard = ({ voucher }) => {
           <button 
             onClick={handleAddToCart}
             style={{
-              background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
+              background: 'var(--primary, #18181b)',
               border: 'none',
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-md, 8px)',
               padding: '0 1rem',
               height: '44px',
               display: 'flex',
@@ -96,8 +96,11 @@ const VoucherCard = ({ voucher }) => {
               color: 'white',
               cursor: 'pointer',
               fontWeight: 600,
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
+              transition: 'opacity 0.2s'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
             <ShoppingCart size={18} />
             Thêm

@@ -76,7 +76,7 @@ const PartnerApproval = () => {
             </div>
 
             {partners.length === 0 ? (
-                <div className="bg-white p-12 rounded-3xl text-center border border-dashed border-slate-300">
+                <div className="bg-white p-12 rounded-xl text-center border border-dashed border-slate-300">
                     <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Building2 size={32} />
                     </div>
@@ -92,11 +92,11 @@ const PartnerApproval = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                                className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
                             >
                                 <div className="flex-1 space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center">
+                                        <div className="w-12 h-12 bg-slate-100 text-slate-900 rounded-lg border border-slate-200/50 flex items-center justify-center">
                                             <Building2 size={24} />
                                         </div>
                                         <div>
@@ -125,7 +125,7 @@ const PartnerApproval = () => {
                                     <button 
                                         disabled={actionLoading === partner.user_id}
                                         onClick={() => handleApprove(partner.user_id)}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-green-700 transition-all disabled:opacity-50 shadow-lg shadow-green-100"
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-800 transition-all disabled:opacity-50 shadow-sm"
                                     >
                                         <Check size={20} />
                                         {actionLoading === partner.user_id ? "Đang xử lý..." : "Phê duyệt"}
@@ -133,7 +133,7 @@ const PartnerApproval = () => {
                                     <button 
                                         disabled={actionLoading === partner.user_id}
                                         onClick={() => handleReject(partner.user_id)}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-red-600 border border-red-100 px-6 py-3 rounded-2xl font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 px-6 py-3 rounded-lg font-bold hover:bg-slate-50 transition-all disabled:opacity-50"
                                     >
                                         <X size={20} />
                                         Từ chối

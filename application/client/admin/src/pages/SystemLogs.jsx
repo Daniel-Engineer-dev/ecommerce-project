@@ -32,31 +32,31 @@ const SystemLogs = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
-            <History size={28} /> Nhat ky he thong
+            <History size={28} /> Nhật ký hệ thống
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Tra cuu thao tac quan tri quan trong de kiem tra va truy vet.</p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Tra cứu thao tác quản trị quan trọng để kiểm tra và truy vết.</p>
         </div>
         <button onClick={fetchLogs} className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tai lai
+          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tải lại
         </button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-3">
         <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 flex-1">
           <Search size={18} className="text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tim action, bang, record, user" className="bg-transparent outline-none text-sm w-full" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm action, bảng, record, user" className="bg-transparent outline-none text-sm w-full" />
         </div>
-        <button onClick={fetchLogs} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">Tim</button>
+        <button onClick={fetchLogs} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">Tìm</button>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="p-4">Thoi gian</th>
-              <th className="p-4">Nguoi dung</th>
-              <th className="p-4">Hanh dong</th>
-              <th className="p-4">Doi tuong</th>
+              <th className="p-4">Thời gian</th>
+              <th className="p-4">Người dùng</th>
+              <th className="p-4">Hành động</th>
+              <th className="p-4">Đối tượng</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -71,7 +71,7 @@ const SystemLogs = () => {
                 <td className="p-4 text-slate-600">{log.table_name || '-'} #{log.record_id || '-'}</td>
               </tr>
             ))}
-            {!loading && logs.length === 0 && <tr><td colSpan="4" className="p-10 text-center text-slate-400 font-bold">Chua co nhat ky phu hop.</td></tr>}
+            {!loading && logs.length === 0 && <tr><td colSpan="4" className="p-10 text-center text-slate-400 font-bold">Chưa có nhật ký phù hợp.</td></tr>}
           </tbody>
         </table>
       </div>

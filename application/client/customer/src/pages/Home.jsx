@@ -42,12 +42,12 @@ const categoryIcons = {
 const heroTiles = [
   {
     title: "Fine dining",
-    copy: "Set menu, buffet va nha hang duoc chon loc.",
+    copy: "Set menu, buffet và nhà hàng được chọn lọc.",
     image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=82&w=900",
   },
   {
     title: "Wellness",
-    copy: "Spa, lam dep va cham soc suc khoe cuoi tuan.",
+    copy: "Spa, làm đẹp và chăm sóc sức khỏe cuối tuần.",
     image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=82&w=900",
   },
 ];
@@ -150,22 +150,26 @@ const Home = () => {
         <div className="container lux-hero__grid">
           <div className="lux-hero__content">
             <span className="lux-eyebrow"><Crown size={15} /> Curated offers</span>
-            <h1>Voucher dep, trai nghiem that, gia tri ro rang.</h1>
+            <h1 className="lux-hero-title">
+              <span>Voucher đẹp</span>
+              <span>cho trải nghiệm thật</span>
+              <span>và giá trị rõ ràng.</span>
+            </h1>
             <p>
-              Dealzy gom nhung uu dai dang tin cay tu nha hang, spa, du lich va giai tri trong mot trai nghiem mua voucher gon gang nhu mot san pham cao cap.
+              Dealzy gom những ưu đãi đáng tin cậy từ nhà hàng, spa, du lịch và giải trí trong một trải nghiệm mua voucher gọn gàng như một sản phẩm cao cấp.
             </p>
             <div className="lux-hero__actions">
               <Link to="/search" className="lux-button lux-button--primary">
-                Kham pha deal <ArrowRight size={18} />
+                Khám phá deal <ArrowRight size={18} />
               </Link>
               <Link to="/partners" className="lux-button lux-button--ghost">
-                Xem doi tac
+                Xem đối tác
               </Link>
             </div>
             <div className="lux-hero__proof">
-              <span><BadgeCheck size={16} /> Voucher da kiem duyet</span>
-              <span><ShieldCheck size={16} /> Thanh toan demo an toan</span>
-              <span><TicketPercent size={16} /> Ma dien tu tuc thi</span>
+              <span><BadgeCheck size={16} /> Voucher đã kiểm duyệt</span>
+              <span><ShieldCheck size={16} /> Thanh toán demo an toàn</span>
+              <span><TicketPercent size={16} /> Mã điện tử tức thì</span>
             </div>
           </div>
 
@@ -185,9 +189,9 @@ const Home = () => {
 
       <section className="container lux-feature-strip">
         {[
-          { icon: Sparkles, title: "Lua chon co gu", copy: "Chi hien thi voucher da duyet va con hieu luc." },
-          { icon: Zap, title: "Nhan ma nhanh", copy: "E-voucher duoc phat hanh sau thanh toan thanh cong." },
-          { icon: ShieldCheck, title: "Kiem soat ro", copy: "Trang thai don, ma va su dung duoc ghi nhan." },
+          { icon: Sparkles, title: "Lựa chọn có gu", copy: "Chỉ hiển thị voucher đã duyệt và còn hiệu lực." },
+          { icon: Zap, title: "Nhận mã nhanh", copy: "E-voucher được phát hành sau thanh toán thành công." },
+          { icon: ShieldCheck, title: "Kiểm soát rõ", copy: "Trạng thái đơn, mã và sử dụng được ghi nhận." },
         ].map(({ icon: Icon, title, copy }) => (
           <div key={title} className="lux-feature">
             <Icon size={20} />
@@ -215,13 +219,13 @@ const Home = () => {
         <div className="lux-market__header">
           <div>
             <span className="lux-eyebrow">Marketplace</span>
-            <h2>Uu dai dang chu y</h2>
+            <h2>Ưu đãi đáng chú ý</h2>
           </div>
           <div className="lux-tabs" role="tablist" aria-label="Voucher tabs">
             {[
-              { id: "hot", label: "Noi bat" },
-              { id: "today", label: "Hom nay" },
-              { id: "for-you", label: "Giam sau" },
+              { id: "hot", label: "Nổi bật" },
+              { id: "today", label: "Hôm nay" },
+              { id: "for-you", label: "Giảm sâu" },
             ].map((tab) => (
               <button key={tab.id} type="button" className={activeTab === tab.id ? "active" : ""} onClick={() => setActiveTab(tab.id)}>
                 {tab.label}
@@ -231,10 +235,10 @@ const Home = () => {
         </div>
 
         {loading ? (
-          <div className="lux-loading">Dang chon nhung voucher tot nhat...</div>
+          <div className="lux-loading">Đang chọn những voucher tốt nhất...</div>
         ) : groupedSections.length ? (
           <div className="lux-home-layout">
-            <aside className="lux-category-rail" aria-label="Danh muc">
+            <aside className="lux-category-rail" aria-label="Danh mục">
               {groupedSections.map(({ category }) => {
                 const Icon = categoryIcons[category.category_name] || Sparkles;
                 const isActive = Number(activeCategoryId) === Number(category.category_id);
@@ -267,7 +271,7 @@ const Home = () => {
                       <span>{items.length} voucher</span>
                       <h3>{translateCategory(category.category_name)}</h3>
                     </div>
-                    <Link to={`/search?category=${category.category_id}`}>Xem tat ca <ChevronRight size={16} /></Link>
+                    <Link to={`/search?category=${category.category_id}`}>Xem tất cả <ChevronRight size={16} /></Link>
                   </div>
                   <div className="lux-voucher-grid">
                     {items.slice(0, visibleByCategory[category.category_id] || VOUCHERS_PER_SECTION).map((voucher) => (
@@ -285,7 +289,7 @@ const Home = () => {
                           }))
                         }
                       >
-                        Tai them voucher
+                        Tải thêm voucher
                       </button>
                     </div>
                   )}
@@ -296,8 +300,8 @@ const Home = () => {
         ) : (
           <div className="lux-empty">
             <Sparkles size={34} />
-            <h3>Chua co deal phu hop</h3>
-            <p>Thu doi bo loc hoac quay lai sau khi doi tac phat hanh voucher moi.</p>
+            <h3>Chưa có deal phù hợp</h3>
+            <p>Thử đổi bộ lọc hoặc quay lại sau khi đối tác phát hành voucher mới.</p>
           </div>
         )}
       </section>

@@ -52,14 +52,14 @@ const shell = {
   page: { padding: '30px', display: 'flex', flexDirection: 'column', gap: '22px' },
   card: {
     background: 'white',
-    border: '1px solid #e7e2d8',
-    borderRadius: '10px',
-    boxShadow: '0 16px 38px rgba(17, 24, 39, 0.07)',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-sm)',
   },
   input: {
     width: '100%',
-    border: '1px solid #d8d0c4',
-    borderRadius: '8px',
+    border: '1px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)',
     padding: '10px 12px',
     font: 'inherit',
     background: '#fff',
@@ -67,7 +67,7 @@ const shell = {
   label: { fontSize: '0.78rem', fontWeight: 800, color: '#475467', marginBottom: '6px', display: 'block' },
   button: {
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 'var(--radius-md)',
     padding: '10px 14px',
     fontWeight: 800,
     cursor: 'pointer',
@@ -126,10 +126,10 @@ function Dashboard() {
   if (!data && !error) return <LoadingBlock />;
 
   const stats = [
-    { label: 'Doanh thu đã ghi nhận', value: money(data?.revenue), icon: BarChart3, color: '#2563eb' },
-    { label: 'Voucher đang bán', value: data?.approved_vouchers || 0, icon: Ticket, color: '#16a34a' },
-    { label: 'Voucher chờ duyệt', value: data?.pending_vouchers || 0, icon: ClipboardCheck, color: '#ca8a04' },
-    { label: 'Mã đã sử dụng', value: data?.used_quantity || 0, icon: CheckCircle, color: '#7c3aed' },
+    { label: 'Doanh thu đã ghi nhận', value: money(data?.revenue), icon: BarChart3, color: 'var(--primary)' },
+    { label: 'Voucher đang bán', value: data?.approved_vouchers || 0, icon: Ticket, color: 'var(--primary)' },
+    { label: 'Voucher chờ duyệt', value: data?.pending_vouchers || 0, icon: ClipboardCheck, color: 'var(--primary)' },
+    { label: 'Mã đã sử dụng', value: data?.used_quantity || 0, icon: CheckCircle, color: 'var(--primary)' },
   ];
 
   return (
@@ -281,7 +281,7 @@ function VoucherManagement() {
   return (
     <div style={shell.page}>
       <PageTitle title="Quản lý voucher" subtitle="Tạo chương trình mới, gửi duyệt và theo dõi hiệu quả từng voucher." onRefresh={load}>
-        <button onClick={resetForm} style={{ ...shell.button, background: '#2563eb', color: 'white' }}><Plus size={18} /> Tạo voucher</button>
+        <button onClick={resetForm} style={{ ...shell.button, background: 'var(--primary)', color: 'white' }}><Plus size={18} /> Tạo voucher</button>
       </PageTitle>
       <ErrorBox message={error} />
       {success && <div style={{ padding: '12px 14px', background: '#dcfce7', color: '#166534', borderRadius: '12px', fontWeight: 800 }}>{success}</div>}
@@ -342,7 +342,7 @@ function VoucherManagement() {
                   <td style={{ padding: '14px' }}><StatusPill status={voucher.status} /></td>
                   <td style={{ padding: '14px' }}>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <button onClick={() => editVoucher(voucher)} disabled={voucher.status === 'Approved'} style={{ ...shell.button, padding: '8px 10px', background: '#eff6ff', color: '#2563eb', opacity: voucher.status === 'Approved' ? 0.45 : 1 }}><Edit3 size={15} /> Sửa</button>
+                      <button onClick={() => editVoucher(voucher)} disabled={voucher.status === 'Approved'} style={{ ...shell.button, padding: '8px 10px', background: 'var(--bg-dark)', color: 'var(--primary)', opacity: voucher.status === 'Approved' ? 0.45 : 1 }}><Edit3 size={15} /> Sửa</button>
                       <button onClick={() => action(voucher.voucher_id, 'submit')} style={{ ...shell.button, padding: '8px 10px', background: '#fef3c7', color: '#92400e' }}><ClipboardCheck size={15} /> Gửi duyệt</button>
                       <button onClick={() => action(voucher.voucher_id, 'disable')} style={{ ...shell.button, padding: '8px 10px', background: '#fee2e2', color: '#991b1b' }}><XCircle size={15} /> Ngưng</button>
                     </div>
@@ -404,7 +404,7 @@ function RedeemVoucher() {
       <PageTitle title="Xác thực voucher code" subtitle="Nhập mã khách đưa để kiểm tra trạng thái và xác nhận sử dụng tại chi nhánh." />
       <form onSubmit={check} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
         <Field label="Mã voucher" value={code} onChange={(value) => setCode(value.toUpperCase())} placeholder="VD: DLZ-SHER-0001" required />
-        <button type="submit" style={{ ...shell.button, background: '#2563eb', color: 'white', height: '42px' }}><Search size={18} /> Kiểm tra</button>
+        <button type="submit" style={{ ...shell.button, background: 'var(--primary)', color: 'white', height: '42px' }}><Search size={18} /> Kiểm tra</button>
       </form>
       <ErrorBox message={error} />
       {success && <div style={{ padding: '12px 14px', background: '#dcfce7', color: '#166534', borderRadius: '12px', fontWeight: 800 }}>{success}</div>}
@@ -549,7 +549,7 @@ function SettingsPage() {
           <div style={{ gridColumn: '1 / -1' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <label style={shell.label}>Danh sách chi nhánh</label>
-              <button type="button" onClick={() => setProfile({ ...profile, branches: [...(profile.branches || []), { branch_name: '', address: '', phone: '' }] })} style={{ ...shell.button, background: '#eff6ff', color: '#2563eb' }}><Plus size={16} /> Thêm chi nhánh</button>
+              <button type="button" onClick={() => setProfile({ ...profile, branches: [...(profile.branches || []), { branch_name: '', address: '', phone: '' }] })} style={{ ...shell.button, background: 'var(--bg-dark)', color: 'var(--primary)' }}><Plus size={16} /> Thêm chi nhánh</button>
             </div>
             <div style={{ display: 'grid', gap: '12px' }}>
               {(profile.branches || []).map((branch, index) => (
@@ -652,16 +652,16 @@ function Sidebar() {
   };
 
   return (
-    <aside style={{ width: '270px', background: '#0f2742', color: '#d0d5dd', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', boxShadow: '18px 0 45px rgba(17, 24, 39, 0.16)' }}>
+    <aside style={{ width: '270px', background: '#0f172a', color: '#cbd5e1', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
       <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'white', fontWeight: 900, fontSize: '1.2rem' }}>
-        <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#047857', display: 'grid', placeItems: 'center', boxShadow: '0 12px 26px rgba(4, 120, 87, 0.28)' }}><Building2 size={22} /></div>
+        <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: '#1e293b', display: 'grid', placeItems: 'center' }}><Building2 size={22} /></div>
         PartnerHub
       </div>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 14px', flex: 1 }}>
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '8px', color: active ? 'white' : '#d0d5dd', background: active ? '#047857' : 'transparent', textDecoration: 'none', fontWeight: 800 }}>
+            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: 'var(--radius-md)', color: active ? 'white' : '#cbd5e1', background: active ? '#1e293b' : 'transparent', textDecoration: 'none', fontWeight: 600 }}>
               <item.icon size={20} /> {item.label}
             </Link>
           );
@@ -676,11 +676,11 @@ function Sidebar() {
 
 function PartnerShell() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f6f4ef' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-dark)' }}>
       <Sidebar />
       <main style={{ flex: 1, minWidth: 0 }}>
-        <header style={{ height: '68px', background: 'rgba(255,255,255,0.92)', borderBottom: '1px solid #e7e2d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(14px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0f2742', fontWeight: 900 }}><Eye size={18} /> Cổng đối tác Dealzy</div>
+        <header style={{ height: '68px', background: 'rgba(255,255,255,0.92)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(14px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: 900 }}><Eye size={18} /> Cổng đối tác Dealzy</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#667085', fontWeight: 800 }}><User size={18} /> {JSON.parse(localStorage.getItem('partnerUser') || '{}').username || 'Partner'}</div>
         </header>
         <Routes>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Activity,
   BriefcaseBusiness,
+  Check,
   ChevronDown,
   ChevronRight,
   Coffee,
@@ -40,10 +41,11 @@ const categoryIcons = {
 };
 
 const navLinks = [
-  { to: "/search?sort=new", label: "Deal moi" },
-  { to: "/search?sort=best", label: "Ban chay" },
-  { to: "/partners", label: "Doi tac" },
-  { to: "/support", label: "Ho tro" },
+  { to: "/search?sort=new", label: "Deal mới" },
+  { to: "/search?sort=best-selling", label: "Bán chạy" },
+  { to: "/partners", label: "Đối tác" },
+  { to: "/support", label: "Hỗ trợ" },
+  { to: "/access", label: "Cổng truy cập" },
 ];
 
 const Navbar = () => {
@@ -160,12 +162,8 @@ const Navbar = () => {
         </Link>
 
         <form ref={searchRef} className="lux-search" onSubmit={submitSearch}>
-          <button
-            type="button"
-            className="lux-search__category"
-            onClick={() => setIsCategoryOpen((value) => !value)}
-          >
-            {selectedCategories.length ? `${selectedCategories.length} danh muc` : "Tat ca"}
+          <button type="button" className="lux-search__category" onClick={() => setIsCategoryOpen((value) => !value)}>
+            {selectedCategories.length ? `${selectedCategories.length} danh mục` : "Tất cả"}
             <ChevronDown size={15} />
           </button>
 
@@ -176,9 +174,9 @@ const Navbar = () => {
               setShowSuggestions(true);
             }}
             onFocus={() => setShowSuggestions(true)}
-            placeholder="Tim nha hang, spa, du lich, giai tri..."
+            placeholder="Tìm nhà hàng, spa, du lịch, giải trí..."
           />
-          <button type="submit" className="lux-search__submit" aria-label="Tim kiem">
+          <button type="submit" className="lux-search__submit" aria-label="Tìm kiếm">
             <Search size={19} />
           </button>
 
@@ -186,15 +184,15 @@ const Navbar = () => {
             {isCategoryOpen && (
               <motion.div className="lux-category-popover" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
                 <div className="lux-category-popover__actions">
-                  <button type="button" onClick={() => setSelectedCategories(categories.map((item) => item.category_id))}>Chon tat ca</button>
-                  <button type="button" onClick={() => setSelectedCategories([])}>Bo chon</button>
+                  <button type="button" onClick={() => setSelectedCategories(categories.map((item) => item.category_id))}>Chọn tất cả</button>
+                  <button type="button" onClick={() => setSelectedCategories([])}>Bỏ chọn</button>
                 </div>
                 <div className="lux-category-popover__list">
                   {categories.map((category) => {
                     const Icon = categoryIcons[category.category_name] || Sparkles;
                     const checked = selectedCategories.includes(category.category_id);
                     return (
-                      <label key={category.category_id}>
+                      <label key={category.category_id} className={checked ? "is-selected" : ""}>
                         <input
                           type="checkbox"
                           checked={checked}
@@ -206,6 +204,9 @@ const Navbar = () => {
                             );
                           }}
                         />
+                        <span className="lux-category-popover__check" aria-hidden="true">
+                          {checked && <Check size={13} />}
+                        </span>
                         <Icon size={16} />
                         <span>{translateCategory(category.category_name)}</span>
                       </label>
@@ -220,7 +221,7 @@ const Navbar = () => {
             {showSuggestions && query.trim() && (
               <motion.div className="lux-suggestions" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
                 {loadingSuggestions ? (
-                  <div className="lux-suggestions__empty">Dang tim deal phu hop...</div>
+                  <div className="lux-suggestions__empty">Đang tìm deal phù hợp...</div>
                 ) : suggestions.length ? (
                   <>
                     {suggestions.map((voucher) => (
@@ -230,15 +231,15 @@ const Navbar = () => {
                           <strong>{voucher.title}</strong>
                           <small>{voucher.company_name || "Dealzy Partner"}</small>
                         </span>
-                        <b>{Number(voucher.sale_price).toLocaleString("vi-VN")}d</b>
+                        <b>{Number(voucher.sale_price).toLocaleString("vi-VN")}đ</b>
                       </button>
                     ))}
                     <button type="button" className="lux-suggestions__all" onClick={submitSearch}>
-                      Xem tat ca ket qua <ChevronRight size={15} />
+                      Xem tất cả kết quả <ChevronRight size={15} />
                     </button>
                   </>
                 ) : (
-                  <div className="lux-suggestions__empty">Chua co voucher phu hop.</div>
+                  <div className="lux-suggestions__empty">Chưa có voucher phù hợp.</div>
                 )}
               </motion.div>
             )}
@@ -252,7 +253,7 @@ const Navbar = () => {
         </nav>
 
         <div className="lux-nav__actions">
-          <Link id="cart-target" to="/cart" className="lux-icon-button" aria-label="Gio hang">
+          <Link id="cart-target" to="/cart" className="lux-icon-button" aria-label="Giỏ hàng">
             <ShoppingCart size={20} />
             {totalItems > 0 && <span>{totalItems}</span>}
           </Link>
@@ -266,14 +267,14 @@ const Navbar = () => {
               <AnimatePresence>
                 {isUserOpen && (
                   <motion.div className="lux-user__menu" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}>
-                    <Link to="/profile">Tai khoan</Link>
-                    <button type="button" onClick={logout}><LogOut size={15} /> Dang xuat</button>
+                    <Link to="/profile">Tài khoản</Link>
+                    <button type="button" onClick={logout}><LogOut size={15} /> Đăng xuất</button>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           ) : (
-            <Link className="lux-login" to={`/auth?redirect=${encodeURIComponent(location.pathname)}`}>Dang nhap</Link>
+            <Link className="lux-login" to={`/auth?redirect=${encodeURIComponent(location.pathname)}`}>Đăng nhập</Link>
           )}
 
           <button type="button" className="lux-mobile-toggle" onClick={() => setIsMobileOpen((value) => !value)} aria-label="Menu">
@@ -290,7 +291,7 @@ const Navbar = () => {
                 <Link key={item.to} to={item.to} onClick={() => setIsMobileOpen(false)}>{item.label}</Link>
               ))}
               <Link to="/register-partner" onClick={() => setIsMobileOpen(false)}>
-                <BriefcaseBusiness size={16} /> Hop tac doanh nghiep
+                <BriefcaseBusiness size={16} /> Hợp tác doanh nghiệp
               </Link>
             </div>
           </motion.div>

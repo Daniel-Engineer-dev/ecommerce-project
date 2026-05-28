@@ -92,7 +92,8 @@ class VoucherService {
         
         let query = `
             SELECT DISTINCT v.*, p.company_name, c.category_name,
-                COALESCE(sold_stats.sold_count, 0) AS sold_count
+                COALESCE(sold_stats.sold_count, 0) AS sold_count,
+                GREATEST(v.total_quantity - v.quantity_stock, 0) AS issued_count
             FROM Vouchers v
             JOIN Partners p ON v.partner_id = p.user_id
             JOIN Categories c ON v.category_id = c.category_id
@@ -119,9 +120,20 @@ class VoucherService {
             count++;
         }
         if (category) {
-            query += ` AND v.category_id = $${count}`;
-            values.push(category);
-            count++;
+            const categoryIds = String(category)
+                .split(',')
+                .map((item) => Number.parseInt(item, 10))
+                .filter(Number.isInteger);
+
+            if (categoryIds.length === 1) {
+                query += ` AND v.category_id = $${count}`;
+                values.push(categoryIds[0]);
+                count++;
+            } else if (categoryIds.length > 1) {
+                query += ` AND v.category_id = ANY($${count}::int[])`;
+                values.push(categoryIds);
+                count++;
+            }
         }
         if (minPrice) {
             query += ` AND v.sale_price >= $${count}`;
@@ -148,8 +160,14 @@ class VoucherService {
             values.push(`%${area}%`);
             count++;
         }
-        if (sort === 'best-selling') {
-            query += ` ORDER BY sold_count DESC, v.voucher_id DESC`;
+        if (sort === 'best-selling' || sort === 'best') {
+            query += `
+                ORDER BY
+                    sold_count DESC,
+                    issued_count DESC,
+                    v.discount_percent DESC,
+                    v.voucher_id DESC
+            `;
         } else if (sort === 'new') {
             query += ` ORDER BY v.start_date DESC, v.voucher_id DESC`;
         } else {

@@ -73,7 +73,7 @@ const Home = () => {
           paddingBottom: '100px',
           position: 'relative',
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, #eef2ff 0%, #ffffff 100%)'
+          background: 'var(--bg-surface, #ffffff)'
         }}
       >
         {/* Background blur glow */}
@@ -84,7 +84,7 @@ const Home = () => {
           transform: 'translateX(-50%)',
           width: '600px',
           height: '600px',
-          background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(15,23,42,0.03) 0%, transparent 70%)',
           filter: 'blur(80px)',
           zIndex: 0
         }} />
@@ -101,7 +101,7 @@ const Home = () => {
               gap: '0.5rem',
               padding: '0.5rem 1rem',
               borderRadius: '999px',
-              background: 'rgba(37,99,235,0.1)',
+              background: 'rgba(15, 23, 42, 0.05)',
               color: 'var(--primary)',
               fontWeight: 600,
               marginBottom: '1.5rem'
@@ -159,12 +159,12 @@ const Home = () => {
               style={{
                 background: 'white',
                 padding: '0.75rem',
-                borderRadius: '24px',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.12)',
+                borderRadius: 'var(--radius-lg, 12px)',
+                boxShadow: 'var(--shadow-md, 0 4px 12px 0 rgba(0, 0, 0, 0.03))',
                 display: 'flex',
                 gap: '0.75rem',
                 alignItems: 'center',
-                border: '1px solid #f1f5f9'
+                border: '1px solid var(--border-color, #e2e8f0)'
               }}
             >
               <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -178,9 +178,9 @@ const Home = () => {
                     width: '100%',
                     padding: '1.2rem 1.2rem 1.2rem 55px',
                     border: 'none',
-                    borderRadius: '16px',
+                    borderRadius: 'var(--radius-md, 8px)',
                     fontSize: '1.1rem',
-                    background: '#f8fafc',
+                    background: 'var(--bg-dark, #f8fafc)',
                     outline: 'none',
                     fontWeight: 500
                   }}
@@ -196,15 +196,15 @@ const Home = () => {
                   gap: '0.6rem',
                   padding: '0 1.5rem',
                   height: '58px',
-                  borderRadius: '16px',
-                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid var(--border-color, #e2e8f0)',
                   background: 'white',
-                  color: '#475569',
+                  color: 'var(--text-main, #0f172a)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: '0.2s'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-dark, #f8fafc)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
               >
                 <SlidersHorizontal size={20} />
@@ -217,7 +217,7 @@ const Home = () => {
                 style={{
                   padding: '0 2.5rem',
                   height: '58px',
-                  borderRadius: '16px',
+                  borderRadius: 'var(--radius-md, 8px)',
                   fontSize: '1.05rem',
                   fontWeight: 700
                 }}
@@ -244,32 +244,33 @@ const Home = () => {
                   exit={{ opacity: 0, scale: 0.95, y: -20 }}
                   style={{
                     position: 'fixed',
-                    top: '100px', // 👈 Đặt cách top cố định thay vì 50% để tránh lỗi tính toán
+                    top: '100px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     width: '95%',
                     maxWidth: '650px',
-                    maxHeight: 'calc(100vh - 150px)', // 👈 Giới hạn chiều cao an toàn
+                    maxHeight: 'calc(100vh - 150px)',
                     overflowY: 'auto',
                     background: 'white',
-                    borderRadius: '32px',
+                    borderRadius: 'var(--radius-lg, 12px)',
                     padding: '2rem',
                     zIndex: 1001,
-                    boxShadow: '0 25px 70px rgba(0,0,0,0.3)',
-                    scrollbarWidth: 'thin', // Hiện thanh cuộn mảnh để người dùng biết có thể cuộn
-                    scrollbarColor: '#e2e8f0 transparent'
+                    boxShadow: 'var(--shadow-md, 0 4px 12px 0 rgba(0, 0, 0, 0.03))',
+                    border: '1px solid var(--border-color, #e2e8f0)',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'var(--border-color, #e2e8f0) transparent'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', position: 'sticky', top: 0, background: 'white', zIndex: 10, paddingBottom: '0.5rem' }}>
                     <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Bộ lọc nâng cao</h2>
-                    <button onClick={() => setIsFilterModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={20} /></button>
+                    <button onClick={() => setIsFilterModalOpen(false)} style={{ background: 'var(--accent-glow, rgba(15, 23, 42, 0.04))', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><X size={20} /></button>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
                     {/* Danh mục */}
                     <div className="filter-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><Tag size={16} /> Danh mục</label>
-                      <select value={filters.category} onChange={(e) => updateFilter('category', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}>
+                      <select value={filters.category} onChange={(e) => updateFilter('category', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }}>
                         <option value="">Tất cả danh mục</option>
                         {categories.map(c => <option key={c.category_id} value={c.category_id}>{c.category_name}</option>)}
                       </select>
@@ -278,29 +279,29 @@ const Home = () => {
                     {/* Khu vực */}
                     <div className="filter-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><MapPin size={16} /> Khu vực</label>
-                      <input type="text" placeholder="Quận, Tỉnh/Thành..." value={filters.area} onChange={(e) => updateFilter('area', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }} />
+                      <input type="text" placeholder="Quận, Tỉnh/Thành..." value={filters.area} onChange={(e) => updateFilter('area', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }} />
                     </div>
 
                     {/* Giá */}
                     <div className="filter-group" style={{ gridColumn: '1 / -1' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><CircleDollarSign size={16} /> Khoảng giá (VNĐ)</label>
                       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <input type="number" placeholder="Từ" value={filters.minPrice} onChange={(e) => updateFilter('minPrice', e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }} />
+                        <input type="number" placeholder="Từ" value={filters.minPrice} onChange={(e) => updateFilter('minPrice', e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }} />
                         <span style={{ color: '#cbd5e1' }}>—</span>
-                        <input type="number" placeholder="Đến" value={filters.maxPrice} onChange={(e) => updateFilter('maxPrice', e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }} />
+                        <input type="number" placeholder="Đến" value={filters.maxPrice} onChange={(e) => updateFilter('maxPrice', e.target.value)} style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }} />
                       </div>
                     </div>
 
                     {/* Mức giảm */}
                     <div className="filter-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><Percent size={16} /> Giảm từ (%)</label>
-                      <input type="number" placeholder="Ví dụ: 30" value={filters.minDiscount} onChange={(e) => updateFilter('minDiscount', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }} />
+                      <input type="number" placeholder="Ví dụ: 30" value={filters.minDiscount} onChange={(e) => updateFilter('minDiscount', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }} />
                     </div>
 
                     {/* Cửa hàng */}
                     <div className="filter-group">
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><Building2 size={16} /> Cửa hàng</label>
-                      <select value={filters.partner} onChange={(e) => updateFilter('partner', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}>
+                      <select value={filters.partner} onChange={(e) => updateFilter('partner', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }}>
                         <option value="">Tất cả cửa hàng</option>
                         {partners.map(p => <option key={p.user_id} value={p.user_id}>{p.company_name}</option>)}
                       </select>
@@ -309,7 +310,7 @@ const Home = () => {
                     {/* Trạng thái */}
                     <div className="filter-group" style={{ gridColumn: '1 / -1' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.85rem', color: '#64748b', marginBottom: '0.6rem' }}><CheckCircle size={16} /> Trạng thái hiệu lực</label>
-                      <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '0.9rem', outline: 'none' }}>
+                      <select value={filters.status} onChange={(e) => updateFilter('status', e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'var(--bg-dark, #f8fafc)', fontSize: '0.9rem', outline: 'none' }}>
                         <option value="Approved">Đang áp dụng</option>
                         <option value="">Tất cả (bao gồm hết hạn/hủy)</option>
                       </select>
@@ -317,10 +318,12 @@ const Home = () => {
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem', paddingBottom: '1rem' }}>
-                    <button onClick={resetFilters} style={{ flex: 1, padding: '0.9rem', borderRadius: '16px', border: '1px solid #e2e8f0', background: 'white', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'white'}>Đặt lại</button>
+                    <button onClick={resetFilters} style={{ flex: 1, padding: '0.9rem', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color, #e2e8f0)', background: 'white', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-dark, #f8fafc)'} onMouseLeave={e => e.currentTarget.style.background = 'white'}>Đặt lại</button>
                     <button
                       onClick={() => { handleSearchSubmit(); setIsFilterModalOpen(false); }}
-                      style={{ flex: 2, padding: '0.9rem', borderRadius: '16px', border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 20px rgba(37,99,235,0.2)' }}
+                      style={{ flex: 2, padding: '0.9rem', borderRadius: 'var(--radius-md, 8px)', border: 'none', background: 'var(--primary, #18181b)', color: 'white', fontWeight: 700, cursor: 'pointer', boxShadow: 'var(--shadow-sm)', transition: 'opacity 0.2s' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                     >
                       Áp dụng bộ lọc
                     </button>
@@ -359,12 +362,27 @@ const Home = () => {
             {['All', 'Dining', 'Travel', 'Beauty'].map(cat => (
               <button key={cat} className="glass-effect" style={{
                 padding: '0.4rem 1.2rem',
-                borderRadius: '10px',
-                color: cat === 'All' ? 'var(--primary)' : 'var(--text-muted)',
-                border: cat === 'All' ? '1px solid var(--primary)' : '1px solid transparent',
+                borderRadius: 'var(--radius-full, 9999px)',
+                color: cat === 'All' ? 'white' : 'var(--text-muted)',
+                background: cat === 'All' ? 'var(--primary, #18181b)' : 'transparent',
+                border: cat === 'All' ? '1px solid var(--primary, #18181b)' : '1px solid var(--border-color, #e2e8f0)',
                 cursor: 'pointer',
-                fontWeight: 600
-              }}>
+                fontWeight: 600,
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                if (cat !== 'All') {
+                  e.currentTarget.style.background = 'var(--accent-glow, rgba(15, 23, 42, 0.04))';
+                  e.currentTarget.style.color = 'var(--primary, #18181b)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (cat !== 'All') {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }
+              }}
+              >
                 {cat}
               </button>
             ))}

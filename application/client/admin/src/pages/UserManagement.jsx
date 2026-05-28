@@ -22,31 +22,30 @@ const Toast = ({ toast, onClose }) => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20 }}
-            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl text-white font-semibold text-sm
-                ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg border border-slate-750 text-white font-semibold text-sm bg-slate-900"
         >
-            {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+            {toast.type === 'success' ? <CheckCircle size={18} className="text-white" /> : <AlertTriangle size={18} className="text-white" />}
             {toast.message}
         </motion.div>
     );
 };
 
 // ─── MINI DASHBOARD STAT CARD ────────────────────────────────────────────────
-const StatCard = ({ icon: Icon, label, value, color, bg, active, onClick }) => (
+const StatCard = ({ icon: Icon, label, value, active, onClick }) => (
     <motion.div
-        whileHover={{ y: -4, scale: 1.02 }}
+        whileHover={{ y: -2 }}
         onClick={onClick}
-        className={`p-6 rounded-2xl border transition-all cursor-pointer select-none ${
+        className={`p-6 rounded-xl border transition-all cursor-pointer select-none ${
             active 
-                ? 'bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-950/20' 
-                : 'bg-white border-slate-100 hover:shadow-lg shadow-sm text-slate-900'
+                ? 'bg-slate-950 border-slate-950 text-white shadow-sm' 
+                : 'bg-white border-slate-200/60 hover:shadow-sm text-slate-900'
         }`}
     >
         <div className="flex items-center justify-between mb-4">
-            <div className={`p-3 rounded-xl ${active ? 'bg-white/10 text-white' : `${bg} ${color}`}`}>
+            <div className={`p-3 rounded-lg ${active ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-800'}`}>
                 <Icon size={22} />
             </div>
-            {active && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-emerald-500 text-white rounded-md">Đang lọc</span>}
+            {active && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white/20 text-white rounded-md">Đang lọc</span>}
         </div>
         <p className={`text-xs font-semibold ${active ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
         <p className="text-2xl font-black mt-1 tracking-tight">{value}</p>
@@ -77,8 +76,8 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
 
     if (loading) return (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-2xl flex items-center gap-3 font-semibold text-slate-600 shadow-xl">
-                <RefreshCw className="animate-spin text-indigo-600" /> Đang tải thông tin...
+            <div className="bg-white p-8 rounded-xl flex items-center gap-3 font-semibold text-slate-600 shadow-sm border border-slate-100">
+                <RefreshCw className="animate-spin text-slate-900" /> Đang tải thông tin...
             </div>
         </div>
     );
@@ -102,12 +101,12 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                className="bg-white w-full max-w-lg rounded-xl shadow-lg border border-slate-200 overflow-hidden"
             >
                 {/* Header */}
                 <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <div className="p-2.5 bg-slate-100 text-slate-900 rounded-lg">
                             {user.role === 'Partner' ? <Building2 size={20} /> : <User size={20} />}
                         </div>
                         <div>
@@ -123,16 +122,14 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                 {/* Content */}
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-auto">
                     {/* Cơ bản */}
-                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                         <div>
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Username</p>
                             <p className="font-semibold text-slate-800 mt-0.5">{user.username}</p>
                         </div>
                         <div>
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Vai trò</p>
-                            <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mt-1 ${
-                                user.role === 'Partner' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-                            }`}>{user.role}</span>
+                            <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mt-1 bg-slate-100 text-slate-800 border border-slate-200">{user.role}</span>
                         </div>
                     </div>
 
@@ -144,7 +141,7 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                     </div>
 
                     {/* Nghiệp vụ riêng biệt */}
-                    <div className="space-y-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80">
+                    <div className="space-y-3 bg-slate-50/50 p-4 rounded-xl border border-slate-150">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b pb-1.5">Dữ liệu phân hệ</h4>
                         {user.role === 'Partner' ? (
                             <div className="space-y-2 text-sm">
@@ -165,16 +162,16 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
 
                 {/* Footer Actions */}
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm">
+                    <button onClick={onClose} className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-100 transition-colors text-sm">
                         Đóng lại
                     </button>
                     <button
                         disabled={btnLoading}
                         onClick={handleLockClick}
-                        className={`flex-1 py-3 font-bold rounded-xl text-white text-sm flex items-center justify-center gap-2 shadow-md transition-all ${
+                        className={`flex-1 py-3 font-bold rounded-lg text-white text-sm flex items-center justify-center gap-2 shadow-sm transition-all ${
                             isActive 
-                                ? 'bg-red-600 hover:bg-red-700 shadow-red-100' 
-                                : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+                                ? 'bg-slate-900 hover:bg-slate-850' 
+                                : 'bg-slate-700 hover:bg-slate-800'
                         }`}
                     >
                         {isActive ? <Lock size={16} /> : <Unlock size={16} />}
@@ -320,7 +317,6 @@ const UserManagement = () => {
                     icon={Users} 
                     label="Tổng người dùng hệ thống" 
                     value={stats.total_users} 
-                    color="text-blue-600" bg="bg-blue-50"
                     active={dashboardActive === 'all'}
                     onClick={() => handleDashboardClick('all')}
                 />
@@ -328,7 +324,6 @@ const UserManagement = () => {
                     icon={User} 
                     label="Khách hàng cá nhân" 
                     value={stats.total_customers} 
-                    color="text-emerald-600" bg="bg-emerald-50"
                     active={dashboardActive === 'customer'}
                     onClick={() => handleDashboardClick('customer')}
                 />
@@ -336,7 +331,6 @@ const UserManagement = () => {
                     icon={Building2} 
                     label="Doanh nghiệp đối tác" 
                     value={stats.total_partners} 
-                    color="text-indigo-600" bg="bg-indigo-50"
                     active={dashboardActive === 'partner'}
                     onClick={() => handleDashboardClick('partner')}
                 />
@@ -344,16 +338,15 @@ const UserManagement = () => {
                     icon={Lock} 
                     label="Tài khoản đang bị khóa" 
                     value={stats.locked}
-                    color="text-rose-600" bg="bg-rose-50"
                     active={dashboardActive === 'locked'}
                     onClick={() => handleDashboardClick('locked')}
                 />
             </div>
 
             {/* Bộ lọc & Tìm kiếm */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-100 w-full md:w-96 group focus-within:border-indigo-500 focus-within:bg-white transition-all">
-                    <Search size={18} className="text-slate-400 group-focus-within:text-indigo-600" />
+            <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100 w-full md:w-96 group focus-within:border-slate-400 focus-within:bg-white transition-all">
+                    <Search size={18} className="text-slate-400 group-focus-within:text-slate-900" />
                     <input
                         type="text"
                         placeholder="Tìm theo tên, email, sđt..."
@@ -372,10 +365,10 @@ const UserManagement = () => {
                                 setRoleFilter(r);
                                 setDashboardActive(r === '' ? 'all' : r.toLowerCase());
                             }}
-                            className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
                                 roleFilter === r && statusFilter === ''
-                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100'
-                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-150'
                             }`}
                         >
                             {r === '' ? 'Tất cả vai trò' : r}
@@ -385,7 +378,7 @@ const UserManagement = () => {
             </div>
 
             {/* Bảng danh sách */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -423,21 +416,21 @@ const UserManagement = () => {
                                             </td>
                                             <td className="p-4">
                                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                                                    u.role === 'Partner' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                                                    u.role === 'Partner' ? 'bg-slate-100 text-slate-800 border border-slate-200' : 'bg-slate-50 text-slate-700'
                                                 }`}>{u.role}</span>
                                             </td>
                                             <td className="p-4">
                                                 <span className={`inline-flex items-center gap-1 text-xs font-bold ${
-                                                    isUserActive ? 'text-emerald-600' : 'text-rose-600'
+                                                    isUserActive ? 'text-slate-850' : 'text-slate-400'
                                                 }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${isUserActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${isUserActive ? 'bg-slate-900' : 'bg-slate-300'}`} />
                                                     {isUserActive ? 'Đang hoạt động' : 'Đang bị khóa'}
                                                 </span>
                                             </td>
                                             <td className="p-4 text-center">
                                                 <button
                                                     onClick={() => setSelectedId(u.user_id)}
-                                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200/60 rounded-xl hover:bg-slate-100 text-xs font-bold text-slate-600 transition-colors"
+                                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 text-xs font-bold text-slate-650 transition-colors"
                                                 >
                                                     Xem chi tiết
                                                 </button>
@@ -458,14 +451,14 @@ const UserManagement = () => {
                             <button
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
-                                className="p-2 rounded-xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                                className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
                                 <ChevronLeft size={16} />
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
-                                className="p-2 rounded-xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                                className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
                             >
                                 <ChevronRight size={16} />
                             </button>

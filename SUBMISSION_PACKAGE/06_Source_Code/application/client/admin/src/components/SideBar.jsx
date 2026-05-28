@@ -18,18 +18,18 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { path: '/', label: 'Tong Quan', icon: BarChart3 },
-    { path: '/partners', label: 'Duyet Doi Tac', icon: Store },
-    { path: '/users', label: 'Nguoi Dung', icon: Users },
+    { path: '/', label: 'Tổng quan', icon: BarChart3 },
+    { path: '/partners', label: 'Duyệt đối tác', icon: Store },
+    { path: '/users', label: 'Người dùng', icon: Users },
     { path: '/vouchers', label: 'Voucher', icon: Ticket },
-    { path: '/orders', label: 'Don Hang', icon: ShoppingBag },
-    { path: '/complaints', label: 'Khieu Nai', icon: MessageSquareWarning },
-    { path: '/content', label: 'Noi Dung', icon: FileText },
-    { path: '/logs', label: 'Nhat Ky', icon: History },
+    { path: '/orders', label: 'Đơn hàng', icon: ShoppingBag },
+    { path: '/complaints', label: 'Khiếu nại', icon: MessageSquareWarning },
+    { path: '/content', label: 'Nội dung', icon: FileText },
+    { path: '/logs', label: 'Nhật ký', icon: History },
   ];
 
   const handleLogout = () => {
-    if (window.confirm('Ban co chac chan muon dang xuat?')) {
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUser');
       navigate('/login');
@@ -45,12 +45,12 @@ const Sidebar = () => {
           </div>
           <div>
             <h2 className="text-white font-black text-lg tracking-tight">DEALZY ADM</h2>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">He thong quan tri</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Hệ thống quản trị</p>
           </div>
         </div>
 
         <nav className="space-y-1.5">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-2 mb-3">Phan he chuc nang</p>
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-2 mb-3">Phân hệ chức năng</p>
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -82,7 +82,7 @@ const Sidebar = () => {
           className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 active:scale-[0.98] transition-all duration-150 border border-transparent hover:border-rose-500/20"
         >
           <LogOut size={18} />
-          <span>Dang xuat</span>
+          <span>Đăng xuất</span>
         </button>
 
         <div className="px-2 text-[11px] text-slate-600 font-bold uppercase tracking-wider flex justify-between items-center select-none">
