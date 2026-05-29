@@ -9,7 +9,32 @@ async function migrate() {
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_name VARCHAR(100);`,
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_phone VARCHAR(20);`,
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_email VARCHAR(100);`,
-            `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;`
+            `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;`,
+            `
+                CREATE TABLE IF NOT EXISTS Content_Items (
+                    content_id SERIAL PRIMARY KEY,
+                    content_key VARCHAR(80) UNIQUE NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    type VARCHAR(30) NOT NULL DEFAULT 'policy',
+                    body TEXT,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `,
+            `
+                CREATE TABLE IF NOT EXISTS Voucher_Branches (
+                    voucher_id INT REFERENCES Vouchers(voucher_id) ON DELETE CASCADE,
+                    branch_id INT REFERENCES Branches(branch_id) ON DELETE CASCADE,
+                    PRIMARY KEY (voucher_id, branch_id)
+                );
+            `,
+            `
+                INSERT INTO Voucher_Branches (voucher_id, branch_id)
+                SELECT v.voucher_id, b.branch_id
+                FROM Vouchers v
+                JOIN Branches b ON b.partner_id = v.partner_id
+                ON CONFLICT DO NOTHING;
+            `
         ];
         
         for (const query of queries) {

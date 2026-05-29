@@ -3,13 +3,20 @@
 :root {
   --bg-dark: #f8fafc;
   --bg-surface: #ffffff;
-  --primary: #2563eb;
-  --secondary: #60a5fa;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
+  --secondary: #64748b;
   --text-main: #0f172a;
   --text-muted: #64748b;
-  --accent-glow: rgba(37, 99, 235, 0.1);
-  --secondary-glow: rgba(96, 165, 250, 0.1);
-  --glass: rgba(255, 255, 255, 0.8);
+  --accent-glow: rgba(15, 23, 42, 0.04);
+  --secondary-glow: rgba(100, 116, 139, 0.04);
+  --glass: rgba(255, 255, 255, 0.85);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
 }
 
 * {
@@ -89,7 +96,7 @@ h1, h2, h3 {
 .auth-input {
   width: 100%;
   padding: 14px 16px 14px 48px;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   font-family: inherit;
@@ -101,20 +108,24 @@ h1, h2, h3 {
   outline: none;
   border-color: var(--primary);
   background: white;
-  box-shadow: 0 0 0 4px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: var(--primary);
   color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 12px 24px;
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: transform 0.2s;
-  box-shadow: 0 4px 15px var(--accent-glow);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
 }
 
 .btn-primary:active {

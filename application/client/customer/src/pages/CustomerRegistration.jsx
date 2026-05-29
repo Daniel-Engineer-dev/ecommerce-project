@@ -18,7 +18,7 @@ import { API_BASE_URL } from "../config";
 const CustomerRegistration = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [regMethod, setRegMethod] = useState("email"); // 'email' hoáº·c 'phone'
+  const [regMethod, setRegMethod] = useState("email"); // 'email' hoặc 'phone'
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -44,15 +44,15 @@ const CustomerRegistration = () => {
     setError("");
     if (step === 1) {
       if (!formData.full_name || !formData.username || !formData.password) {
-        setError("Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin báº¯t buá»™c (*)");
+        setError("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
         return;
       }
       if (regMethod === "email" && !formData.email) {
-        setError("Vui lÃ²ng nháº­p Email");
+        setError("Vui lòng nhập Email");
         return;
       }
       if (regMethod === "phone" && !formData.phone) {
-        setError("Vui lÃ²ng nháº­p Sá»‘ Ä‘iá»‡n thoáº¡i");
+        setError("Vui lòng nhập Số điện thoại");
         return;
       }
     }
@@ -70,7 +70,7 @@ const CustomerRegistration = () => {
         const data = await res.json();
         if (!res.ok || !data.available) {
           setError(
-            `ThÃ´ng tin Ä‘Ã£ tá»“n táº¡i: ${(data.conflicts || []).join(", ")}`,
+            `Thông tin đã tồn tại: ${(data.conflicts || []).join(", ")}`,
           );
           return;
         }
@@ -78,13 +78,13 @@ const CustomerRegistration = () => {
         setVerificationCode(demoCode);
         setVerificationInput("");
       } catch (err) {
-        setError("KhÃ´ng thá»ƒ kiá»ƒm tra tÃ i khoáº£n. Vui lÃ²ng thá»­ láº¡i.");
+        setError("Không thể kiểm tra tài khoản. Vui lòng thử lại.");
         return;
       }
     }
     if (step === 2) {
       if (verificationInput.trim() !== verificationCode) {
-        setError("MÃ£ xÃ¡c thá»±c demo khÃ´ng chÃ­nh xÃ¡c.");
+        setError("Mã xác thực demo không chính xác.");
         return;
       }
     }
@@ -114,10 +114,10 @@ const CustomerRegistration = () => {
       if (res.ok) {
         setSuccess(true);
       } else {
-        setError(data.message || "CÃ³ lá»—i xáº£y ra");
+        setError(data.message || "Có lỗi xảy ra");
       }
     } catch (err) {
-      setError("KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server");
+      setError("Không thể kết nối đến server");
     } finally {
       setLoading(false);
     }
@@ -187,7 +187,7 @@ const CustomerRegistration = () => {
             className="btn-primary"
             style={{ width: "100%", height: "56px" }}
           >
-            ÄÄƒng nháº­p ngay
+            Đăng nhập ngay
           </button>
         </motion.div>
       </div>
@@ -195,9 +195,9 @@ const CustomerRegistration = () => {
   }
 
   const steps = [
-    { id: 1, label: "CÆ¡ báº£n", icon: <User size={18} /> },
-    { id: 2, label: "Xac thuc", icon: <CheckCircle2 size={18} /> },
-    { id: 3, label: "Ca nhan", icon: <MapPin size={18} /> },
+    { id: 1, label: "Cơ bản", icon: <User size={18} /> },
+    { id: 2, label: "Xác thực", icon: <CheckCircle2 size={18} /> },
+    { id: 3, label: "Cá nhân", icon: <MapPin size={18} /> },
   ];
 
   return (
@@ -237,7 +237,7 @@ const CustomerRegistration = () => {
               fontSize: "0.85rem",
             }}
           >
-            <ArrowLeft size={16} /> Quay láº¡i
+            <ArrowLeft size={16} /> Quay lại
           </Link>
 
           {/* Progress Bar */}
@@ -304,7 +304,7 @@ const CustomerRegistration = () => {
                   margin: 0,
                 }}
               >
-                Tao tai khoan
+                Tạo tài khoản
               </h1>
             </div>
           </div>
@@ -327,7 +327,7 @@ const CustomerRegistration = () => {
                     <User size={18} className="input-icon" />
                     <input
                       name="full_name"
-                      placeholder="Há» vÃ  tÃªn *"
+                      placeholder="Họ và tên *"
                       required
                       value={formData.full_name}
                       onChange={handleChange}
@@ -338,7 +338,7 @@ const CustomerRegistration = () => {
                     <User size={18} className="input-icon" />
                     <input
                       name="username"
-                      placeholder="TÃªn Ä‘Äƒng nháº­p *"
+                      placeholder="Tên đăng nhập *"
                       required
                       value={formData.username}
                       onChange={handleChange}
@@ -390,7 +390,7 @@ const CustomerRegistration = () => {
                         transition: "0.3s",
                       }}
                     >
-                      SÄT
+                      SĐT
                     </button>
                   </div>
 
@@ -400,7 +400,7 @@ const CustomerRegistration = () => {
                       <input
                         name="email"
                         type="email"
-                        placeholder="Email cá»§a báº¡n *"
+                        placeholder="Email của bạn *"
                         required
                         value={formData.email}
                         onChange={handleChange}
@@ -412,7 +412,7 @@ const CustomerRegistration = () => {
                       <Phone size={18} className="input-icon" />
                       <input
                         name="phone"
-                        placeholder="Sá»‘ Ä‘iá»‡n thoáº¡i *"
+                        placeholder="Số điện thoại *"
                         required
                         value={formData.phone}
                         onChange={handleChange}
@@ -426,7 +426,7 @@ const CustomerRegistration = () => {
                     <input
                       name="password"
                       type="password"
-                      placeholder="Máº­t kháº©u *"
+                      placeholder="Mật khẩu *"
                       required
                       value={formData.password}
                       onChange={handleChange}
@@ -512,7 +512,7 @@ const CustomerRegistration = () => {
                     <MapPin size={18} className="input-icon" />
                     <input
                       name="address"
-                      placeholder="Äá»‹a chá»‰ / ThÃ nh phá»‘"
+                      placeholder="Địa chỉ / Thành phố"
                       value={formData.address}
                       onChange={handleChange}
                       className="auth-input"
@@ -550,7 +550,7 @@ const CustomerRegistration = () => {
                     cursor: "pointer",
                   }}
                 >
-                  Quay láº¡i
+                  Quay lại
                 </button>
               )}
               <button
@@ -560,10 +560,10 @@ const CustomerRegistration = () => {
                 style={{ flex: 2, height: "56px" }}
               >
                 {loading
-                  ? "Äang xá»­ lÃ½..."
+                  ? "Đang xử lý..."
                   : step === 3
-                    ? "Hoan tat dang ky"
-                    : "Tiáº¿p theo"}{" "}
+                    ? "Hoàn tất đăng ký"
+                    : "Tiếp theo"}{" "}
                 <ChevronRight size={20} />
               </button>
             </div>

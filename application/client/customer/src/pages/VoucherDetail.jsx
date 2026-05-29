@@ -450,10 +450,10 @@ const VoucherDetail = () => {
               {/* Category */}
               <span
                 style={{
-                  background: "rgba(37,99,235,0.1)",
+                  background: "rgba(15, 23, 42, 0.05)",
                   color: "var(--primary)",
                   padding: "0.3rem 0.7rem",
-                  borderRadius: "6px",
+                  borderRadius: "var(--radius-sm)",
                   fontSize: "0.75rem",
                   fontWeight: 700,
                   display: "inline-block",
@@ -706,7 +706,7 @@ const VoucherDetail = () => {
                     transition: "all 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(37,99,235,0.1)";
+                    e.currentTarget.style.background = "rgba(15, 23, 42, 0.05)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "white";
@@ -727,17 +727,17 @@ const VoucherDetail = () => {
                     fontSize: "1rem",
                     cursor: "pointer",
                     transition: "all 0.2s",
-                    boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
+                    boxShadow: "var(--shadow-sm)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.transform = "translateY(-1px)";
                     e.currentTarget.style.boxShadow =
-                      "0 6px 16px rgba(37,99,235,0.4)";
+                      "var(--shadow-md)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(37,99,235,0.3)";
+                      "var(--shadow-sm)";
                   }}
                 >
                   Mua ngay
@@ -787,10 +787,11 @@ const VoucherDetail = () => {
                   {voucher.branches.length > 3 && (
                     <p
                       style={{
-                        color: "#2563eb",
+                        color: "var(--primary)",
                         fontSize: "0.9rem",
                         fontWeight: 600,
                         cursor: "pointer",
+                        textDecoration: "underline",
                       }}
                     >
                       +{voucher.branches.length - 3} địa điểm khác

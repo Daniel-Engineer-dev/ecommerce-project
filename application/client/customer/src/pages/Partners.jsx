@@ -245,9 +245,10 @@ const Partners = () => {
             className="inner"
             style={{
               padding: "3rem",
-              background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+              background: "var(--primary)",
               color: "white",
               textAlign: "center",
+              borderRadius: "var(--radius-lg)",
             }}
           >
             <h2>“Doanh thu tăng 65% chỉ sau 2 tháng”</h2>

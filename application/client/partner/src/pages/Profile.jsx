@@ -132,9 +132,9 @@ const Profile = () => {
         return (
             <div style={{ paddingTop: '150px', paddingBottom: '100px', textAlign: 'center', minHeight: '100vh', background: '#f8fafc' }}>
                 <div className="container" style={{ maxWidth: '500px' }}>
-                    <div style={{ background: 'white', padding: '3rem', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-                        <div style={{ width: '64px', height: '64px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                            <Lock size={32} color="#ef4444" />
+                    <div style={{ background: 'white', padding: '3rem', borderRadius: 'var(--radius-lg, 12px)', boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))', border: '1px solid var(--border-color, #e4e4e7)' }}>
+                        <div style={{ width: '64px', height: '64px', background: 'rgba(24, 24, 27, 0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                            <Lock size={32} color="var(--primary, #18181b)" />
                         </div>
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Yêu cầu đăng nhập</h2>
                         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>{error || 'Vui lòng đăng nhập để xem và quản lý thông tin hồ sơ của bạn.'}</p>
@@ -167,9 +167,9 @@ const Profile = () => {
                     <button
                         onClick={() => setActiveTab('info')}
                         style={{
-                            padding: '1rem 1.5rem',
-                            borderRadius: '12px',
-                            border: 'none',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: 'var(--radius-md, 8px)',
+                            border: activeTab === 'info' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                             background: activeTab === 'info' ? 'white' : 'transparent',
                             color: activeTab === 'info' ? 'var(--primary)' : 'var(--text-muted)',
                             fontWeight: 700,
@@ -178,7 +178,7 @@ const Profile = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.75rem',
-                            boxShadow: activeTab === 'info' ? '0 4px 15px rgba(0,0,0,0.05)' : 'none',
+                            boxShadow: activeTab === 'info' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                             transition: '0.3s',
                             lineHeight: 1
                         }}
@@ -190,9 +190,9 @@ const Profile = () => {
                         <button
                             onClick={() => setActiveTab('branches')}
                             style={{
-                                padding: '1rem 1.5rem',
-                                borderRadius: '12px',
-                                border: 'none',
+                                padding: '0.75rem 1.25rem',
+                                borderRadius: 'var(--radius-md, 8px)',
+                                border: activeTab === 'branches' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                                 background: activeTab === 'branches' ? 'white' : 'transparent',
                                 color: activeTab === 'branches' ? 'var(--primary)' : 'var(--text-muted)',
                                 fontWeight: 700,
@@ -201,7 +201,7 @@ const Profile = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.75rem',
-                                boxShadow: activeTab === 'branches' ? '0 4px 15px rgba(0,0,0,0.05)' : 'none',
+                                boxShadow: activeTab === 'branches' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                                 transition: '0.3s',
                                 lineHeight: 1
                             }}
@@ -213,9 +213,9 @@ const Profile = () => {
                     <button
                         onClick={() => setActiveTab('security')}
                         style={{
-                            padding: '1rem 1.5rem',
-                            borderRadius: '12px',
-                            border: 'none',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: 'var(--radius-md, 8px)',
+                            border: activeTab === 'security' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                             background: activeTab === 'security' ? 'white' : 'transparent',
                             color: activeTab === 'security' ? 'var(--primary)' : 'var(--text-muted)',
                             fontWeight: 700,
@@ -224,7 +224,7 @@ const Profile = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.75rem',
-                            boxShadow: activeTab === 'security' ? '0 4px 15px rgba(0,0,0,0.05)' : 'none',
+                            boxShadow: activeTab === 'security' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                             transition: '0.3s',
                             lineHeight: 1
                         }}
@@ -252,7 +252,7 @@ const Profile = () => {
                         <p style={{ color: 'var(--text-muted)' }}>Quản lý thông tin cá nhân và cài đặt bảo mật</p>
                     </motion.div>
 
-                    <div style={{ background: 'white', padding: '2.5rem', borderRadius: '24px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                    <div style={{ background: 'white', padding: '2.5rem', borderRadius: 'var(--radius-lg, 12px)', boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))', border: '1px solid var(--border-color, #e4e4e7)' }}>
                         <AnimatePresence mode="wait">
                             {activeTab === 'info' && (
                                 <motion.div key="info" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -363,8 +363,8 @@ const Profile = () => {
                                     <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100%, 1fr))', gap: '1.5rem' }}>
                                             {profile.branches && profile.branches.map((branch, index) => (
-                                                <div key={index} style={{ padding: '1.5rem', background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', position: 'relative', transition: '0.3s' }}>
-                                                    <button type="button" onClick={() => handleRemoveBranch(index)} style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: '#fee2e2', color: '#ef4444', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.3s' }}><X size={18} /></button>
+                                                <div key={index} style={{ padding: '1.5rem', background: 'white', borderRadius: 'var(--radius-lg, 12px)', border: '1px solid var(--border-color, #e4e4e7)', boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))', position: 'relative', transition: '0.3s' }}>
+                                                    <button type="button" onClick={() => handleRemoveBranch(index)} style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'var(--error-light, #fef2f2)', color: 'var(--error-dark, #991b1b)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.3s' }}><X size={18} /></button>
 
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                                         <div style={{ gridColumn: 'span 2' }}>
@@ -397,7 +397,7 @@ const Profile = () => {
                                         </div>
 
                                         {profile.branches?.length === 0 && (
-                                            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
+                                            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: 'var(--radius-lg, 12px)', border: '2px dashed var(--border-color, #e4e4e7)' }}>
                                                 <MapPin size={48} color="#cbd5e1" style={{ marginBottom: '1rem' }} />
                                                 <p style={{ color: '#64748b', fontWeight: 600 }}>Chưa có chi nhánh nào được đăng ký</p>
                                                 <button type="button" onClick={handleAddBranch} style={{ marginTop: '1rem', color: 'var(--primary)', background: 'none', border: 'none', fontWeight: 700, cursor: 'pointer' }}>+ Thêm chi nhánh đầu tiên</button>

@@ -27,7 +27,7 @@ const About = () => {
 
                 textAlign: 'center',
                 padding: '40px 20px',
-                background: 'linear-gradient(135deg, #eef2ff, #ffffff)',
+                background: 'linear-gradient(180deg, #f8fafc, #ffffff)',
                 position: 'relative',
                 overflow: 'hidden'
             }}>
@@ -39,7 +39,7 @@ const About = () => {
                     transform: 'translateX(-50%)',
                     width: '600px',
                     height: '600px',
-                    background: 'radial-gradient(circle, rgba(37,99,235,0.15), transparent)',
+                    background: 'radial-gradient(circle, rgba(15,23,42,0.03), transparent)',
                     filter: 'blur(60px)', // 👈 giảm lag
                     opacity: 0.6
                 }} />
@@ -116,8 +116,8 @@ const About = () => {
                         width: '100%',
                         height: '320px',
                         objectFit: 'cover',
-                        borderRadius: '20px',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.1)'
+                        borderRadius: 'var(--radius-lg, 12px)',
+                        boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))'
                     }}
                 />
             </section>
@@ -128,7 +128,7 @@ const About = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#0f172a',
+                background: 'var(--primary, #18181b)',
                 color: 'white'
             }}>
                 <div className="container" style={{
@@ -196,7 +196,7 @@ const About = () => {
                 justifyContent: 'center',
                 alignItems: 'center',
 
-                background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+                background: 'var(--primary-dark, #09090b)',
                 color: 'white'
             }}>
                 <motion.h2
@@ -213,12 +213,16 @@ const About = () => {
                     className="btn-primary"
                     style={{
                         background: 'white',
-                        color: '#2563eb',
-                        padding: '1rem 2.5rem',
+                        color: 'var(--primary, #18181b)',
+                        padding: '0.75rem 2rem',
                         fontWeight: 600,
-                        borderRadius: '999px',
-                        cursor: 'pointer'
+                        borderRadius: 'var(--radius-md, 8px)',
+                        cursor: 'pointer',
+                        border: 'none',
+                        transition: 'opacity 0.2s'
                     }}
+                    onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+                    onMouseLeave={(e) => e.target.style.opacity = '1'}
                 >
                     Khám phá ngay 🚀
                 </button>

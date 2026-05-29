@@ -130,7 +130,7 @@ const UserGuide = () => {
                     background: '#f8fafc',
                   }}
                 >
-                  <item.icon size={16} color="#2563eb" />
+                  <item.icon size={16} color="var(--primary)" />
                   {item.phase}
                 </a>
               ))}
@@ -145,7 +145,7 @@ const UserGuide = () => {
                 top: '24px',
                 bottom: '24px',
                 width: '2px',
-                background: '#dbeafe',
+                background: 'var(--border-color)',
               }}
             />
 
@@ -171,13 +171,13 @@ const UserGuide = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 10px 24px rgba(37,99,235,0.25)',
+                      boxShadow: 'var(--shadow-sm)',
                       zIndex: 1,
                     }}
                   >
                     <Icon size={24} />
                   </div>
-
+ 
                   <div
                     style={{
                       background: 'white',
@@ -187,7 +187,7 @@ const UserGuide = () => {
                       boxShadow: '0 12px 30px rgba(15,23,42,0.06)',
                     }}
                   >
-                    <span style={{ color: '#2563eb', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    <span style={{ color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase' }}>
                       {phase}
                     </span>
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.35rem 0 0.75rem', color: '#0f172a' }}>

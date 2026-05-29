@@ -306,7 +306,7 @@ const Checkout = () => {
             </div>
 
             {/* Chọn phương thức thanh toán */}
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', color: '#1e293b' }}>
                 Phương thức thanh toán
               </h3>
@@ -322,9 +322,9 @@ const Checkout = () => {
                     justifyContent: 'space-between',
                     padding: '1.2rem',
                     border: paymentMethod === 'VNPay' ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    background: paymentMethod === 'VNPay' ? 'rgba(239, 68, 68, 0.02)' : 'white',
+                    background: paymentMethod === 'VNPay' ? 'var(--accent-glow)' : 'white',
                     transition: '0.2s'
                   }}
                 >
@@ -332,12 +332,12 @@ const Checkout = () => {
                     <div style={{ 
                       width: '44px', 
                       height: '44px', 
-                      background: 'rgba(59, 130, 246, 0.1)', 
-                      borderRadius: '12px',
+                      background: 'rgba(15, 23, 42, 0.05)', 
+                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#3b82f6'
+                      color: 'var(--primary)'
                     }}>
                       <CreditCard size={22} />
                     </div>
@@ -362,10 +362,10 @@ const Checkout = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '1.2rem',
-                    border: paymentMethod === 'MoMo' ? '2px solid #d82d8b' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    border: paymentMethod === 'MoMo' ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    background: paymentMethod === 'MoMo' ? 'rgba(216, 45, 139, 0.02)' : 'white',
+                    background: paymentMethod === 'MoMo' ? 'var(--accent-glow)' : 'white',
                     transition: '0.2s'
                   }}
                 >
@@ -373,12 +373,12 @@ const Checkout = () => {
                     <div style={{ 
                       width: '44px', 
                       height: '44px', 
-                      background: 'rgba(216, 45, 139, 0.1)', 
-                      borderRadius: '12px',
+                      background: 'rgba(15, 23, 42, 0.05)', 
+                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#d82d8b'
+                      color: 'var(--primary)'
                     }}>
                       <Wallet size={22} />
                     </div>
@@ -391,7 +391,7 @@ const Checkout = () => {
                     width: '20px', 
                     height: '20px', 
                     borderRadius: '50%', 
-                    border: paymentMethod === 'MoMo' ? '6px solid #d82d8b' : '2px solid #cbd5e1'
+                    border: paymentMethod === 'MoMo' ? '6px solid var(--primary)' : '2px solid #cbd5e1'
                   }} />
                 </div>
 
@@ -403,10 +403,10 @@ const Checkout = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '1.2rem',
-                    border: paymentMethod === 'VietQR' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    border: paymentMethod === 'VietQR' ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    background: paymentMethod === 'VietQR' ? 'rgba(5, 150, 105, 0.02)' : 'white',
+                    background: paymentMethod === 'VietQR' ? 'var(--accent-glow)' : 'white',
                     transition: '0.2s'
                   }}
                 >
@@ -414,12 +414,12 @@ const Checkout = () => {
                     <div style={{ 
                       width: '44px', 
                       height: '44px', 
-                      background: 'rgba(5, 150, 105, 0.1)', 
-                      borderRadius: '12px',
+                      background: 'rgba(15, 23, 42, 0.05)', 
+                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#059669'
+                      color: 'var(--primary)'
                     }}>
                       <QrCode size={22} />
                     </div>
@@ -432,7 +432,7 @@ const Checkout = () => {
                     width: '20px', 
                     height: '20px', 
                     borderRadius: '50%', 
-                    border: paymentMethod === 'VietQR' ? '6px solid #059669' : '2px solid #cbd5e1'
+                    border: paymentMethod === 'VietQR' ? '6px solid var(--primary)' : '2px solid #cbd5e1'
                   }} />
                 </div>
 
@@ -444,10 +444,10 @@ const Checkout = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '1.2rem',
-                    border: paymentMethod === 'PayPal' ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
+                    border: paymentMethod === 'PayPal' ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    background: paymentMethod === 'PayPal' ? 'rgba(37, 99, 235, 0.02)' : 'white',
+                    background: paymentMethod === 'PayPal' ? 'var(--accent-glow)' : 'white',
                     transition: '0.2s'
                   }}
                 >
@@ -455,12 +455,12 @@ const Checkout = () => {
                     <div style={{ 
                       width: '44px', 
                       height: '44px', 
-                      background: 'rgba(37, 99, 235, 0.1)', 
-                      borderRadius: '12px',
+                      background: 'rgba(15, 23, 42, 0.05)', 
+                      borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#2563eb'
+                      color: 'var(--primary)'
                     }}>
                       <Wallet size={22} />
                     </div>
@@ -473,7 +473,7 @@ const Checkout = () => {
                     width: '20px', 
                     height: '20px', 
                     borderRadius: '50%', 
-                    border: paymentMethod === 'PayPal' ? '6px solid #2563eb' : '2px solid #cbd5e1'
+                    border: paymentMethod === 'PayPal' ? '6px solid var(--primary)' : '2px solid #cbd5e1'
                   }} />
                 </div>
 
@@ -534,8 +534,8 @@ const Checkout = () => {
                   width: '100%', 
                   height: '56px', 
                   fontSize: '1.1rem', 
-                  borderRadius: '16px',
-                  background: paymentMethod === 'MoMo' ? '#d82d8b' : paymentMethod === 'VietQR' ? '#059669' : paymentMethod === 'PayPal' ? '#2563eb' : 'var(--primary)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--primary)',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'flex',

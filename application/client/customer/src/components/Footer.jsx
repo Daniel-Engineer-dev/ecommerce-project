@@ -1,328 +1,107 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Apple,
-  BellOff,
-  Building,
-  Camera,
+  BadgeCheck,
+  Building2,
   CircleHelp,
-  Copyright,
   CreditCard,
   FileText,
-  Gamepad2,
   Heart,
-  HeartPulse,
-  Hotel,
-  Laptop,
-  Lock,
-  MessageCircle,
+  Mail,
   Phone,
-  Play,
   ShieldCheck,
-  ShoppingBag,
-  Smartphone,
-  Store,
-  Tag,
+  Sparkles,
+  TicketPercent,
   X,
 } from "lucide-react";
 import logo from "../assets/logo.png";
 
-const categoryLinks = [
-  {
-    to: "/search?category=1",
-    label: "Nhà hàng & Ẩm thực",
-    icon: Store,
-    badge: "HOT",
-    badgeClass: "badge-hot",
-  },
-  {
-    to: "/search?category=2",
-    label: "Thời trang & Mua sắm",
-    icon: ShoppingBag,
-  },
-  { to: "/search?category=5", label: "Du lịch & Khách sạn", icon: Hotel },
-  {
-    to: "/search?category=3",
-    label: "Giải trí & Vui chơi",
-    icon: Gamepad2,
-    badge: "MỚI",
-    badgeClass: "badge-new",
-  },
-  { to: "/search?category=4", label: "Sức khoẻ & Làm đẹp", icon: HeartPulse },
-  { to: "/search?q=cong-nghe", label: "Công nghệ", icon: Laptop },
-];
-
-const supportLinks = [
-  { to: "/support", label: "Trung tâm hỗ trợ", icon: CircleHelp },
-  { to: "/guide", label: "Hướng dẫn sử dụng", icon: FileText },
-  { to: "/refund-policy", label: "Chính sách hoàn tiền", icon: CreditCard },
-  { to: "/register-partner", label: "Hợp tác doanh nghiệp", icon: Building },
-];
-
-const bottomLinks = [
-  { to: "/terms", label: "Điều khoản dịch vụ" },
-  { to: "/privacy", label: "Chính sách bảo mật" },
-  { to: "/privacy", label: "Cookie" },
-];
-
-const socialLinks = [
-  { href: "https://facebook.com", label: "Facebook", icon: MessageCircle },
-  { href: "https://instagram.com", label: "Instagram", icon: Camera },
-  { href: "https://tiktok.com", label: "TikTok", icon: MessageCircle },
-  { href: "https://youtube.com", label: "YouTube", icon: Play },
-  { href: "https://zalo.me", label: "Zalo", icon: MessageCircle },
-];
-
-const paymentMethods = ["VISA", "Mastercard", "MoMo", "ZaloPay", "VNPay"];
-
-const FooterLinkList = ({ title, links }) => (
-  <div className="footer-section">
-    <h3 className="footer-section__title">{title}</h3>
-    <ul className="footer-links">
-      {links.map(({ to, label, icon: Icon, badge, badgeClass }) => (
-        <li key={`${to}-${label}`}>
-          <Link to={to}>
-            <Icon size={15} />
-            <span>{label}</span>
-            {badge && <span className={badgeClass}>{badge}</span>}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
-
 const Footer = () => {
-  const [newsletterPopup, setNewsletterPopup] = useState(null);
-  const [newsletterExpanded, setNewsletterExpanded] = useState(false);
+  const [popup, setPopup] = useState(null);
 
-  const handleNewsletterSubmit = (event) => {
+  const submitNewsletter = (event) => {
     event.preventDefault();
+    const email = event.currentTarget.elements.newsletterEmail.value.trim();
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    const form = event.currentTarget;
-    const email = form.elements.newsletterEmail.value.trim();
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-    if (!isValidEmail) {
-      setNewsletterPopup({
-        type: "error",
-        title: "Email chưa hợp lệ",
-        message:
-          "Vui lòng nhập email hợp lệ để đăng ký nhận thông báo voucher.",
-      });
+    if (!valid) {
+      setPopup({ type: "error", title: "Email chưa hợp lệ", message: "Nhập email hợp lệ để nhận ưu đãi mới từ Dealzy." });
       return;
     }
 
-    setNewsletterPopup({
-      type: "success",
-      title: "Đăng ký thành công",
-      message: "Dealzy sẽ gửi ưu đãi mới đến email của bạn.",
-    });
-    form.reset();
+    event.currentTarget.reset();
+    setPopup({ type: "success", title: "Đã đăng ký", message: "Dealzy sẽ gửi những voucher đáng giá nhất đến hộp thư của bạn." });
   };
 
   return (
-    <footer className="site-footer">
-      <section
-        className={`site-footer__newsletter ${newsletterExpanded ? "expanded" : "collapsed"}`}
-        aria-expanded={newsletterExpanded}
-      >
-        <div
-          className="newsletter-label"
-          role="button"
-          tabIndex={0}
-          onClick={() => setNewsletterExpanded((s) => !s)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setNewsletterExpanded((s) => !s);
-            }
-          }}
-        >
-          <Tag size={14} />
-          Ưu đãi độc quyền
-        </div>
-
-        <div className="newsletter-body">
-          <h2>Nhận voucher miễn phí mỗi tuần</h2>
-          <p>
-            Đăng ký ngay để không bỏ lỡ hàng ngàn mã giảm giá hấp dẫn từ các
-            thương hiệu lớn.
-          </p>
-          <form
-            className="newsletter-form"
-            onSubmit={handleNewsletterSubmit}
-            noValidate
-          >
-            <input
-              name="newsletterEmail"
-              type="email"
-              placeholder="Nhập email của bạn..."
-              aria-label="Nhập email của bạn"
-            />
-            <button type="submit">Đăng ký ngay</button>
+    <footer className="lux-footer">
+      <section className="lux-footer__newsletter">
+        <div className="container">
+          <span className="lux-eyebrow"><Sparkles size={14} /> Members first</span>
+          <h2>Nhận ưu đãi chọn lọc trước khi mở bán công khai.</h2>
+          <form onSubmit={submitNewsletter} noValidate>
+            <input name="newsletterEmail" type="email" placeholder="Email của bạn" aria-label="Email của bạn" />
+            <button type="submit">Đăng ký</button>
           </form>
-          <div className="footer-cert-row">
-            <span>
-              <ShieldCheck size={14} /> Bảo mật SSL
-            </span>
-            <span>
-              <Lock size={14} /> Không spam
-            </span>
-            <span>
-              <BellOff size={14} /> Huỷ bất kỳ lúc nào
-            </span>
+          <div className="lux-footer__badges">
+            <span><ShieldCheck size={15} /> Bảo mật</span>
+            <span><BadgeCheck size={15} /> Đối tác xác thực</span>
+            <span><TicketPercent size={15} /> Deal độc quyền</span>
           </div>
         </div>
       </section>
 
-      <div className="container site-footer__main">
-        <div className="site-footer__brand">
-          <Link
-            to="/"
-            className="site-footer__brand-logo"
-            aria-label="Dealzy home"
-          >
-            <span className="site-footer__brand-icon">
-              <img src={logo} alt="" />
-            </span>
+      <div className="container lux-footer__main">
+        <div className="lux-footer__brand">
+          <Link to="/" className="lux-footer__logo">
+            <img src={logo} alt="" />
             <span>
-              <strong>
-                Deal<span>zy</span>
-              </strong>
-              <small>DEALS & DISCOUNTS</small>
+              <strong>Dealzy</strong>
+              <small>Premium voucher marketplace</small>
             </span>
           </Link>
           <p>
-            Nền tảng voucher uy tín hàng đầu Việt Nam, hàng nghìn ưu đãi từ các
-            thương hiệu lớn được cập nhật mỗi ngày.
+            Nền tảng voucher cho các trải nghiệm ăn uống, du lịch, làm đẹp và giải trí được chọn lọc. Tập trung vào sự rõ ràng, tin cậy và cảm giác mua hàng cao cấp.
           </p>
-          <div className="site-footer__socials" aria-label="Mạng xã hội">
-            {socialLinks.map(({ href, label, icon: Icon }) => (
-              <a
-                key={label}
-                href={href}
-                aria-label={label}
-                title={label}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Icon size={17} />
-              </a>
-            ))}
-          </div>
         </div>
 
-        <FooterLinkList title="Danh mục" links={categoryLinks} />
-
-        <div className="footer-section">
-          <h3 className="footer-section__title">Hỗ trợ</h3>
-          <ul className="footer-links">
-            {supportLinks.map(({ to, label, icon: Icon }) => (
-              <li key={`${to}-${label}`}>
-                <Link to={to}>
-                  <Icon size={15} />
-                  <span>{label}</span>
-                </Link>
-              </li>
-            ))}
-            <li>
-              <a href="tel:19006789">
-                <Phone size={15} />
-                <span>Liên hệ: 1900 6789</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div className="footer-section">
-          <h3 className="footer-section__title">Tải ứng dụng</h3>
-          <div className="footer-app-row">
-            <a className="footer-app-btn" href="#app-store">
-              <Apple size={24} />
-              <span>
-                <small>Tải về trên</small>
-                <strong>App Store</strong>
-              </span>
-            </a>
-            <a className="footer-app-btn" href="#google-play">
-              <Smartphone size={24} />
-              <span>
-                <small>Tải về trên</small>
-                <strong>Google Play</strong>
-              </span>
-            </a>
-          </div>
-
-          <div className="footer-payment">
-            <h3 className="footer-section__title">Thanh toán</h3>
-            <div>
-              {paymentMethods.map((method) => (
-                <span key={method}>{method}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container site-footer__divider" />
-
-      <div className="container site-footer__bottom">
-        <div className="site-footer__copyright">
-          <Copyright size={14} />
-          {new Date().getFullYear()} Dealzy. Làm với{" "}
-          <Heart size={13} fill="currentColor" /> tại Việt Nam.
-        </div>
-        <nav
-          className="site-footer__bottom-links"
-          aria-label="Liên kết pháp lý"
-        >
-          {bottomLinks.map((item, index) => (
-            <React.Fragment key={item.label}>
-              {index > 0 && <span>·</span>}
-              <Link to={item.to}>{item.label}</Link>
-            </React.Fragment>
-          ))}
+        <nav className="lux-footer__column">
+          <h3>Sản phẩm</h3>
+          <Link to="/search">Tất cả voucher</Link>
+          <Link to="/search?sort=new">Deal mới</Link>
+          <Link to="/search?sort=best-selling">Bán chạy</Link>
+          <Link to="/partners">Đối tác</Link>
+          <Link to="/register-partner">Hợp tác doanh nghiệp</Link>
         </nav>
+
+        <nav className="lux-footer__column">
+          <h3>Hỗ trợ</h3>
+          <Link to="/support"><CircleHelp size={15} /> Trung tâm hỗ trợ</Link>
+          <Link to="/guide"><FileText size={15} /> Hướng dẫn sử dụng</Link>
+          <Link to="/refund-policy"><CreditCard size={15} /> Hoàn tiền</Link>
+          <Link to="/terms">Điều khoản</Link>
+        </nav>
+
+        <div className="lux-footer__column">
+          <h3>Liên hệ</h3>
+          <a href="tel:19006760"><Phone size={15} /> 1900 6760</a>
+          <a href="mailto:cs@dealzy.vn"><Mail size={15} /> cs@dealzy.vn</a>
+          <span><Building2 size={15} /> Ho Chi Minh City</span>
+        </div>
       </div>
 
-      {newsletterPopup && (
-        <div
-          className="newsletter-popup"
-          role="presentation"
-          onClick={() => setNewsletterPopup(null)}
-        >
-          <div
-            className={`newsletter-popup__dialog newsletter-popup__dialog--${newsletterPopup.type}`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="newsletter-popup-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="newsletter-popup__close"
-              aria-label="Đóng thông báo"
-              onClick={() => setNewsletterPopup(null)}
-            >
-              <X size={18} />
-            </button>
-            <div className="newsletter-popup__icon">
-              {newsletterPopup.type === "success" ? (
-                <ShieldCheck size={26} />
-              ) : (
-                <CircleHelp size={26} />
-              )}
-            </div>
-            <h2 id="newsletter-popup-title">{newsletterPopup.title}</h2>
-            <p>{newsletterPopup.message}</p>
-            <button
-              type="button"
-              className="newsletter-popup__action"
-              onClick={() => setNewsletterPopup(null)}
-            >
-              Đã hiểu
-            </button>
+      <div className="container lux-footer__bottom">
+        <span>© {new Date().getFullYear()} Dealzy. Built for commerce teams.</span>
+        <span>Made with <Heart size={13} fill="currentColor" /> in Vietnam</span>
+      </div>
+
+      {popup && (
+        <div className="lux-newsletter-modal" onClick={() => setPopup(null)}>
+          <div className="lux-newsletter-modal__dialog" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setPopup(null)} aria-label="Đóng"><X size={18} /></button>
+            <div className={popup.type}>{popup.type === "success" ? <ShieldCheck size={28} /> : <CircleHelp size={28} />}</div>
+            <h2>{popup.title}</h2>
+            <p>{popup.message}</p>
           </div>
         </div>
       )}
