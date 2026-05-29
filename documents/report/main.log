@@ -1,10 +1,10 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.23)  14 MAY 2026 16:22
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.23)  28 MAY 2026 01:12
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
  %&-line parsing enabled.
-**"d:/TMDT Software plan/documents/proposalDocument/main.tex"
-(d:/TMDT Software plan/documents/proposalDocument/main.tex
+**"d:/TMDT Software plan/documents/report/main.tex"
+(d:/TMDT Software plan/documents/report/main.tex
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
 (C:\Users\ACER\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
@@ -778,7 +778,7 @@ Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: float package is loaded.
 Package caption Info: End \AtBeginDocument code.
  (coverPage.tex
-<images/logo_khtn.png, id=74, 162.936pt x 153.738pt>
+<images/logo_khtn.png, id=158, 162.936pt x 153.738pt>
 File: images/logo_khtn.png Graphic file (type png)
 <use images/logo_khtn.png>
 Package pdftex.def Info: images/logo_khtn.png  used on input line 33.
@@ -786,52 +786,47 @@ Package pdftex.def Info: images/logo_khtn.png  used on input line 33.
  [1
 
 {C:/Users/ACER/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map} <./images/logo_khtn.png>]) (main.toc
-LaTeX Font Info:    Trying to load font information for U+msa on input line 5.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 3.
  (C:\Users\ACER\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 5.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 3.
  (C:\Users\ACER\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ))
 \tf@toc=\write5
 \openout5 = `main.toc'.
 
+ [1
 
-pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has been already used, duplicate ignored
-<to be read again> 
-                   \relax 
-l.44 \newpage
-              [1] (sections/introduction.tex) (sections/objectives.tex) (sections/proposed_solution.tex [2]
-<images/architecture.png, id=109, 246.6816pt x 246.6816pt>
+] (sections/01_overview.tex) (sections/02_requirements_features.tex [1
+
+]) (sections/03_system_design.tex
+<images/architecture.png, id=216, 246.6816pt x 246.6816pt>
 File: images/architecture.png Graphic file (type png)
 <use images/architecture.png>
-Package pdftex.def Info: images/architecture.png  used on input line 31.
+Package pdftex.def Info: images/architecture.png  used on input line 8.
 (pdftex.def)             Requested size: 411.14526pt x 411.18515pt.
- [3 <./images/architecture.png>]) (sections/development_plan.tex [4]) (sections/resources_costing.tex) (sections/tools_setup.tex [5]
-LaTeX Font Info:    Trying to load font information for T5+cmtt on input line 19.
- (C:\Users\ACER\AppData\Local\Programs\MiKTeX\tex/latex/vntex\t5cmtt.fd
-File: t5cmtt.fd 1999/05/25 v2.5h Standard LaTeX font definitions
-)) [6] (main.aux)
+ [2 <./images/architecture.png>]) (sections/04_database_design.tex [3]) (sections/05_feature_presentation.tex [4]) (sections/06_implementation_testing.tex) (sections/07_conclusion.tex [5]) [6] (main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 8D1D60120142D5CCDC9821851EFD7BAA;2588.
+(rerunfilecheck)             Checksum: 309FDE93244D3A97CFA2D4818539389F;7028.
  ) 
 Here is how much of TeX's memory you used:
- 24225 strings out of 467867
- 446090 string characters out of 5418818
- 841676 words of memory out of 5000000
- 52677 multiletter control sequences out of 15000+600000
- 649165 words of font info for 77 fonts, out of 8000000 for 9000
+ 24256 strings out of 467867
+ 446596 string characters out of 5418818
+ 845692 words of memory out of 5000000
+ 52682 multiletter control sequences out of 15000+600000
+ 648854 words of font info for 76 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,10n,94p,651b,522s stack positions out of 10000i,1000n,20000p,200000b,200000s
- <C:\Users\ACER\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm1200.pk><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbx12.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbxti10.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnr12.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnti12.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vntt12.pfb>
-Output written on main.pdf (7 pages, 690806 bytes).
+ 84i,10n,94p,446b,583s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ <C:\Users\ACER\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm1200.pk><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbx12.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnbxti10.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnr12.pfb><C:/Users/ACER/AppData/Local/Programs/MiKTeX/fonts/type1/vntex/vnr/vnti12.pfb>
+Output written on main.pdf (8 pages, 699155 bytes).
 PDF statistics:
- 165 PDF objects out of 1000 (max. 8388607)
- 26 named destinations out of 1000 (max. 500000)
- 159 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 279 PDF objects out of 1000 (max. 8388607)
+ 53 named destinations out of 1000 (max. 500000)
+ 327 words of extra memory for PDF output out of 10000 (max. 10000000)
 

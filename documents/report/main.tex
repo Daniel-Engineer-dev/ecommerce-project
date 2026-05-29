@@ -37,19 +37,22 @@
 \begin{document}
 
 % Cover page
+\pagenumbering{gobble}
 \input{coverPage.tex}
 
-\newpage
+\clearpage
+\pagenumbering{roman}
 \tableofcontents
-\newpage
+\clearpage
+\pagenumbering{arabic}
 
-% Chapters
-\input{sections/introduction.tex}
-\input{sections/objectives.tex}
-
-\input{sections/proposed_solution.tex}
-\input{sections/development_plan.tex}
-\input{sections/resources_costing.tex}
-\input{sections/tools_setup.tex}
+% Report chapters
+\input{sections/01_overview.tex}
+\input{sections/02_requirements_features.tex}
+\input{sections/03_system_design.tex}
+\input{sections/04_database_design.tex}
+\input{sections/05_feature_presentation.tex}
+\input{sections/06_implementation_testing.tex}
+\input{sections/07_conclusion.tex}
 
 \end{document}
