@@ -17,7 +17,7 @@ class PartnerService {
                 COUNT(*)::int AS total_vouchers,
                 COUNT(*) FILTER (WHERE status = 'Approved')::int AS approved_vouchers,
                 COUNT(*) FILTER (WHERE status = 'Pending')::int AS pending_vouchers,
-                COUNT(*) FILTER (WHERE status = 'Disabled')::int AS disabled_vouchers,
+                COUNT(*) FILTER (WHERE status = 'Suspended')::int AS disabled_vouchers,
                 COALESCE(SUM(total_quantity - quantity_stock), 0)::int AS issued_quantity
             FROM Vouchers
             WHERE partner_id = $1
@@ -209,7 +209,7 @@ class PartnerService {
 
     async disableVoucher(partnerId, voucherId) {
         const result = await pool.query(
-            "UPDATE Vouchers SET status = 'Disabled' WHERE voucher_id = $1 AND partner_id = $2 RETURNING *",
+            "UPDATE Vouchers SET status = 'Suspended' WHERE voucher_id = $1 AND partner_id = $2 RETURNING *",
             [voucherId, partnerId]
         );
         if (result.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');

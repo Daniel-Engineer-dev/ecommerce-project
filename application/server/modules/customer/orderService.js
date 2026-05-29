@@ -85,17 +85,43 @@ class OrderService {
                 throw new Error(errors[0]?.message || 'Cart contains unavailable vouchers.');
             }
 
-            const { name, phone, email, address } = shippingInfo;
+            const {
+                name,
+                phone,
+                email,
+                address,
+                isGift = false,
+                recipientName = null,
+                recipientPhone = null,
+                recipientEmail = null,
+                giftMessage = null,
+            } = shippingInfo;
             const orderRes = await client.query(
                 `
                     INSERT INTO Orders (
                         customer_id, total_amount, status, payment_method,
-                        shipping_name, shipping_phone, shipping_email, shipping_address
+                        shipping_name, shipping_phone, shipping_email, shipping_address,
+                        is_gift, gift_recipient_name, gift_recipient_phone,
+                        gift_recipient_email, gift_message
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING order_id
                 `,
-                [customerId, totalAmount, ORDER_STATUS.PENDING, paymentMethod, name, phone, email, address || null]
+                [
+                    customerId,
+                    totalAmount,
+                    ORDER_STATUS.PENDING,
+                    paymentMethod,
+                    name,
+                    phone,
+                    email,
+                    address || null,
+                    Boolean(isGift),
+                    isGift ? recipientName : null,
+                    isGift ? recipientPhone : null,
+                    isGift ? recipientEmail : null,
+                    isGift ? giftMessage : null,
+                ]
             );
 
             const orderId = orderRes.rows[0].order_id;
@@ -398,6 +424,7 @@ class OrderService {
             `
                 SELECT o.order_id, o.order_date, o.total_amount, o.status, o.payment_method,
                     o.transaction_reference, o.shipping_name, o.shipping_phone, o.shipping_email,
+                    o.is_gift, o.gift_recipient_name, o.gift_recipient_phone, o.gift_recipient_email,
                     COUNT(DISTINCT oi.order_item_id)::int AS item_count,
                     COALESCE(SUM(oi.quantity), 0)::int AS voucher_quantity,
                     COUNT(ev.evoucher_id)::int AS evoucher_count
@@ -419,7 +446,8 @@ class OrderService {
         const orderRes = await pool.query(
             `
                 SELECT order_id, customer_id, order_date, total_amount, status, payment_method,
-                    transaction_reference, shipping_name, shipping_phone, shipping_email, shipping_address
+                    transaction_reference, shipping_name, shipping_phone, shipping_email, shipping_address,
+                    is_gift, gift_recipient_name, gift_recipient_phone, gift_recipient_email, gift_message
                 FROM Orders
                 WHERE order_id = $1 AND customer_id = $2
             `,

@@ -14,7 +14,12 @@ const Checkout = () => {
     name: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    isGift: false,
+    recipientName: '',
+    recipientPhone: '',
+    recipientEmail: '',
+    giftMessage: ''
   });
   
   const [paymentMethod, setPaymentMethod] = useState('VNPay'); // Default to VNPay
@@ -45,7 +50,12 @@ const Checkout = () => {
             name: data.full_name || '',
             phone: data.phone || '',
             email: data.email || '',
-            address: data.address || ''
+            address: data.address || '',
+            isGift: false,
+            recipientName: '',
+            recipientPhone: '',
+            recipientEmail: '',
+            giftMessage: ''
           });
         }
       } catch (err) {
@@ -81,9 +91,10 @@ const Checkout = () => {
   };
 
   const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setShippingInfo({
       ...shippingInfo,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -302,6 +313,83 @@ const Checkout = () => {
                     />
                   </div>
                 </div>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.9rem 1rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#1e293b'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    name="isGift"
+                    checked={shippingInfo.isGift}
+                    onChange={handleInputChange}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                  />
+                  Mua tặng người khác
+                </label>
+
+                {shippingInfo.isGift && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#f8fafc' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>TÊN NGƯỜI NHẬN QUÀ</label>
+                      <input
+                        type="text"
+                        name="recipientName"
+                        value={shippingInfo.recipientName}
+                        onChange={handleInputChange}
+                        required={shippingInfo.isGift}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                        placeholder="Nhập họ tên người nhận"
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>SỐ ĐIỆN THOẠI NGƯỜI NHẬN</label>
+                        <input
+                          type="tel"
+                          name="recipientPhone"
+                          value={shippingInfo.recipientPhone}
+                          onChange={handleInputChange}
+                          required={shippingInfo.isGift}
+                          style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                          placeholder="Số điện thoại người nhận"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>EMAIL NGƯỜI NHẬN</label>
+                        <input
+                          type="email"
+                          name="recipientEmail"
+                          value={shippingInfo.recipientEmail}
+                          onChange={handleInputChange}
+                          required={shippingInfo.isGift}
+                          style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                          placeholder="Email nhận mã voucher"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>LỜI NHẮN</label>
+                      <textarea
+                        name="giftMessage"
+                        value={shippingInfo.giftMessage}
+                        onChange={handleInputChange}
+                        rows={3}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem', resize: 'vertical' }}
+                        placeholder="Lời nhắn ngắn gửi kèm voucher"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

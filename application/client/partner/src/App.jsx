@@ -82,6 +82,8 @@ function StatusPill({ status }) {
   const map = {
     Approved: ['#dcfce7', '#166534', 'Đã duyệt'],
     Pending: ['#fef3c7', '#92400e', 'Chờ duyệt'],
+    Rejected: ['#fee2e2', '#991b1b', 'Từ chối'],
+    Suspended: ['#fee2e2', '#991b1b', 'Tạm ngưng'],
     Disabled: ['#fee2e2', '#991b1b', 'Tạm ngưng'],
     Used: ['#e0e7ff', '#3730a3', 'Đã dùng'],
     Unused: ['#dcfce7', '#166534', 'Chưa dùng'],
