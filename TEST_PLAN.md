@@ -43,22 +43,22 @@ Quy ước cột hoàn thành:
 | 13 | BR-01, BR-CUS-02 | Customer | Chặn đổi mật khẩu khi nhập sai mật khẩu cũ | Profile -> nhập mật khẩu cũ sai -> lưu | [x] | Không đổi password |
 | 14 | BR-01, BR-CUS-02, ASM-02 | Customer | Quên mật khẩu bằng email mô phỏng | Trang login -> Quên mật khẩu -> chọn email -> nhập email customer -> gửi | [ ] | Nếu email thật không cấu hình thì kiểm thông báo lỗi hợp lý |
 | 15 | BR-01, BR-CUS-02, ASM-02 | Customer | Quên mật khẩu bằng SĐT/OTP mô phỏng | Trang login -> Quên mật khẩu -> chọn SĐT -> nhập SĐT customer -> gửi OTP | [ ] | Có thể mô phỏng theo ASM-02 |
-| 16 | BR-01, BR-PAR-01, DR-02 | Partner | Đăng ký tài khoản đối tác doanh nghiệp | Vào `/register-partner` -> nhập username mới, email, SĐT, công ty, người đại diện, MST, trụ sở, ít nhất 1 chi nhánh -> submit | [ ] | Partner mới nên ở trạng thái `Pending` |
-| 17 | BR-01, BR-PAR-01 | Partner | Chặn đăng ký đối tác thiếu thông tin pháp lý | Bỏ trống tên công ty hoặc MST/trụ sở -> submit | [ ] | Không tạo hồ sơ đối tác thiếu dữ liệu |
-| 18 | BR-01, BR-PAR-01, DR-02 | Partner | Đăng ký đối tác kèm nhiều chi nhánh | Thêm 2 chi nhánh với tên, địa chỉ, SĐT -> submit | [ ] | Kiểm tra bảng/hiển thị chi nhánh |
-| 19 | BR-01, BR-PAR-01 | Partner | Đối tác Pending không được đăng nhập portal | Dùng partner vừa đăng ký nhưng chưa duyệt -> login `5174` | [ ] | Phải báo đang chờ xét duyệt |
-| 20 | BR-01, BR-PAR-01 | Partner | Đối tác Approved đăng nhập thành công | Login `sheraton_partner` / `123456` tại `5174` | [ ] | Vào được dashboard partner |
+| 16 | BR-01, BR-PAR-01, DR-02 | Partner | Đăng ký tài khoản đối tác doanh nghiệp | Vào `/register-partner` -> nhập username mới, email, SĐT, công ty, người đại diện, MST, trụ sở, ít nhất 1 chi nhánh -> submit | [x] | Partner mới nên ở trạng thái `Pending` |
+| 17 | BR-01, BR-PAR-01 | Partner | Chặn đăng ký đối tác thiếu thông tin pháp lý | Bỏ trống tên công ty hoặc MST/trụ sở -> submit | [x] | Không tạo hồ sơ đối tác thiếu dữ liệu |
+| 18 | BR-01, BR-PAR-01, DR-02 | Partner | Đăng ký đối tác kèm nhiều chi nhánh | Thêm 2 chi nhánh với tên, địa chỉ, SĐT -> submit | [x] | Kiểm tra bảng/hiển thị chi nhánh |
+| 19 | BR-01, BR-PAR-01 | Partner | Đối tác Pending không được đăng nhập portal | Dùng partner vừa đăng ký nhưng chưa duyệt -> login `5174` | [x] | Phải báo đang chờ xét duyệt |
+| 20 | BR-01, BR-PAR-01 | Partner | Đối tác Approved đăng nhập thành công | Login `sheraton_partner` / `123456` tại `5174` | [x] | Vào được dashboard partner |
 | 21 | BR-01, BR-PAR-01 | Partner | Đối tác đăng xuất | Login partner -> bấm đăng xuất | [ ] | Token `partnerToken` bị xóa |
 | 22 | BR-01, BR-PAR-01 | Partner | Partner cập nhật hồ sơ doanh nghiệp | Partner -> Hồ sơ đối tác -> sửa email/SĐT/công ty/người đại diện/MST/trụ sở -> lưu | [ ] | Reload vẫn giữ thông tin mới |
 | 23 | BR-01, BR-PAR-01 | Partner | Partner quản lý danh sách chi nhánh | Hồ sơ đối tác -> thêm/sửa/xóa chi nhánh -> lưu | [ ] | Không xóa chi nhánh đã có lịch sử sử dụng nếu hệ thống chặn |
-| 24 | BR-01 | Partner | Partner đổi mật khẩu | Hồ sơ/đổi mật khẩu nếu có UI, hoặc API đổi mật khẩu -> login lại | [ ] | Nếu UI chưa có thì ghi `[!]` |
+| 24 | BR-01 | Partner | Partner đổi mật khẩu | Hồ sơ/đổi mật khẩu nếu có UI, hoặc API đổi mật khẩu -> login lại | [x] | Nếu UI chưa có thì ghi `[!]` |
 | 25 | BR-01, ASM-02 | Partner | Partner quên mật khẩu | Từ Partner login -> quên mật khẩu nếu có link/luồng -> email/SĐT | [ ] | Nếu chưa có UI riêng thì ghi chưa đạt |
 | 26 | BR-01, BR-ADM-01, CON-03 | Admin | Admin đăng nhập đúng thông tin | Login `admin` / `123456` tại `5175/login` | [ ] | Vào dashboard admin |
 | 27 | BR-01, BR-ADM-01 | Admin | Admin sai mật khẩu bị chặn | Login admin với password sai | [ ] | Không tạo `adminToken` |
 | 28 | BR-01, BR-ADM-01 | Admin | Admin đăng xuất | Admin -> sidebar -> đăng xuất | [ ] | Xóa `adminToken`, quay về `/login` |
 | 29 | BR-01, BR-ADM-01, CON-03 | Admin | Không cho đăng ký Admin từ public UI | Tìm các trang đăng ký public -> thử chọn role Admin hoặc sửa request role=Admin | [ ] | Public user không được tự tạo admin |
 | 30 | BR-01, NFR-02 | Admin | Customer token không truy cập được Admin API | Login customer lấy token -> gọi API admin bằng token đó | [x] | Phải trả 401/403 |
-| 31 | BR-01, NFR-02 | Partner | Partner token không truy cập được Admin API | Login partner -> gọi API admin | [ ] | Phải trả 401/403 |
+| 31 | BR-01, NFR-02 | Partner | Partner token không truy cập được Admin API | Login partner -> gọi API admin | [x] | Phải trả 401/403 |
 | 32 | BR-01, NFR-02 | Admin/Partner/Customer | Kiểm tra session sau refresh trang | Login từng vai trò -> refresh trình duyệt | [x] | Vẫn giữ phiên hợp lệ nếu token còn hạn |
 | 33 | BR-01, NFR-02 | Admin/Partner/Customer | Kiểm tra session sau xóa token localStorage | Login -> xóa token trong DevTools -> refresh | [ ] | Bị đưa về login hoặc trạng thái chưa đăng nhập |
 
@@ -72,7 +72,7 @@ Quy ước cột hoàn thành:
 | 37 | BR-02, BR-ADM-05 | Admin | Admin chỉnh sửa nội dung đã tạo | Chọn item nội dung -> sửa title/body/type/active -> lưu | [ ] | Dữ liệu cập nhật đúng |
 | 38 | BR-02, BR-ADM-05 | Admin | Admin ẩn/hiện nội dung chính sách | Tạo nội dung active -> chuyển inactive -> kiểm danh sách | [ ] | Trạng thái hiển thị rõ |
 | 39 | BR-02, BR-ADM-03 | Admin | Admin tạm ngưng hoặc thay đổi trạng thái hiển thị voucher | Admin -> Voucher -> toggle visibility/suspended nếu có | [ ] | Voucher tạm ngưng không được bán |
-| 40 | BR-02, RB-01 | Customer | Voucher Pending/Rejected không xuất hiện ở customer | Tạo voucher pending/rejected -> mở customer search/home | [ ] | Chỉ Approved, còn hiệu lực, còn tồn kho |
+| 40 | BR-02, RB-01 | Customer | Voucher Pending/Rejected không xuất hiện ở customer | Tạo voucher pending/rejected -> mở customer search/home | [x] | Chỉ Approved, còn hiệu lực, còn tồn kho |
 
 ### 2.3. BR-03 - Mua hàng trực tuyến
 
@@ -107,21 +107,21 @@ Quy ước cột hoàn thành:
 | 62 | BR-04, BR-CUS-07 | Customer | Khách xem được voucher đã mua | Profile -> voucher/đơn hàng của tôi | [x] | Có code, trạng thái, ngày hết hạn |
 | 63 | BR-04, BR-CUS-07, ASM-03 | Customer | Khách xem QR mô phỏng | Mở voucher đã mua/payment status | [ ] | Có QR hoặc mã mô phỏng |
 | 64 | BR-04, BR-CUS-07 | Customer | Lịch sử đơn hàng hiển thị đúng | Profile -> đơn hàng | [x] | Có order_date, tổng tiền, trạng thái, số lượng code |
-| 65 | BR-04, DR-05 | Customer/Partner/Admin | Vòng đời code cập nhật đúng | Code mới: Unused -> partner xác nhận -> Used | [ ] | Có issued_at, expiry_date, used_date/branch |
+| 65 | BR-04, DR-05 | Customer/Partner/Admin | Vòng đời code cập nhật đúng | Code mới: Unused -> partner xác nhận -> Used | [x] | Có issued_at, expiry_date, used_date/branch |
 | 66 | BR-04, RB-08 | Customer/Partner | Code hết hạn không dùng được | Dùng code có expiry_date quá hạn hoặc chỉnh dữ liệu demo | [ ] | Hệ thống từ chối xác thực |
 
 ### 2.5. BR-05 - Kiểm tra và xác thực voucher
 
 | STT | Mã yêu cầu | Vai trò | Yêu cầu test | Gợi ý luồng test | Hoàn thành | Ghi chú |
 |---:|---|---|---|---|---|---|
-| 67 | BR-05, BR-PAR-05, ASM-03 | Partner | Partner nhập mã để kiểm tra tình trạng voucher | Login partner -> Xác thực mã -> nhập code hợp lệ | [ ] | Hiển thị voucher, trạng thái, khách hàng, hạn dùng |
-| 68 | BR-05, BR-PAR-05 | Partner | Kiểm tra mã không tồn tại | Nhập code ngẫu nhiên | [ ] | Báo không tìm thấy/không hợp lệ |
-| 69 | BR-05, BR-PAR-05 | Partner | Kiểm tra code thuộc partner khác | Login `glow_spa` -> nhập code Sheraton | [ ] | Phải từ chối hoặc không cho xác nhận |
-| 70 | BR-05, BR-PAR-06, RB-09 | Partner | Xác nhận sử dụng code đúng đối tác, đúng chi nhánh | Login partner phát hành -> chọn chi nhánh của mình -> xác nhận | [ ] | Code chuyển Used |
-| 71 | BR-05, RB-07 | Partner | Không cho dùng lại code đã Used | Nhập lại code vừa xác nhận | [ ] | Báo đã sử dụng |
+| 67 | BR-05, BR-PAR-05, ASM-03 | Partner | Partner nhập mã để kiểm tra tình trạng voucher | Login partner -> Xác thực mã -> nhập code hợp lệ | [x] | Hiển thị voucher, trạng thái, khách hàng, hạn dùng |
+| 68 | BR-05, BR-PAR-05 | Partner | Kiểm tra mã không tồn tại | Nhập code ngẫu nhiên | [x] | Báo không tìm thấy/không hợp lệ |
+| 69 | BR-05, BR-PAR-05 | Partner | Kiểm tra code thuộc partner khác | Login `glow_spa` -> nhập code Sheraton | [x] | Phải từ chối hoặc không cho xác nhận |
+| 70 | BR-05, BR-PAR-06, RB-09 | Partner | Xác nhận sử dụng code đúng đối tác, đúng chi nhánh | Login partner phát hành -> chọn chi nhánh của mình -> xác nhận | [x] | Code chuyển Used |
+| 71 | BR-05, RB-07 | Partner | Không cho dùng lại code đã Used | Nhập lại code vừa xác nhận | [x] | Báo đã sử dụng |
 | 72 | BR-05, RB-08 | Partner | Không cho dùng code bị hủy/khóa/hết hạn | Dùng code trạng thái Cancelled/Expired/Locked nếu có dữ liệu | [ ] | Từ chối |
-| 73 | BR-05, RB-09 | Partner | Không cho xác nhận tại chi nhánh không thuộc chương trình | Chọn branch khác nếu UI/API cho phép | [ ] | Backend phải chặn |
-| 74 | BR-05, DR-05 | Partner/Admin | Nhật ký sử dụng code được ghi nhận | Sau xác nhận -> xem report/code detail/DB | [ ] | Có used_date, used_at_branch_id |
+| 73 | BR-05, RB-09 | Partner | Không cho xác nhận tại chi nhánh không thuộc chương trình | Chọn branch khác nếu UI/API cho phép | [x] | Backend phải chặn |
+| 74 | BR-05, DR-05 | Partner/Admin | Nhật ký sử dụng code được ghi nhận | Sau xác nhận -> xem report/code detail/DB | [x] | Có used_date, used_at_branch_id |
 
 ### 2.6. BR-06 - Kiểm duyệt và giám sát hệ thống
 
@@ -148,10 +148,10 @@ Quy ước cột hoàn thành:
 |---:|---|---|---|---|---|---|
 | 89 | BR-07, BR-ADM-06, KPI-04 | Admin | Dashboard admin hiển thị tổng quan | Admin -> Dashboard | [ ] | Có người dùng, đối tác, voucher, đơn hàng, doanh thu |
 | 90 | BR-07, BR-ADM-06 | Admin | Dashboard cập nhật sau khi phát sinh đơn | Ghi nhận order mới -> reload dashboard | [ ] | Chỉ số thay đổi hợp lý |
-| 91 | BR-07, BR-PAR-07 | Partner | Partner xem dashboard doanh thu/voucher | Partner -> Tổng quan | [ ] | Có doanh thu, voucher đang bán, chờ duyệt, mã đã dùng |
-| 92 | BR-07, BR-PAR-07 | Partner | Partner xem báo cáo từng voucher | Partner -> Báo cáo | [ ] | Có phát hành, tồn, đã bán, đã dùng, doanh thu |
-| 93 | BR-07, BR-PAR-07 | Partner | Báo cáo partner không lộ dữ liệu partner khác | Login `glow_spa` -> báo cáo | [ ] | Chỉ thấy voucher/code của Glow |
-| 94 | BR-07, KPI-03 | Partner | Báo cáo phản ánh code đã xác thực | Xác nhận 1 code -> reload báo cáo | [ ] | Số đã dùng tăng |
+| 91 | BR-07, BR-PAR-07 | Partner | Partner xem dashboard doanh thu/voucher | Partner -> Tổng quan | [x] | Có doanh thu, voucher đang bán, chờ duyệt, mã đã dùng |
+| 92 | BR-07, BR-PAR-07 | Partner | Partner xem báo cáo từng voucher | Partner -> Báo cáo | [x] | Có phát hành, tồn, đã bán, đã dùng, doanh thu |
+| 93 | BR-07, BR-PAR-07 | Partner | Báo cáo partner không lộ dữ liệu partner khác | Login `glow_spa` -> báo cáo | [x] | Chỉ thấy voucher/code của Glow |
+| 94 | BR-07, KPI-03 | Partner | Báo cáo phản ánh code đã xác thực | Xác nhận 1 code -> reload báo cáo | [x] | Số đã dùng tăng |
 
 ### 2.8. BR-CUS-08, DR-06 - Đánh giá, phản hồi và khiếu nại
 
@@ -170,15 +170,15 @@ Quy ước cột hoàn thành:
 | STT | Mã yêu cầu | Vai trò | Yêu cầu test | Gợi ý luồng test | Hoàn thành | Ghi chú |
 |---:|---|---|---|---|---|---|
 | 102 | RB-01 | Customer/Admin | Voucher chỉ được bán khi Approved | Tạo voucher Pending -> thử mua bằng UI/API | [ ] | Không mua được |
-| 103 | RB-02 | Partner | Giá bán phải nhỏ hơn giá gốc | Tạo voucher sale_price >= original_price | [ ] | Frontend/backend/database chặn |
-| 104 | RB-03 | Partner | Voucher có thời gian bán và sử dụng rõ ràng | Tạo voucher thiếu start_date/expiry_date hoặc expiry trước start | [ ] | Bị chặn |
+| 103 | RB-02 | Partner | Giá bán phải nhỏ hơn giá gốc | Tạo voucher sale_price >= original_price | [x] | Frontend/backend/database chặn |
+| 104 | RB-03 | Partner | Voucher có thời gian bán và sử dụng rõ ràng | Tạo voucher thiếu start_date/expiry_date hoặc expiry trước start | [x] | Bị chặn |
 | 105 | RB-04 | Customer | Không bán voucher hết số lượng | Chỉnh hoặc chọn voucher quantity_stock=0 -> customer search/cart/checkout | [ ] | Không hiển thị hoặc không mua được |
 | 106 | RB-04 | Customer | Không bán voucher hết thời gian bán | Voucher expiry_date quá hạn -> customer | [ ] | Không hiển thị/mua được |
 | 107 | RB-05 | Customer | Code chỉ phát hành sau Paid | Tạo order Pending/Cancelled -> kiểm code | [x] | Không có E_Vouchers |
 | 108 | RB-06 | Customer | Code duy nhất và khó đoán | Mua nhiều code -> kiểm unique và pattern | [x] | Không trùng |
-| 109 | RB-07 | Partner | Voucher đã dùng không dùng lại | Redeem code 2 lần | [ ] | Lần 2 bị chặn |
+| 109 | RB-07 | Partner | Voucher đã dùng không dùng lại | Redeem code 2 lần | [x] | Lần 2 bị chặn |
 | 110 | RB-08 | Partner | Voucher hết hạn/hủy/khóa không sử dụng được | Redeem code Expired/Cancelled/Locked | [ ] | Bị chặn |
-| 111 | RB-09 | Partner | Đối tác chỉ xác thực voucher thuộc phạm vi mình | Partner A nhập code Partner B | [ ] | Bị chặn |
+| 111 | RB-09 | Partner | Đối tác chỉ xác thực voucher thuộc phạm vi mình | Partner A nhập code Partner B | [x] | Bị chặn |
 | 112 | RB-10 | Customer | Chỉ đánh giá voucher đã mua/đã dùng | Customer chưa mua gửi review | [x] | Bị chặn |
 | 113 | RB-11 | Customer | Số lượng bán không vượt phát hành | Mua quantity > total/stock | [x] | Không tạo đơn hoặc rollback |
 | 114 | RB-12, NFR-06 | Admin | Thao tác quản trị quan trọng được ghi log | Duyệt partner/voucher, đổi trạng thái order/user -> xem System Logs | [ ] | Có action, table, record_id, user, time |
@@ -191,10 +191,10 @@ Quy ước cột hoàn thành:
 | STT | Mã yêu cầu | Vai trò | Yêu cầu test | Gợi ý luồng test | Hoàn thành | Ghi chú |
 |---:|---|---|---|---|---|---|
 | 118 | DR-01 | Admin/Customer | Dữ liệu người dùng lưu đủ thông tin đăng nhập, hồ sơ, vai trò | Tạo/login/update profile -> kiểm UI/DB | [x] | Users + Customers |
-| 119 | DR-02 | Admin/Partner | Dữ liệu đối tác lưu đủ doanh nghiệp, đại diện, chi nhánh, trạng thái | Đăng ký/cập nhật partner | [ ] | Partners + Branches |
+| 119 | DR-02 | Admin/Partner | Dữ liệu đối tác lưu đủ doanh nghiệp, đại diện, chi nhánh, trạng thái | Đăng ký/cập nhật partner | [x] | Partners + Branches |
 | 120 | DR-03 | Admin/Partner/Customer | Dữ liệu voucher đủ tên, danh mục, giá, điều kiện, thời hạn, khu vực, số lượng, trạng thái | Tạo voucher -> xem detail customer/admin/partner | [x] | Không thiếu trường quan trọng |
 | 121 | DR-04 | Admin/Customer | Dữ liệu đơn hàng đủ mã đơn, người mua, chi tiết, tổng tiền, thanh toán, trạng thái | Checkout -> xem order admin/profile | [x] | Orders + Order_Items |
-| 122 | DR-05 | Customer/Partner | Dữ liệu voucher phát hành đủ code, owner, trạng thái, ngày phát hành, hết hạn, sử dụng | Sau thanh toán và redeem | [ ] | E_Vouchers |
+| 122 | DR-05 | Customer/Partner | Dữ liệu voucher phát hành đủ code, owner, trạng thái, ngày phát hành, hết hạn, sử dụng | Sau thanh toán và redeem | [x] | E_Vouchers |
 | 123 | DR-06 | Customer/Admin | Dữ liệu đánh giá/khiếu nại/phản hồi lưu đủ | Gửi review/complaint/response | [x] | Reviews + Complaints |
 
 ### 2.11. NFR-01 đến NFR-06 - Phi chức năng
@@ -221,11 +221,11 @@ Quy ước cột hoàn thành:
 |---:|---|---|---|---|---|---|
 | 137 | ASM-01 | Customer/Admin | Thanh toán mô phỏng thay cho thanh toán thật | Checkout bằng phương thức demo | [x] | Không yêu cầu cổng thật |
 | 138 | ASM-02 | Customer/Partner | Email/SMS/OTP có thể mô phỏng | Quên mật khẩu/duyệt partner nếu không gửi thật | [ ] | Cần thông báo rõ trong UI/log |
-| 139 | ASM-03 | Partner/Customer | QR có thể mô phỏng bằng nhập mã/hiển thị QR ảnh | Customer xem QR, Partner nhập mã | [ ] | Không cần camera thật |
+| 139 | ASM-03 | Partner/Customer | QR có thể mô phỏng bằng nhập mã/hiển thị QR ảnh | Customer xem QR, Partner nhập mã | [x] | Không cần camera thật |
 | 140 | ASM-04 | All | Dữ liệu demo đủ cho học tập | Kiểm seed có customer, partner, admin, voucher, order, review | [ ] | Theo CON-04 |
 | 141 | CON-02 | Dev/Test | Hệ thống dùng cơ sở dữ liệu quan hệ | Kiểm PostgreSQL/schema/script | [ ] | Có script SQL |
 | 142 | CON-03, AC-01 | All | Có tối thiểu 3 vai trò | Test login Customer/Partner/Admin | [ ] | Role tách route/token/UI |
-| 143 | CON-04, AC-04 | All | Có dữ liệu mẫu đủ chứng minh quy trình | Dữ liệu có users, partners, branches, vouchers, orders, codes, reviews | [ ] | Nếu thiếu code/order thì tạo thêm |
+| 143 | CON-04, AC-04 | All | Có dữ liệu mẫu đủ chứng minh quy trình | Dữ liệu có users, partners, branches, vouchers, orders, codes, reviews | [x] | Nếu thiếu code/order thì tạo thêm |
 | 144 | RISK-01, KPI-02 | All | Vòng đời voucher phản ánh đúng trạng thái | Pending -> Approved -> Sold -> Code -> Used/Expired | [ ] | Không nhảy trạng thái sai |
 | 145 | RISK-02, RB-06 | Customer | Mã voucher bảo đảm duy nhất | Mua nhiều mã, kiểm unique constraint | [ ] | Không trùng |
 | 146 | RISK-03, RB-15 | Customer | Không bán vượt số lượng | Test concurrent/quantity > stock | [ ] | Không oversell |
@@ -233,7 +233,7 @@ Quy ước cột hoàn thành:
 | 148 | RISK-05, CON-04 | All | Dữ liệu demo đủ thực tế cho thuyết trình | Kiểm nhiều danh mục, nhiều partner, nhiều trạng thái | [ ] | Nếu thiếu thì bổ sung seed |
 | 149 | KPI-01, AC-02 | End-to-end | Hoàn tất quy trình mua voucher từ tìm kiếm đến sử dụng | Customer search -> cart -> checkout -> paid -> nhận code -> Partner redeem | [ ] | Đây là test nghiệm thu chính |
 | 150 | KPI-02, AC-03 | End-to-end | Trạng thái voucher/order/code nhất quán | Theo dõi status ở Customer/Admin/Partner sau từng bước | [ ] | Không mâu thuẫn giữa màn hình |
-| 151 | KPI-03, AC-02 | Partner | Đối tác xác thực được voucher | Partner nhập code hợp lệ -> xác nhận | [ ] | Code Used |
+| 151 | KPI-03, AC-02 | Partner | Đối tác xác thực được voucher | Partner nhập code hợp lệ -> xác nhận | [x] | Code Used |
 | 152 | KPI-04 | Admin/Partner | Có báo cáo tối thiểu | Admin dashboard + Partner report | [ ] | Doanh thu, đơn, voucher, đối tác |
 | 153 | KPI-05 | Documentation | Tài liệu học thuật đầy đủ | Kiểm báo cáo, ERD, use case, activity, test plan, script, slide/video | [ ] | Phục vụ nộp bài |
 | 154 | AC-05 | Presentation | Bài thuyết trình liên hệ yêu cầu và giải pháp | Mỗi BR chính có màn hình/API/demo tương ứng | [ ] | Gắn BR vào demo script |
@@ -243,9 +243,9 @@ Quy ước cột hoàn thành:
 | STT | Luồng nghiệm thu | Các test case liên quan | Hoàn thành | Ghi chú |
 |---:|---|---|---|---|
 | 1 | Customer mua voucher thành công và nhận code | TC 41-65, 149-150 | [ ] | Luồng quan trọng nhất |
-| 2 | Partner đăng nhập, tạo voucher, gửi duyệt | TC 20-24, 79-81 | [ ] | Nên dùng partner seed hoặc tạo partner mới |
+| 2 | Partner đăng nhập, tạo voucher, gửi duyệt | TC 20-24, 79-81 | [x] | Nên dùng partner seed hoặc tạo partner mới |
 | 3 | Admin duyệt partner và voucher | TC 75-81, 114 | [ ] | Chứng minh kiểm duyệt |
-| 4 | Partner xác thực voucher code | TC 67-74, 151 | [ ] | Chứng minh voucher không dùng lại |
+| 4 | Partner xác thực voucher code | TC 67-74, 151 | [x] | Chứng minh voucher không dùng lại |
 | 5 | Admin giám sát đơn hàng, hoàn tiền mô phỏng, logs | TC 82-88, 114, 136 | [ ] | Chứng minh vận hành |
 | 6 | Báo cáo admin/partner cập nhật sau giao dịch | TC 89-94, 152 | [ ] | Chứng minh KPI |
 | 7 | Negative tests phân quyền và tồn kho | TC 30-31, 102-117, 146-147 | [ ] | Chứng minh tính đúng nghiệp vụ |
@@ -256,8 +256,8 @@ Cập nhật: 2026-05-29.
 
 | Ký hiệu | Ý nghĩa | Số lượng |
 |---|---|---:|
-| `[ ]` | Chưa test | 116 |
-| `[x]` | Đã test và đạt | 45 |
+| `[ ]` | Chưa test | 85 |
+| `[x]` | Đã test và đạt | 76 |
 | `[!]` | Đã test nhưng lỗi/chưa đạt | 0 |
 | `[-]` | Không áp dụng hoặc ngoài phạm vi demo | 0 |
 | **Tổng cộng** |  | **161** |

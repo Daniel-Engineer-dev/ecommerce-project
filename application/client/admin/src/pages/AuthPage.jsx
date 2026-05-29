@@ -1,17 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, KeyRound, Lock, ShieldAlert, User } from 'lucide-react';
-
-const localPortalUrl = (port, path = '/') => {
-  if (typeof window === 'undefined') return path;
-  return `${window.location.protocol}//${window.location.hostname}:${port}${path}`;
-};
+import { KeyRound, Lock, ShieldAlert, User } from 'lucide-react';
 
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const customerUrl = useMemo(() => localPortalUrl(5173, '/'), []);
-  const accessUrl = useMemo(() => localPortalUrl(5173, '/access'), []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,15 +32,6 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative">
-      <div className="absolute top-6 left-6 z-20 flex gap-3">
-        <a href={customerUrl} className="text-slate-400 hover:text-white font-bold text-sm inline-flex items-center gap-2">
-          <ArrowLeft size={16} /> Về website khách hàng
-        </a>
-        <a href={accessUrl} className="text-indigo-300 hover:text-white font-bold text-sm">
-          Cổng truy cập
-        </a>
-      </div>
-
       <div className="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full blur-[120px]" />

@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -34,10 +34,64 @@ const CustomerRegistration = () => {
   const [success, setSuccess] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationInput, setVerificationInput] = useState("");
+  const [emailAvailability, setEmailAvailability] = useState({
+    status: "idle",
+    message: "",
+  });
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  useEffect(() => {
+    if (regMethod !== "email") {
+      setEmailAvailability({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    const email = formData.email.trim();
+    if (!email) {
+      setEmailAvailability({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    if (!isValidEmail(email)) {
+      setEmailAvailability({
+        status: "invalid",
+        message: "Email chưa đúng định dạng.",
+      });
+      return undefined;
+    }
+
+    setEmailAvailability({ status: "checking", message: "Đang kiểm tra email..." });
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (res.ok && data.email) {
+          setEmailAvailability({ status: "available", message: "" });
+        } else {
+          setEmailAvailability({
+            status: "unavailable",
+            message: "Email này đã được sử dụng.",
+          });
+        }
+      } catch {
+        setEmailAvailability({
+          status: "error",
+          message: "Không thể kiểm tra email. Vui lòng thử lại.",
+        });
+      }
+    }, 450);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [formData.email, regMethod]);
 
   const handleNext = async (e) => {
     if (e) e.preventDefault();
@@ -49,6 +103,17 @@ const CustomerRegistration = () => {
       }
       if (regMethod === "email" && !formData.email) {
         setError("Vui lòng nhập Email");
+        return;
+      }
+      if (regMethod === "email" && emailAvailability.status === "checking") {
+        setError("Vui lòng chờ kiểm tra email hoàn tất.");
+        return;
+      }
+      if (
+        regMethod === "email" &&
+        ["invalid", "unavailable", "error"].includes(emailAvailability.status)
+      ) {
+        setError(emailAvailability.message);
         return;
       }
       if (regMethod === "phone" && !formData.phone) {
@@ -406,6 +471,20 @@ const CustomerRegistration = () => {
                         onChange={handleChange}
                         className="auth-input"
                       />
+                      {emailAvailability.message && (
+                        <p
+                          className="auth-error"
+                          style={{
+                            margin: "0.45rem 0 0",
+                            color:
+                              emailAvailability.status === "checking"
+                                ? "#64748b"
+                                : "#ef4444",
+                          }}
+                        >
+                          {emailAvailability.message}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="input-group">

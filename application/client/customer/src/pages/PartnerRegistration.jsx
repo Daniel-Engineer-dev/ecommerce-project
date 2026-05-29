@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, User, Mail, Lock, Phone, MapPin, CheckCircle2, Plus, Trash2, ArrowLeft, Briefcase, ChevronRight } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -23,10 +23,59 @@ const PartnerRegistration = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState('');
+    const [emailAvailability, setEmailAvailability] = useState({
+        status: 'idle',
+        message: '',
+    });
+
+    const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    useEffect(() => {
+        const email = formData.email.trim();
+        if (!email) {
+            setEmailAvailability({ status: 'idle', message: '' });
+            return undefined;
+        }
+
+        if (!isValidEmail(email)) {
+            setEmailAvailability({
+                status: 'invalid',
+                message: 'Email chưa đúng định dạng.',
+            });
+            return undefined;
+        }
+
+        setEmailAvailability({ status: 'checking', message: 'Đang kiểm tra email...' });
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const data = await response.json();
+                if (response.ok && data.email) {
+                    setEmailAvailability({ status: 'available', message: '' });
+                } else {
+                    setEmailAvailability({
+                        status: 'unavailable',
+                        message: 'Email này đã được sử dụng.',
+                    });
+                }
+            } catch {
+                setEmailAvailability({
+                    status: 'error',
+                    message: 'Không thể kiểm tra email. Vui lòng thử lại.',
+                });
+            }
+        }, 450);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [formData.email]);
 
     const handleBranchChange = (index, e) => {
         const newBranches = [...formData.branches];
@@ -52,6 +101,14 @@ const PartnerRegistration = () => {
         if (step === 1) {
             if (!formData.username || !formData.password || !formData.email || !formData.phone) {
                 setError('Vui lòng điền đầy đủ thông tin tài khoản');
+                return;
+            }
+            if (emailAvailability.status === 'checking') {
+                setError('Vui lòng chờ kiểm tra email hoàn tất.');
+                return;
+            }
+            if (['invalid', 'unavailable', 'error'].includes(emailAvailability.status)) {
+                setError(emailAvailability.message);
                 return;
             }
         } else if (step === 2) {
@@ -147,7 +204,21 @@ const PartnerRegistration = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                         <div className="input-group"><User size={18} className="input-icon" /><input name="username" placeholder="Tên đăng nhập *" required value={formData.username} onChange={handleChange} className="auth-input" /></div>
                                         <div className="input-group"><Lock size={18} className="input-icon" /><input name="password" type="password" placeholder="Mật khẩu *" required value={formData.password} onChange={handleChange} className="auth-input" /></div>
-                                        <div className="input-group"><Mail size={18} className="input-icon" /><input name="email" type="email" placeholder="Email liên hệ *" required value={formData.email} onChange={handleChange} className="auth-input" /></div>
+                                        <div className="input-group">
+                                            <Mail size={18} className="input-icon" />
+                                            <input name="email" type="email" placeholder="Email liên hệ *" required value={formData.email} onChange={handleChange} className="auth-input" />
+                                            {emailAvailability.message && (
+                                                <p
+                                                    className="auth-error"
+                                                    style={{
+                                                        margin: '0.45rem 0 0',
+                                                        color: emailAvailability.status === 'checking' ? '#64748b' : '#ef4444',
+                                                    }}
+                                                >
+                                                    {emailAvailability.message}
+                                                </p>
+                                            )}
+                                        </div>
                                         <div className="input-group"><Phone size={18} className="input-icon" /><input name="phone" placeholder="Số điện thoại *" required value={formData.phone} onChange={handleChange} className="auth-input" /></div>
                                     </div>
                                 </motion.div>

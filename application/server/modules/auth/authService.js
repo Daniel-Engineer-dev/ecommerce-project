@@ -54,6 +54,23 @@ class AuthService {
                 if (phoneExists.rows.length > 0) throw new Error('So dien thoai nay da duoc su dung');
             }
 
+            if (role === 'Partner') {
+                const requiredPartnerFields = [
+                    [company_name, 'Ten cong ty la bat buoc'],
+                    [representative_name, 'Nguoi dai dien la bat buoc'],
+                    [tax_id, 'Ma so thue la bat buoc'],
+                    [headquarters, 'Tru so chinh la bat buoc'],
+                ];
+
+                for (const [value, message] of requiredPartnerFields) {
+                    if (!value?.trim()) throw new Error(message);
+                }
+
+                const hasValidBranch = Array.isArray(branches)
+                    && branches.some((branch) => branch.branch_name?.trim() && branch.address?.trim());
+                if (!hasValidBranch) throw new Error('Can it nhat mot chi nhanh hop le');
+            }
+
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
 

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Lock, ShieldCheck, User } from 'lucide-react';
+import { ArrowRight, Lock, ShieldCheck, User } from 'lucide-react';
 
 const localPortalUrl = (port, path = '/') => {
   if (typeof window === 'undefined') return path;
@@ -10,8 +10,6 @@ const localPortalUrl = (port, path = '/') => {
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const customerUrl = useMemo(() => localPortalUrl(5173, '/'), []);
-  const accessUrl = useMemo(() => localPortalUrl(5173, '/access'), []);
   const registerUrl = useMemo(() => localPortalUrl(5173, '/register-partner'), []);
 
   const handleSubmit = async (e) => {
@@ -40,15 +38,6 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
-      <div className="absolute top-6 left-6 flex gap-3">
-        <a href={customerUrl} className="text-slate-500 hover:text-slate-900 font-bold text-sm inline-flex items-center gap-2">
-          <ArrowLeft size={16} /> Về website khách hàng
-        </a>
-        <a href={accessUrl} className="text-primary hover:text-primary-hover font-bold text-sm">
-          Cổng truy cập
-        </a>
-      </div>
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

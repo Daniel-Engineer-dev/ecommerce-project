@@ -18,21 +18,40 @@ class AdminService {
 
     async approvePartner(id, adminId = null) {
         await pool.query("UPDATE Partners SET status = 'Approved' WHERE user_id = $1", [id]);
-        const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
+        const userRes = await pool.query(
+            `SELECT u.email, u.username, p.company_name
+             FROM Users u
+             LEFT JOIN Partners p ON p.user_id = u.user_id
+             WHERE u.user_id = $1`,
+            [id]
+        );
         const user = userRes.rows[0];
 
         if (user && user.email) {
             const partnerUrl = process.env.PARTNER_URL || 'http://localhost:5174';
+            const displayName = user.company_name || user.username;
             await sendEmail({
                 email: user.email,
-                subject: 'Tai khoan da phe duyet',
+                subject: 'Dealzy - Hồ sơ đối tác đã được phê duyệt',
                 template: {
-                    title: 'Tai khoan doi tac da duoc phe duyet',
-                    intro: `Xin chuc mung ${user.username}!`,
-                    body: 'Tai khoan cua ban da duoc phe duyet va hien da san sang de su dung.',
-                    buttonText: 'Truy cap trang doi tac',
+                    title: 'Hồ sơ đối tác đã được phê duyệt',
+                    intro: `Xin chào ${displayName},`,
+                    body: `
+                        <p style="margin:0 0 16px;">Chúc mừng bạn! Hồ sơ đối tác của bạn đã được Dealzy phê duyệt và tài khoản hiện đã sẵn sàng để sử dụng.</p>
+                        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:22px 0;border:1px solid #dbeafe;border-radius:14px;background:#f8fbff;">
+                            <tr>
+                                <td style="padding:18px 20px;">
+                                    <div style="font-size:13px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;">Trạng thái tài khoản</div>
+                                    <div style="margin-top:6px;color:#0f4c81;font-size:18px;font-weight:800;">Đã phê duyệt</div>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="margin:0 0 10px;">Bạn có thể đăng nhập vào trang đối tác để quản lý thông tin doanh nghiệp, tạo chương trình ưu đãi và theo dõi hiệu quả kinh doanh.</p>
+                        <p style="margin:0;">Nếu cần hỗ trợ trong quá trình thiết lập gian hàng, đội ngũ Dealzy luôn sẵn sàng đồng hành cùng bạn.</p>
+                    `,
+                    buttonText: 'Truy cập trang đối tác',
                     buttonUrl: partnerUrl,
-                    footer: 'Cam on ban da dong hanh cung Dealzy.',
+                    footer: 'Cảm ơn bạn đã lựa chọn Dealzy làm kênh kết nối khách hàng. Chúc bạn vận hành hiệu quả và đạt được nhiều kết quả tích cực.',
                 },
             });
         }
