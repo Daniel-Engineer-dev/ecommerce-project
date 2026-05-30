@@ -31,3 +31,6 @@
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Agent-local context
+AGENT_README_APP_OVERVIEW.md

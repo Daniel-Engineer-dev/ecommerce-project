@@ -170,10 +170,10 @@ const Navbar = () => {
                   gap: '0.5rem',
                   background: 'var(--accent-glow)',
                   padding: '0.5rem 1rem',
-                  borderRadius: '12px',
+                  borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   transition: '0.3s',
-                  boxShadow: isDropdownOpen ? '0 4px 15px rgba(37,99,235,0.15)' : 'none'
+                  boxShadow: isDropdownOpen ? 'var(--shadow-sm)' : 'none'
                 }}
               >
                 <User size={18} color="var(--primary)" />
@@ -195,11 +195,12 @@ const Navbar = () => {
                       right: 0,
                       width: '200px',
                       background: 'white',
-                      borderRadius: '16px',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                      background: 'white',
+                      borderRadius: 'var(--radius-lg, 12px)',
+                      boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))',
                       padding: '0.5rem',
                       zIndex: 1000,
-                      border: '1px solid #f1f5f9'
+                      border: '1px solid var(--border-color, #e4e4e7)'
                     }}
                   >
                     <Link
@@ -257,11 +258,11 @@ const Navbar = () => {
                         textAlign: 'left',
                         fontSize: '0.9rem',
                         fontWeight: 600,
-                        borderRadius: '10px',
+                        borderRadius: 'var(--radius-md, 8px)',
                         cursor: 'pointer',
                         transition: '0.2s'
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--error-light, #fef2f2)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <LogOut size={16} /> Đăng xuất

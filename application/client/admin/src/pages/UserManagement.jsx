@@ -23,25 +23,38 @@ const Toast = ({ toast, onClose }) => {
         <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 text-white font-medium text-sm rounded-xl shadow-xl backdrop-blur-md
-                ${toast.type === 'success' ? 'bg-slate-900/95 shadow-emerald-500/10' : 'bg-slate-900/95 shadow-rose-500/10'}`}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg border border-slate-750 text-white font-semibold text-sm bg-slate-900"
         >
-            {toast.type === 'success' ? (
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <CheckCircle size={14} />
-                </div>
-            ) : (
-                <div className="w-5 h-5 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-400">
-                    <AlertTriangle size={14} />
-                </div>
-            )}
-            <span className="text-slate-200">{toast.message}</span>
+            {toast.type === 'success' ? <CheckCircle size={18} className="text-white" /> : <AlertTriangle size={18} className="text-white" />}
+            {toast.message}
         </motion.div>
     );
 };
 
-// ─── MODAL CHI TIẾT DÙNG PORTAL ────────────────────────────────────────────────
+// ─── MINI DASHBOARD STAT CARD ────────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, active, onClick }) => (
+    <motion.div
+        whileHover={{ y: -2 }}
+        onClick={onClick}
+        className={`p-6 rounded-xl border transition-all cursor-pointer select-none ${
+            active 
+                ? 'bg-slate-950 border-slate-950 text-white shadow-sm' 
+                : 'bg-white border-slate-200/60 hover:shadow-sm text-slate-900'
+        }`}
+    >
+        <div className="flex items-center justify-between mb-4">
+            <div className={`p-3 rounded-lg ${active ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                <Icon size={22} />
+            </div>
+            {active && <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white/20 text-white rounded-md">Đang lọc</span>}
+        </div>
+        <p className={`text-xs font-semibold ${active ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
+        <p className="text-2xl font-black mt-1 tracking-tight">{value}</p>
+    </motion.div>
+);
+
+// ─── DETAIL MODAL ────────────────────────────────────────────────────────────
 const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -62,7 +75,13 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
         }
     }, [userId]);
 
-    useEffect(() => { fetchDetail(); }, [fetchDetail]);
+    if (loading) return (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-white p-8 rounded-xl flex items-center gap-3 font-semibold text-slate-600 shadow-sm border border-slate-100">
+                <RefreshCw className="animate-spin text-slate-900" /> Đang tải thông tin...
+            </div>
+        </div>
+    );
 
     const handleLockToggle = async () => {
         if (!user) return;
@@ -116,13 +135,13 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-100"
+                className="bg-white w-full max-w-lg rounded-xl shadow-lg border border-slate-200 overflow-hidden"
             >
                 {/* Modal Header */}
                 <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPartner ? 'bg-amber-500 text-slate-950' : 'bg-indigo-500 text-white'}`}>
-                            {isPartner ? <Building2 size={18} /> : <User size={18} />}
+                        <div className="p-2.5 bg-slate-100 text-slate-900 rounded-lg">
+                            {user.role === 'Partner' ? <Building2 size={20} /> : <User size={20} />}
                         </div>
                         <div>
                             <h3 className="font-bold text-base tracking-tight">Chi tiết tài khoản</h3>
@@ -134,30 +153,17 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                     </button>
                 </div>
 
-                {/* Modal Content */}
-                <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
-                    {/* Status Strip */}
-                    <div className={`px-6 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2
-                        ${user.is_active ? 'bg-emerald-50/60 text-emerald-700' : 'bg-rose-50/60 text-rose-700'}`}>
-                        <span className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                        {user.is_active ? 'Tài khoản đang hoạt động' : 'Tài khoản đang bị khóa'}
-                    </div>
-
-                    {/* Base Info */}
-                    <div className="px-6 py-5 space-y-4 bg-slate-50/30">
-                        <div className="grid grid-cols-2 gap-4">
-                            <InfoField label="Vai trò hệ thống" value={user.role === 'Partner' ? 'Đối tác (Partner)' : 'Khách hàng (Customer)'} highlight />
-                            <InfoField label="Họ và tên" value={user.full_name || '---'} />
+                {/* Content */}
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-auto">
+                    {/* Cơ bản */}
+                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Username</p>
+                            <p className="font-semibold text-slate-800 mt-0.5">{user.username}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                            <div className="flex items-center gap-2.5 text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-100">
-                                <Mail size={16} className="text-slate-400 shrink-0" />
-                                <span className="truncate font-medium">{user.email || '---'}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5 text-sm text-slate-600 bg-white p-3 rounded-xl border border-slate-100">
-                                <Phone size={16} className="text-slate-400 shrink-0" />
-                                <span className="font-medium">{user.phone || '---'}</span>
-                            </div>
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Vai trò</p>
+                            <span className="inline-block text-xs font-bold px-2.5 py-0.5 rounded-full mt-1 bg-slate-100 text-slate-800 border border-slate-200">{user.role}</span>
                         </div>
                     </div>
 
@@ -185,36 +191,41 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                                     <span className="font-medium text-xs leading-relaxed">{user.headquarters || 'Chưa cập nhật địa chỉ trụ sở'}</span>
                                 </div>
                             </div>
-
-                            {/* Voucher Link */}
-                            <button
-                                onClick={handleNavigateToVouchers}
-                                className="w-full flex items-center justify-between px-5 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition-all rounded-2xl shadow-lg shadow-amber-500/10 group text-white"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                                        <Ticket size={16} />
-                                    </div>
-                                    <span className="text-sm font-bold">Kho Voucher đã phát hành</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-2xl font-black">{user.total_vouchers || 0}</span>
-                                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                </div>
-                            </button>
                         </div>
                     )}
+                    {/* Nghiệp vụ riêng biệt */}
+                    <div className="space-y-3 bg-slate-50/50 p-4 rounded-xl border border-slate-150">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b pb-1.5">Dữ liệu phân hệ</h4>
+                        {user.role === 'Partner' ? (
+                            <div className="space-y-2 text-sm">
+                                <p><strong className="text-slate-700">Doanh nghiệp:</strong> {user.details?.company_name}</p>
+                                <p><strong className="text-slate-700">Đại diện:</strong> {user.details?.representative_name}</p>
+                                <p><strong className="text-slate-700">Mã số thuế:</strong> {user.details?.tax_id}</p>
+                                <p className="flex items-start gap-1"><MapPin size={16} className="text-slate-400 shrink-0 mt-0.5" /> <span>{user.details?.headquarters}</span></p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 text-sm">
+                                <p><strong className="text-slate-700">Họ và tên:</strong> {user.details?.full_name || 'N/A'}</p>
+                                <p className="flex items-center gap-1.5"><Calendar size={16} className="text-slate-400" /> <span>{user.details?.dob ? new Date(user.details.dob).toLocaleDateString('vi-VN') : 'N/A'}</span></p>
+                                <p className="flex items-start gap-1"><MapPin size={16} className="text-slate-400 shrink-0 mt-0.5" /> <span>{user.details?.address || 'N/A'}</span></p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Modal Footer */}
-                <div className="px-6 py-4.5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                {/* Footer Actions */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-100 transition-colors text-sm">
+                        Đóng lại
+                    </button>
                     <button
-                        disabled={actionLoading}
-                        onClick={handleLockToggle}
-                        className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all disabled:opacity-50 shadow-md
-                            ${!user.is_active
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-600/10'
-                                : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10'}`}
+                        disabled={btnLoading}
+                        onClick={handleLockClick}
+                        className={`flex-1 py-3 font-bold rounded-lg text-white text-sm flex items-center justify-center gap-2 shadow-sm transition-all ${
+                            isActive 
+                                ? 'bg-slate-900 hover:bg-slate-850' 
+                                : 'bg-slate-700 hover:bg-slate-800'
+                        }`}
                     >
                         {actionLoading ? <RefreshCw className="animate-spin" size={16} /> : !user.is_active ? <Unlock size={16} /> : <Lock size={16} />}
                         {actionLoading ? 'Đang xử lý dữ liệu...' : !user.is_active ? 'Kích hoạt / Mở khóa tài khoản' : 'Khóa tài khoản này'}
@@ -294,30 +305,42 @@ const UserManagement = () => {
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[
-                    { label: 'Tổng thành viên', value: stats.total_users, desc: 'Tổng số tài khoản đã đăng ký', icon: Users, bg: 'bg-white', text: 'text-slate-950', iconBg: 'bg-slate-100 text-slate-700' },
-                    { label: 'Khách hàng', value: stats.total_customers, desc: 'Người dùng đầu cuối (B2C)', icon: User, bg: 'bg-white', text: 'text-slate-950', iconBg: 'bg-sky-50 text-sky-600' },
-                    { label: 'Đối tác doanh nghiệp', value: stats.total_partners, desc: 'Nhà phát hành Voucher (B2B)', icon: Building2, bg: 'bg-white', text: 'text-slate-950', iconBg: 'bg-amber-50 text-amber-600' },
-                ].map((s, idx) => (
-                    <div key={idx} className={`${s.bg} p-6 rounded-2xl border border-slate-200/60 shadow-sm flex items-start justify-between hover:shadow-md transition-all duration-300`}>
-                        <div className="space-y-1">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
-                            <h2 className={`text-3xl font-extrabold ${s.text} tracking-tight pt-1`}>{s.value}</h2>
-                            <p className="text-xs text-slate-400 pt-1 font-medium">{s.desc}</p>
-                        </div>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${s.iconBg}`}>
-                            <s.icon size={20} />
-                        </div>
-                    </div>
-                ))}
+            {/* Dashboard Mini tương tác */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <StatCard 
+                    icon={Users} 
+                    label="Tổng người dùng hệ thống" 
+                    value={stats.total_users} 
+                    active={dashboardActive === 'all'}
+                    onClick={() => handleDashboardClick('all')}
+                />
+                <StatCard 
+                    icon={User} 
+                    label="Khách hàng cá nhân" 
+                    value={stats.total_customers} 
+                    active={dashboardActive === 'customer'}
+                    onClick={() => handleDashboardClick('customer')}
+                />
+                <StatCard 
+                    icon={Building2} 
+                    label="Doanh nghiệp đối tác" 
+                    value={stats.total_partners} 
+                    active={dashboardActive === 'partner'}
+                    onClick={() => handleDashboardClick('partner')}
+                />
+                <StatCard 
+                    icon={Lock} 
+                    label="Tài khoản đang bị khóa" 
+                    value={stats.locked}
+                    active={dashboardActive === 'locked'}
+                    onClick={() => handleDashboardClick('locked')}
+                />
             </div>
 
-            {/* Filters Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-2.5 w-full lg:w-96 focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/5 transition-all">
-                    <Search size={16} className="text-slate-400 shrink-0" />
+            {/* Bộ lọc & Tìm kiếm */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="flex items-center gap-3 bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-100 w-full md:w-96 group focus-within:border-slate-400 focus-within:bg-white transition-all">
+                    <Search size={18} className="text-slate-400 group-focus-within:text-slate-900" />
                     <input
                         type="text"
                         placeholder="Tìm kiếm tài khoản, tên, email..."
@@ -326,34 +349,30 @@ const UserManagement = () => {
                         onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                     />
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-                        <Filter size={14} /> Bộ lọc
-                    </div>
-                    <select
-                        className="border border-slate-200 bg-white rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 outline-none cursor-pointer hover:border-slate-300 focus:border-indigo-500 transition-colors shadow-sm"
-                        value={roleFilter}
-                        onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">Tất cả vai trò</option>
-                        <option value="Customer">Khách hàng (Customer)</option>
-                        <option value="Partner">Đối tác (Partner)</option>
-                    </select>
-                    <select
-                        className="border border-slate-200 bg-white rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 outline-none cursor-pointer hover:border-slate-300 focus:border-indigo-500 transition-colors shadow-sm"
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="active">Đang hoạt động</option>
-                        <option value="locked">Đang bị khóa</option>
-                    </select>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                    {['', 'Customer', 'Partner'].map((r) => (
+                        <button
+                            key={r}
+                            onClick={() => {
+                                setPage(1);
+                                setRoleFilter(r);
+                                setDashboardActive(r === '' ? 'all' : r.toLowerCase());
+                            }}
+                            className={`flex-1 md:flex-none px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                roleFilter === r && statusFilter === ''
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-150'
+                            }`}
+                        >
+                            {r === '' ? 'Tất cả vai trò' : r}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* Table Area */}
-            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+            {/* Bảng danh sách */}
+            <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -379,46 +398,43 @@ const UserManagement = () => {
                                         Không tìm thấy thành viên phù hợp với tiêu chí lọc
                                     </td>
                                 </tr>
-                            ) : users.map((u) => (
-                                <tr key={u.user_id} className="hover:bg-slate-50/80 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${u.role === 'Partner' ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
-                                                {u.role === 'Partner' ? <Building2 size={16} /> : <User size={16} />}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-slate-900 tracking-tight">{u.username}</p>
-                                                <p className="text-xs text-slate-400 font-medium mt-0.5">{u.full_name || 'Chưa cập nhật tên'}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="font-semibold text-slate-800 text-xs">{u.email || '---'}</p>
-                                        <p className="text-xs text-slate-400 mt-0.5 font-medium">{u.phone || '---'}</p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border uppercase tracking-wider
-                                            ${u.role === 'Partner' ? 'bg-amber-50 text-amber-700 border-amber-200/60' : 'bg-indigo-50 text-indigo-700 border-indigo-200/60'}`}>
-                                            {u.role}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider
-                                            ${u.is_active ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'}`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                                            {u.is_active ? 'Hoạt động' : 'Đang khóa'}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => setSelectedId(u.user_id)}
-                                            className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/80 rounded-xl px-4 py-2 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
-                                        >
-                                            Xem chi tiết
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
+                            ) : (
+                                users.map((u) => {
+                                    // Xác định Active động
+                                    const isUserActive = u.is_active === true || u.is_active === null || u.is_active === undefined;
+                                    return (
+                                        <tr key={u.user_id} className="hover:bg-slate-50/40 transition-colors">
+                                            <td className="p-4 pl-6 text-slate-400 font-mono text-xs">{u.user_id}</td>
+                                            <td className="p-4 text-slate-900 font-bold">{u.username}</td>
+                                            <td className="p-4">
+                                                <div className="text-xs text-slate-500 font-semibold">{u.email}</div>
+                                                <div className="text-[11px] text-slate-400 mt-0.5">{u.phone || 'Chưa cập nhật'}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                                    u.role === 'Partner' ? 'bg-slate-100 text-slate-800 border border-slate-200' : 'bg-slate-50 text-slate-700'
+                                                }`}>{u.role}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`inline-flex items-center gap-1 text-xs font-bold ${
+                                                    isUserActive ? 'text-slate-850' : 'text-slate-400'
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${isUserActive ? 'bg-slate-900' : 'bg-slate-300'}`} />
+                                                    {isUserActive ? 'Đang hoạt động' : 'Đang bị khóa'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <button
+                                                    onClick={() => setSelectedId(u.user_id)}
+                                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 text-xs font-bold text-slate-650 transition-colors"
+                                                >
+                                                    Xem chi tiết
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -430,12 +446,18 @@ const UserManagement = () => {
                             Trang {page} / {totalPages}
                         </span>
                         <div className="flex gap-1.5">
-                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                                className="p-2 rounded-xl border border-slate-200 bg-white disabled:opacity-40 text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                            >
                                 <ChevronLeft size={16} />
                             </button>
-                            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                className="p-2 rounded-xl border border-slate-200 bg-white disabled:opacity-40 text-slate-600 hover:border-slate-900 hover:text-slate-900 transition-all shadow-sm">
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="p-2 rounded-lg bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+                            >
                                 <ChevronRight size={16} />
                             </button>
                         </div>
