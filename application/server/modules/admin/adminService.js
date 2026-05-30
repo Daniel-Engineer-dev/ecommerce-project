@@ -2,6 +2,9 @@ const pool = require('../../config/db');
 const sendEmail = require('../../utils/sendEmail');
 
 class AdminService {
+    /**
+     * Lấy danh sách hồ sơ đối tác đang chờ duyệt (Pending)
+     */
     async getPendingPartners() {
         const query = `
             SELECT u.user_id, u.username, u.email, u.phone,
@@ -9,30 +12,47 @@ class AdminService {
             FROM Users u
             JOIN Partners p ON u.user_id = p.user_id
             WHERE p.status = 'Pending'
+            ORDER BY p.user_id DESC
         `;
         const result = await pool.query(query);
         return result.rows;
     }
 
+    /**
+     * Phê duyệt đối tác và gửi email thông báo tự động (BR-ADM-02)
+     */
     async approvePartner(id) {
-        await pool.query("UPDATE Partners SET status = 'Approved' WHERE user_id = $1", [id]);
+        await pool.query("UPDATE Partners SET status = 'Approved', is_active = true WHERE user_id = $1", [id]);
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
+
         if (user && user.email) {
             const partnerUrl = process.env.PARTNER_URL || 'http://localhost:5174';
-            const html = `<h2>Chúc mừng!</h2><p>Tài khoản của bạn đã được phê duyệt. <a href="${partnerUrl}">Truy cập ngay</a></p>`;
-            await sendEmail({ email: user.email, subject: 'Tài khoản đã phê duyệt', html });
+            const html = `
+                <h2>Chúc mừng!</h2>
+                <p>Tài khoản đối tác doanh nghiệp <b>${user.username}</b> của bạn đã được phê duyệt thành công.</p>
+                <p><a href="${partnerUrl}">Truy cập hệ thống Đối tác để bắt đầu tạo chương trình Voucher ngay</a></p>
+            `;
+            await sendEmail({ email: user.email, subject: '[Dealzy] Tài khoản đối tác đã phê duyệt', html });
         }
         return { success: true };
     }
 
+    /**
+     * Từ chối hồ sơ đối tác đăng ký (BR-ADM-02)
+     */
     async rejectPartner(id) {
-        await pool.query("UPDATE Partners SET status = 'Rejected' WHERE user_id = $1", [id]);
+        await pool.query("UPDATE Partners SET status = 'Rejected', is_active = false WHERE user_id = $1", [id]);
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
+
         if (user && user.email) {
-            const html = `<h2>Thông báo</h2><p>Hồ sơ đối tác của bạn đã bị từ chối. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.</p>`;
-            await sendEmail({ email: user.email, subject: 'Hồ sơ đối tác bị từ chối', html });
+            const html = `
+                <h2>Thông báo thẩm định hồ sơ</h2>
+                <p>Chào bạn, hồ sơ đối tác doanh nghiệp của bạn đã bị từ chối do thông tin chưa chính xác hoặc mã số thuế vi phạm.</p>
+                <p>Vui lòng đăng ký lại hồ sơ hoặc liên hệ quản trị viên để giải quyết khiếu nại.</p>
+            `;
+            await sendEmail({ email: user.email, subject: '[Dealzy] Hồ sơ đối tác bị từ chối', html });
         }
         return { success: true };
     }
@@ -116,7 +136,7 @@ class AdminService {
     }
 
     /**
-     * Xem chi tiết 1 người dùng
+     * Xem chi tiết thông tin 1 người dùng (Làm phẳng cấu trúc dữ liệu để React render ngay)
      */
     async getUserById(id) {
         const userRes = await pool.query(
@@ -132,21 +152,21 @@ class AdminService {
                  FROM Partners WHERE user_id = $1`,
                 [id]
             );
-            return { ...user, details: partnerRes.rows[0] || null };
+            const branchesRes = await pool.query('SELECT * FROM Branches WHERE partner_id = $1', [id]);
+            return { ...user, ...partnerRes.rows[0], branches: branchesRes.rows };
         } else if (user.role === 'Customer') {
             const customerRes = await pool.query(
                 `SELECT full_name, dob, address, is_active 
                  FROM Customers WHERE user_id = $1`,
                 [id]
             );
-            return { ...user, details: customerRes.rows[0] || null };
+            return { ...user, ...customerRes.rows[0] };
         }
         return user;
     }
 
-
     /**
-     * Đổi role người dùng (ví dụ: Customer → Admin, nhưng thực tế hiếm dùng)
+     * Đổi vai trò tài khoản
      */
     async changeUserRole(id, newRole) {
         if (!['Customer', 'Partner', 'Admin'].includes(newRole)) {
@@ -157,7 +177,7 @@ class AdminService {
     }
 
     /**
-     * Thống kê nhanh cho header trang User Management
+     * Thống kê tổng hợp số liệu Dashboard Mini
      */
     async getUserStats() {
         const result = await pool.query(`
@@ -178,7 +198,7 @@ class AdminService {
     }
 
     /**
-     * Logic Khóa / Mở khóa dùng chung cho cả Customer và Partner
+     * Logic Khóa / Mở khóa dùng chung cho cả Customer và Partner (BR-ADM-02)
      */
     async toggleUserLock(id, currentLockState) {
         const userRes = await pool.query('SELECT role FROM Users WHERE user_id = $1', [id]);
@@ -186,7 +206,7 @@ class AdminService {
         const { role } = userRes.rows[0];
 
         const targetTable = role === 'Partner' ? 'Partners' : 'Customers';
-        const newActiveState = !currentLockState; 
+        const newActiveState = currentLockState; 
 
         const res = await pool.query(
             `UPDATE ${targetTable} SET is_active = $1 WHERE user_id = $2 RETURNING user_id`,

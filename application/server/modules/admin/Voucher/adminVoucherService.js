@@ -38,7 +38,8 @@ class AdminVoucherService {
             filterQuery += ` AND (
                 v.title                 ILIKE $${idx} OR 
                 p.company_name          ILIKE $${idx} OR 
-                v.voucher_id::TEXT      ILIKE $${idx}
+                v.voucher_id::TEXT      ILIKE $${idx} OR
+                v.partner_id::TEXT      ILIKE $${idx}
             )`;
             values.push(`%${search.trim()}%`);
             idx++;

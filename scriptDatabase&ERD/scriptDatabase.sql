@@ -28,7 +28,8 @@ CREATE TABLE Users (
     phone VARCHAR(20),
     role VARCHAR(20) CHECK (role IN ('Customer', 'Partner', 'Admin')),
     reset_token VARCHAR(255),
-    reset_token_expiry TIMESTAMP
+    reset_token_expiry TIMESTAMP,
+    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -46,7 +47,7 @@ CREATE TABLE Partners (
     representative_name VARCHAR(100),
     tax_id VARCHAR(50),
     headquarters TEXT,
-    status VARCHAR(20) DEFAULT 'Pending',
+    status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
     is_active BOOLEAN DEFAULT TRUE
 );
 
@@ -97,7 +98,11 @@ CREATE TABLE Orders (
     customer_id INT REFERENCES Customers(user_id),
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(12,2),
-    status VARCHAR(20) DEFAULT 'Pending'
+    status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Paid', 'Cancelled', 'Refunded')),
+    payment_method VARCHAR(50) CHECK (payment_method IN ('Credit Card', 'Qr Code', 'Bank Transfer')),
+    payment_date TIMESTAMP,
+    refund_reason TEXT,
+    processed_at TIMESTAMP
 );
 
 CREATE TABLE Order_Items (
@@ -146,7 +151,8 @@ CREATE TABLE Complaints (
     content TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Processing', 'Resolved', 'Rejected')),
     priority VARCHAR(10) DEFAULT 'Normal' CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    order_id INT REFERENCES Orders(order_id)
 );
 
 -- Bảng trung gian lưu danh sách voucher trong một khiếu nại (N-N)
@@ -562,4 +568,40 @@ VALUES
     'Voucher Bắp Nước My Combo Siêu Tiết Kiệm', 'Đổi ngay 1 bắp lớn (Popcorn 22oz) tự chọn vị ngọt/mặn/phô mai và 1 nước ngọt lớn tại quầy Concession.', 
     'https://images.unsplash.com/photo-1578496479914-7ef3b0193be3?auto=format&fit=crop&q=80&w=800', 40, 900000, 54000, 400, 400, 
     CURRENT_TIMESTAMP, '2026-12-31 23:59:59', 'Chỉ có giá trị đổi bắp nước, không có giá trị dùng để đổi vé xem phim.', 'Được hoàn trả 100% điểm hệ thống nếu hủy mã trước hạn dùng 3 ngày.', 'Approved', CURRENT_TIMESTAMP
+);
+
+INSERT INTO Users (username, password, email, phone, role) VALUES 
+('highlands_coffee', 'pbkdf2_hashed_password_991', 'contact@highlandscoffee.com.vn', '02871063333', 'Partner'),
+('california_fitness', 'pbkdf2_hashed_password_992', 'info@cfyc.com.vn', '02871079999', 'Partner'),
+('vietravel_corp', 'pbkdf2_hashed_password_993', 'vanphuhieu811@gmail.com', '19001839', 'Partner');
+
+
+-- 2. Chèn thông tin doanh nghiệp vào bảng Partners (Sử dụng subquery để lấy đúng user_id)
+INSERT INTO Partners (user_id, company_name, representative_name, tax_id, headquarters, status, is_active) VALUES 
+(
+    (SELECT user_id FROM Users WHERE username = 'highlands_coffee'),
+    'Công ty Cổ phần Dịch vụ Cà phê Cao Nguyên (Highlands Coffee)',
+    'David Thái',
+    '0302561548',
+    'Tầng 4, Tòa nhà IPC, 1489 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh',
+    'Pending',
+    TRUE
+),
+(
+    (SELECT user_id FROM Users WHERE username = 'california_fitness'),
+    'Trung tâm Thể dục Thể thao California Fitness & Yoga',
+    'Randy Dobson',
+    '0309425176',
+    'Số 12 Tôn Đản, Phường 13, Quận 4, TP. Hồ Chí Minh',
+    'Pending',
+    TRUE
+),
+(
+    (SELECT user_id FROM Users WHERE username = 'vietravel_corp'),
+    'Công ty Cổ phần Du lịch và Tiếp thị Giao thông Vận tải Việt Nam - Vietravel',
+    'Nguyễn Quốc Kỳ',
+    '0300451429',
+    '190 Pasteur, Phường Võ Thị Sáu, Quận 3, TP. Hồ Chí Minh',
+    'Pending',
+    TRUE
 );

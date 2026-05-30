@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { 
   Ticket, Search, Check, X, Eye, ShieldAlert, AlertCircle,
   Clock, CheckCircle2, Ban, EyeOff, Calendar, Tag, Building2,
@@ -10,10 +11,13 @@ const API = 'http://localhost:5000/api/admin';
 const getToken = () => localStorage.getItem('adminToken');
 
 const VoucherManagement = () => {
+  const location = useLocation();
+  const initialPartnerId = location.state?.searchPartner || '';
+
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  const [searchInput, setSearchInput] = useState(''); 
+  const [searchInput, setSearchInput] = useState(initialPartnerId ? initialPartnerId : '');
   const [search, setSearch] = useState('');       
   
   const [activeTab, setActiveTab] = useState('Approved');
@@ -31,7 +35,7 @@ const VoucherManagement = () => {
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       setSearch(searchInput);
-      setCurrentPage(1); // Reset về trang 1 khi gõ tìm kiếm mới
+      setCurrentPage(1); 
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
@@ -43,26 +47,26 @@ const VoucherManagement = () => {
   }, [activeTab, search, currentPage]);
 
   const fetchVouchers = async () => {
-  setLoading(true);
-  try {
-    const queryPage = Number(currentPage) || 1;
-    
-    const res = await fetch(`${API}/vouchers?status=${activeTab}&search=${search}&page=${queryPage}&limit=10`, {
-      headers: { 'Authorization': `Bearer ${getToken()}` }
-    });
-    const data = await res.json();
-    
-    if (res.ok) {
-      setVouchers(data.vouchers || []);
-      setTotalPages(data.pagination?.totalPages || 1);
-      setTotalItems(data.pagination?.totalItems || 0);
+    setLoading(true);
+    try {
+      const queryPage = Number(currentPage) || 1;
+      
+      const res = await fetch(`${API}/vouchers?status=${activeTab}&search=${search}&page=${queryPage}&limit=10`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setVouchers(data.vouchers || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalItems(data.pagination?.totalItems || 0);
+      }
+    } catch (err) {
+      showToast('error', 'Lỗi tải danh sách voucher');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    showToast('error', 'Lỗi tải danh sách voucher');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const showToast = (type, message) => {
     setToast({ type, message });

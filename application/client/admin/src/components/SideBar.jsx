@@ -8,7 +8,8 @@ import {
   Ticket, 
   MessageSquareWarning, 
   History, 
-  LogOut
+  LogOut,Search, Globe, Bell,
+  ShoppingBag
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -17,9 +18,10 @@ const Sidebar = () => {
   
   const menuItems = [
     { path: '/', label: 'Tổng Quan', icon: BarChart3 },
-    { path: '/partners', label: 'Phê Duyệt Đối Tác', icon: Store },
+    { path: '/partners', label: 'Quản Lý Đối Tác', icon: Store },
     { path: '/users', label: 'Quản Lý Người Dùng', icon: Users },
     { path: '/vouchers', label: 'Quản Lý Voucher', icon: Ticket },
+    { path: '/orders', label: 'Quản Lý Đơn Hàng', icon: ShoppingBag },
     { path: '/complaints', label: 'Xử Lý Khiếu Nại', icon: MessageSquareWarning },
     { path: '/logs', label: 'Lịch Sử Hệ Thống', icon: History },
   ];
@@ -84,10 +86,6 @@ const Sidebar = () => {
           <span>Đăng xuất tài khoản</span>
         </button>
 
-        <div className="px-2 text-[11px] text-slate-600 font-bold uppercase tracking-wider flex justify-between items-center select-none">
-          <span>Phiên bản v1.0 (2026)</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        </div>
       </div>
     </aside>
   );

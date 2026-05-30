@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import PartnerApproval from './pages/PartnerApproval';
 import UserManagement from './pages/UserManagement';
 import VoucherManagement from './pages/VoucherManagement';
+import OrderManagement from './pages/OrderManagement';
 
 // ─── COMPONENT BẢO VỆ ĐƯỜNG DẪN (PROTECTED ROUTE) ───────────────────────────
 // Kiểm tra xem Admin đã đăng nhập chưa, nếu chưa thì bắt buộc về trang login
@@ -61,6 +62,7 @@ const AdminLayout = () => {
               <Route path="/partners" element={<PartnerApproval />} />
               <Route path="/users" element={<UserManagement />} />
               <Route path="/vouchers" element={<VoucherManagement />} />
+              <Route path="/orders" element={<OrderManagement />} />
               <Route path="/complaints" element={<div className="p-8 font-semibold text-slate-500">Hệ thống Tiếp nhận & Xử lý Khiếu nại [cite: 181]</div>} />
               <Route path="/logs" element={<div className="p-8 font-semibold text-slate-500">Nhật ký hoạt động hệ thống [cite: 177]</div>} />
               <Route path="*" element={<Navigate to="/" replace />} />

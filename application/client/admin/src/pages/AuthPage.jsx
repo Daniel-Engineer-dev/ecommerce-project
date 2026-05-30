@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Lock, User, KeyRound } from 'lucide-react';
+import { ShieldAlert, Lock, User, KeyRound, ArrowRight } from 'lucide-react';
 
 const AuthPage = () => {
     const [formData, setFormData] = useState({ username: '', password: '' });
@@ -31,35 +31,45 @@ const AuthPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            <div className="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full blur-[120px]"></div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-indigo-50/30 flex items-center justify-center p-6 relative overflow-hidden font-sans selection:bg-indigo-500 selection:text-white">
+            {/* Background Orbs tinh tế, mượt mà hơn */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-tr from-indigo-200/40 to-purple-200/40 rounded-full blur-[140px]" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-gradient-to-br from-pink-200/30 to-blue-200/40 rounded-full blur-[140px]" />
             </div>
 
             <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="max-w-md w-full bg-slate-900/50 backdrop-blur-xl rounded-[2.5rem] border border-slate-800 p-10 relative z-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                className="max-w-md w-full bg-white/70 backdrop-blur-2xl rounded-[2rem] border border-white/80 p-10 md:p-12 relative z-10 shadow-[0_32px_64px_-16px_rgba(15,23,42,0.06)]"
             >
+                {/* Header */}
                 <div className="text-center mb-10">
-                    <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/20">
-                        <KeyRound size={40} />
+                    <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xl shadow-indigo-600/20 ring-4 ring-indigo-50">
+                        <KeyRound size={30} strokeWidth={2.2} />
                     </div>
-                    <h1 className="text-3xl font-black text-white tracking-tight">Admin Console</h1>
-                    <p className="text-slate-400 mt-2">Hệ thống quản trị Dealzy</p>
+                    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                        Admin Console
+                    </h1>
+                    <p className="text-slate-500 font-medium text-sm mt-1.5">
+                        Hệ thống quản trị <span className="text-indigo-600 font-semibold">Dealzy</span>
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-300 ml-1">Tài khoản</label>
-                        <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
+                            Tài khoản
+                        </label>
+                        <div className="relative group">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                             <input 
                                 required
                                 type="text"
-                                className="w-full bg-slate-800/50 border border-slate-700 p-4 pl-12 rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-600"
-                                placeholder="Admin ID"
+                                className="w-full bg-slate-50/50 border border-slate-200/80 p-4 pl-12 rounded-xl text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-[4px] focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 font-medium text-sm"
+                                placeholder="Nhập mã Admin ID"
                                 value={formData.username}
                                 onChange={(e) => setFormData({...formData, username: e.target.value})}
                             />
@@ -67,13 +77,15 @@ const AuthPage = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-slate-300 ml-1">Mật mã bảo mật</label>
-                        <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider ml-1">
+                            Mật mã bảo mật
+                        </label>
+                        <div className="relative group">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={18} />
                             <input 
                                 required
                                 type="password"
-                                className="w-full bg-slate-800/50 border border-slate-700 p-4 pl-12 rounded-2xl text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-600"
+                                className="w-full bg-slate-50/50 border border-slate-200/80 p-4 pl-12 rounded-xl text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-[4px] focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 font-medium text-sm"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -81,17 +93,32 @@ const AuthPage = () => {
                         </div>
                     </div>
 
+                    {/* Button Đăng nhập */}
                     <button 
                         disabled={loading}
-                        className="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-600/20"
+                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-4 rounded-xl font-bold text-sm hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/15 dynamic-button flex items-center justify-center gap-2 mt-2 disabled:opacity-70 disabled:cursor-not-allowed group"
                     >
-                        {loading ? "Đang xác thực..." : "Đăng nhập Hệ thống"}
+                        {loading ? (
+                            <span className="flex items-center gap-2">
+                                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                Đang xác thực...
+                            </span>
+                        ) : (
+                            <>
+                                Đăng nhập Hệ thống
+                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                            </>
+                        )}
                     </button>
                 </form>
 
-                <div className="mt-8 flex items-center justify-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest">
-                    <ShieldAlert size={14} />
-                    Secure Environment
+                {/* Footer Security Note */}
+                <div className="mt-8 flex items-center justify-center gap-1.5 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                    <ShieldAlert size={12} className="text-emerald-500" />
+                    Secure Cloud Environment
                 </div>
             </motion.div>
         </div>
