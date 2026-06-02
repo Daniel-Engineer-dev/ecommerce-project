@@ -26,22 +26,18 @@ const VoucherManagement = () => {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // --- STATE PHÂN TRANG MỚI THÊM ---
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Xử lý Debounce cho ô tìm kiếm
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       setSearch(searchInput);
       setCurrentPage(1); 
     }, 400);
-
     return () => clearTimeout(delayDebounceFn);
   }, [searchInput]);
 
-  // Gọi API khi Tab thay đổi, khi Search thay đổi, hoặc khi chuyển Trang
   useEffect(() => {
     fetchVouchers();
   }, [activeTab, search, currentPage]);
@@ -50,7 +46,6 @@ const VoucherManagement = () => {
     setLoading(true);
     try {
       const queryPage = Number(currentPage) || 1;
-      
       const res = await fetch(`${API}/vouchers?status=${activeTab}&search=${search}&page=${queryPage}&limit=10`, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
@@ -97,10 +92,7 @@ const VoucherManagement = () => {
     try {
       const res = await fetch(`${API}/vouchers/${id}/reject`, {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: rejectReason })
       });
       if (res.ok) {
@@ -119,10 +111,7 @@ const VoucherManagement = () => {
     try {
       const res = await fetch(`${API}/vouchers/${id}/toggle-visibility`, {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${getToken()}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentStatus })
       });
       if (res.ok) {
@@ -136,29 +125,36 @@ const VoucherManagement = () => {
   };
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Tiêu đề & Thanh tìm kiếm */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/60 pb-6">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 md:p-8 space-y-6 bg-[#f5f7fa] min-h-screen"
+    >
+      {/* Header & Search */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <p className="text-xs font-semibold text-slate-400 mb-1">
+            Quản lý chiến dịch & sản phẩm
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
             Quản lý Voucher
           </h1>
         </div>
 
-        <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-lg border border-slate-200/85 shadow-sm w-80">
-          <Search size={18} className="text-slate-400" />
+        <div className="flex items-center gap-3 bg-white border border-slate-100 px-4 py-2.5 rounded-xl md:max-w-xs focus-within:border-[#1a3a5c] transition-all shadow-sm">
+          <Search size={16} className="text-slate-400" />
           <input 
             type="text" 
             placeholder="Tìm tên đối tác, voucher..." 
-            value={searchInput} // Đồng bộ lại từ ô input của bạn (tránh lag khi gõ text với debounce)
+            value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="bg-transparent border-none outline-none text-sm w-full font-medium" 
+            className="bg-transparent border-none outline-none text-sm w-full text-slate-800 placeholder:text-slate-400" 
           />
         </div>
       </div>
 
-      {/* Bộ lọc Tabs trạng thái vòng đời */}
-      <div className="flex gap-2 border-b border-slate-200 pb-px">
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 pb-px overflow-x-auto">
         {[
           { id: 'Pending', label: 'Chờ duyệt', icon: Clock },
           { id: 'Approved', label: 'Đang lưu hành', icon: CheckCircle2 },
@@ -169,15 +165,11 @@ const VoucherManagement = () => {
           return (
             <button
               key={tab.id}
-              onClick={() => { 
-                setActiveTab(tab.id); 
-                setShowRejectInput(false); 
-                setCurrentPage(1); // Chuyển tab thì reset về trang 1
-              }}
-              className={`flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-bold transition-all duration-150 ${
+              onClick={() => { setActiveTab(tab.id); setShowRejectInput(false); setCurrentPage(1); }}
+              className={`flex items-center gap-2 px-5 py-3 border-b-2 text-sm font-semibold transition-all duration-150 whitespace-nowrap ${
                 activeTab === tab.id 
-                  ? 'border-slate-900 text-slate-900 bg-slate-100 rounded-t-lg' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#1a3a5c] text-[#1a3a5c]' 
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
               <Icon size={16} />
@@ -187,120 +179,87 @@ const VoucherManagement = () => {
         })}
       </div>
 
-      {/* Danh sách bảng dữ liệu hiển thị */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      {/* Data Table */}
+      <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
-          <div className="p-12 text-center text-sm font-bold text-slate-400">Đang đồng bộ dữ liệu voucher...</div>
+          <div className="p-16 text-center text-sm font-medium text-slate-400">Đang đồng bộ dữ liệu voucher...</div>
         ) : vouchers.length === 0 ? (
-          <div className="p-12 text-center text-sm font-bold text-slate-400">Không có voucher nào trong danh mục này.</div>
+          <div className="p-16 text-center text-sm font-medium text-slate-400">
+            <Ticket size={32} className="mx-auto text-slate-300 mb-3" />
+            Không có voucher nào trong danh mục này.
+          </div>
         ) : (
           <>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="p-4 pl-6">Voucher</th>
-                  <th className="p-4">Đối tác phát hành</th>
-                  <th className="p-4">Giá bán / Giá gốc</th>
-                  <th className="p-4">Kho hàng</th>
-                  <th className="p-4 text-center pr-6">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
-                {vouchers.map((v) => (
-                  <tr key={v.voucher_id} className="hover:bg-slate-50/40 transition-colors">
-                    <td className="p-4 pl-6">
-                      <div className="flex items-center gap-3">
-                        {v.image_url ? (
-                          <img 
-                            src={v.image_url} 
-                            alt={v.title} 
-                            className="w-12 h-12 object-cover rounded-lg border border-slate-200/80 shadow-sm"
-                            onError={(e) => { e.target.src = "https://placehold.co/100x100?text=Voucher"; }}
-                          />
-                        ) : (
-                          <div className="p-2.5 bg-slate-100 text-slate-800 rounded-lg"><Tag size={18} /></div>
-                        )}
-                        <div>
-                          <div className="text-slate-900 font-bold max-w-xs truncate">{v.title}</div>
-                          {v.discount_percent && (
-                            <div className="text-[10px] font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 inline-block mt-0.5">
-                              Giảm {v.discount_percent}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                        <Building2 size={16} className="text-slate-400"/> {v.company_name || 'Hệ thống'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-slate-900 font-black text-sm">{Number(v.sale_price).toLocaleString()}đ</span>
-                      <span className="text-xs text-slate-400 line-through block font-medium mt-0.5">{Number(v.original_price).toLocaleString()}đ</span>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-900 font-bold">{v.quantity_stock ?? v.total_quantity ?? 0} <span className="text-xs text-slate-400 font-medium">mã</span></div>
-                      <div className="text-[10px] text-slate-400 font-medium">Tổng: {v.total_quantity ?? 0}</div>
-                    </td>
-                    <td className="p-4 text-center pr-6">
-                      <button 
-                        onClick={() => setSelectedVoucher(v)}
-                        className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 hover:bg-slate-100 px-3.5 py-2 rounded-lg text-xs font-bold text-slate-650 transition-all shadow-sm"
-                      >
-                        <Eye size={14} /> Xem chi tiết & Duyệt
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-6 py-4">Voucher</th>
+                    <th className="px-6 py-4">Đối tác phát hành</th>
+                    <th className="px-6 py-4">Giá bán / Giá gốc</th>
+                    <th className="px-6 py-4">Kho hàng</th>
+                    <th className="px-6 py-4 text-right">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50 text-sm text-slate-600">
+                  {vouchers.map((v) => (
+                    <tr key={v.voucher_id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {v.image_url ? (
+                            <img src={v.image_url} alt={v.title} className="w-10 h-10 object-cover rounded-xl border border-slate-100 shrink-0" onError={(e) => { e.target.src = "https://placehold.co/100x100?text=Voucher"; }} />
+                          ) : (
+                            <div className="w-10 h-10 bg-slate-50 text-slate-400 flex items-center justify-center rounded-xl border border-slate-100 shrink-0"><Tag size={16} /></div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="text-slate-800 font-semibold max-w-xs truncate">{v.title}</div>
+                            {v.discount_percent && (
+                              <div className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                                Giảm {v.discount_percent}%
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="flex items-center gap-1.5 text-slate-700 font-medium text-xs">
+                          <Building2 size={14} className="text-slate-400"/> {v.company_name || 'Hệ thống'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-slate-800 font-bold">{Number(v.sale_price).toLocaleString()}đ</span>
+                        <span className="text-xs text-slate-400 line-through block mt-0.5">{Number(v.original_price).toLocaleString()}đ</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-slate-800 font-semibold text-sm">{v.quantity_stock ?? v.total_quantity ?? 0} <span className="text-[10px] text-slate-400 font-normal">mã</span></div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">Tổng: {v.total_quantity ?? 0}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button 
+                          onClick={() => setSelectedVoucher(v)}
+                          className="inline-flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-[#1a3a5c] hover:text-white hover:border-[#1a3a5c] px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 transition-all shadow-sm"
+                        >
+                          <Eye size={14} /> Chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-            {/* --- COMPONENT THANH ĐIỀU HƯỚNG PHÂN TRANG (MỚI THÊM) --- */}
-            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-500">
-              <div>
-                Hiển thị trang <span className="text-slate-800">{currentPage}</span> / <span className="text-slate-800">{totalPages}</span> (Tổng số <span className="text-slate-900">{totalItems}</span> voucher)
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
+              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Trang <span className="text-slate-700">{currentPage}</span> / <span className="text-slate-700">{totalPages}</span>
               </div>
-              
               <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm"
-                >
+                <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}
+                  className="p-2 rounded-xl border border-slate-100 bg-white disabled:opacity-40 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
                   <ChevronLeft size={16} />
                 </button>
-
-                {[...Array(totalPages)].map((_, index) => {
-                  const pageNum = index + 1;
-                  // Thuật toán hiển thị giới hạn nút trang nếu số lượng trang quá lớn
-                  if (totalPages > 5 && Math.abs(currentPage - pageNum) > 1 && pageNum !== 1 && pageNum !== totalPages) {
-                    if (pageNum === 2 || pageNum === totalPages - 1) {
-                      return <span key={pageNum} className="px-1 text-slate-400">...</span>;
-                    }
-                    return null;
-                  }
-
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all border ${
-                        currentPage === pageNum
-                          ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:hover:bg-white transition-all shadow-sm"
-                >
+                <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl border border-slate-100 bg-white disabled:opacity-40 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -309,139 +268,101 @@ const VoucherManagement = () => {
         )}
       </div>
 
-      {/* DETAIL MODAL */}
+      {/* Modal Detail */}
       <AnimatePresence>
         {selectedVoucher && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-[9999] flex items-center justify-center p-4">
             <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl border border-slate-200 shadow-lg w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col"
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-[24px] border border-slate-100 shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col"
             >
-              {/* Header Modal */}
-              <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-white">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900">Chi Tiết Hồ Sơ Yêu Cầu Voucher</h3>
-                  <p className="text-xs text-slate-400 font-medium mt-0.5">Mã số hồ sơ hệ thống: #{selectedVoucher.voucher_id}</p>
+                  <h3 className="text-lg font-bold text-slate-800">Chi Tiết Yêu Cầu Voucher</h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1 uppercase tracking-wider">Hồ sơ ID: #{selectedVoucher.voucher_id}</p>
                 </div>
-                <button onClick={() => { setSelectedVoucher(null); setShowRejectInput(false); }} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"><X size={18}/></button>
+                <button onClick={() => { setSelectedVoucher(null); setShowRejectInput(false); }} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors"><X size={16}/></button>
               </div>
 
-              {/* Body Modal */}
-              <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              <div className="p-6 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
                 {selectedVoucher.image_url && (
-                  <div className="w-full h-44 rounded-xl overflow-hidden border border-slate-200 shadow-inner relative">
-                    <img 
-                      src={selectedVoucher.image_url} 
-                      alt={selectedVoucher.title} 
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-3 right-3 bg-slate-900/70 text-white font-black text-xs px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                      Mức Giảm {selectedVoucher.discount_percent}%
+                  <div className="w-full h-48 rounded-2xl overflow-hidden shadow-sm relative">
+                    <img src={selectedVoucher.image_url} alt={selectedVoucher.title} className="w-full h-full object-cover" />
+                    <div className="absolute top-3 right-3 bg-white/90 text-[#1a3a5c] font-bold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-lg backdrop-blur-sm shadow-sm">
+                      Giảm {selectedVoucher.discount_percent}%
                     </div>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 p-5 rounded-xl border border-slate-100 text-xs font-semibold text-slate-600">
+                <div className="grid grid-cols-2 gap-4 bg-white p-5 rounded-2xl border border-slate-100 text-sm">
                   <div className="col-span-2">
-                    <span className="text-slate-400 block mb-1">Tên chương trình voucher:</span> 
-                    <span className="text-base text-slate-900 font-black">{selectedVoucher.title}</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1 font-semibold">Chương trình</span> 
+                    <span className="text-base text-slate-800 font-bold">{selectedVoucher.title}</span>
                   </div>
-                  <div className="col-span-2 h-px bg-slate-200/60 my-1" />
+                  <div className="col-span-2 h-px bg-slate-50 my-1" />
                   
                   <div>
-                    <span className="text-slate-400 block mb-1">Giá bán trên sàn:</span> 
-                    <span className="text-base text-slate-900 font-black">{Number(selectedVoucher.sale_price).toLocaleString()} VNĐ</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1 font-semibold">Giá bán</span> 
+                    <span className="text-sm text-slate-800 font-bold">{Number(selectedVoucher.sale_price).toLocaleString()}đ</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block mb-1">Giá trị gốc sản phẩm:</span> 
-                    <span className="text-base text-slate-400 line-through font-bold">{Number(selectedVoucher.original_price).toLocaleString()} VNĐ</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1 font-semibold">Giá trị gốc</span> 
+                    <span className="text-sm text-slate-400 line-through">{Number(selectedVoucher.original_price).toLocaleString()}đ</span>
                   </div>
-                  <div className="col-span-2 h-px bg-slate-200/60 my-1" />
+                  <div className="col-span-2 h-px bg-slate-50 my-1" />
 
                   <div>
-                    <span className="text-slate-400 block mb-1">Tổng phát hành:</span> 
-                    <span className="text-sm text-slate-800 font-bold flex items-center gap-1"><Package size={14}/> {selectedVoucher.total_quantity} mã</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1 font-semibold">Tổng phát hành</span> 
+                    <span className="text-sm text-slate-700 font-medium flex items-center gap-1.5"><Package size={14} className="text-slate-400"/> {selectedVoucher.total_quantity} mã</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block mb-1">Tồn kho hiện tại:</span> 
-                    <span className="text-sm text-slate-800 font-bold flex items-center gap-1"><Package size={14}/> {selectedVoucher.quantity_stock} mã</span>
-                  </div>
-                  <div className="col-span-2 h-px bg-slate-200/60 my-1" />
-
-                  <div>
-                    <span className="text-slate-400 block mb-1">Ngày bắt đầu chạy:</span> 
-                    <span className="text-xs text-slate-800 font-bold flex items-center gap-1">
-                      <Calendar size={14} className="text-slate-400"/> {new Date(selectedVoucher.start_date).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-400 block mb-1">Ngày hết hạn sử dụng:</span> 
-                    <span className="text-xs text-slate-800 font-bold flex items-center gap-1">
-                      <Calendar size={14} className="text-slate-400"/> {new Date(selectedVoucher.expiry_date).toLocaleDateString('vi-VN')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Info size={14}/> Mô tả chi tiết chương trình:</h4>
-                    <p className="text-slate-700 text-xs font-medium leading-relaxed bg-slate-50/50 p-3.5 rounded-lg border border-slate-200/60">{selectedVoucher.description || 'Không có mô tả chi tiết kèm theo.'}</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><HelpCircle size={14}/> Điều kiện áp dụng (Terms):</h4>
-                    <p className="text-slate-700 text-xs font-medium leading-relaxed bg-slate-50/50 p-3.5 rounded-lg border border-slate-200/60">{selectedVoucher.terms_and_conditions || 'Áp dụng theo quy định chung của sàn.'}</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><AlertCircle size={14}/> Chính sách hoàn hủy vé (Cancellation Policy):</h4>
-                    <p className="text-slate-700 text-xs font-medium leading-relaxed bg-slate-50/50 p-3.5 rounded-lg border border-slate-200/60">{selectedVoucher.cancellation_policy || 'Voucher đã mua không hỗ trợ hoàn hủy tiền mặt.'}</p>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1 font-semibold">Tồn kho hiện tại</span> 
+                    <span className="text-sm text-slate-700 font-medium flex items-center gap-1.5"><Package size={14} className="text-slate-400"/> {selectedVoucher.quantity_stock} mã</span>
                   </div>
                 </div>
 
                 {showRejectInput && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2 pt-2">
-                    <label className="text-xs font-bold text-slate-900 flex items-center gap-1"><AlertCircle size={14}/> Nhập lý do từ chối phê duyệt hồ sơ:</label>
+                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                    <label className="text-[11px] font-semibold text-rose-500 flex items-center gap-1.5 uppercase tracking-wider"><AlertCircle size={14}/> Lý do từ chối:</label>
                     <textarea 
-                      className="w-full border border-slate-300 p-3 rounded-lg text-xs outline-none focus:ring-2 focus:ring-slate-400 font-medium shadow-inner" 
-                      rows="3" placeholder="Lý do từ chối gửi về đối tác doanh nghiệp..."
+                      className="w-full border border-rose-200 p-4 rounded-xl text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-50 bg-white shadow-sm resize-none" 
+                      rows="3" placeholder="Ghi chú chi tiết lý do từ chối..."
                       value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
                     />
                   </motion.div>
                 )}
               </div>
 
-              {/* Footer Modal Actions */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+              {/* Modal Actions */}
+              <div className="p-5 bg-white border-t border-slate-100 flex gap-3">
                 {activeTab === 'Pending' && (
                   <>
                     {!showRejectInput ? (
                       <>
-                        <button onClick={() => handleApprove(selectedVoucher.voucher_id)} className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 text-sm shadow-sm transition-all"><Check size={16}/> Phê duyệt phát hành</button>
-                        <button onClick={() => setShowRejectInput(true)} className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-700 py-3 rounded-lg font-bold hover:bg-slate-100 text-sm border border-slate-200 transition-all">Từ chối</button>
+                        <button onClick={() => handleApprove(selectedVoucher.voucher_id)} className="flex-1 flex items-center justify-center gap-2 bg-[#6ec6a0] text-white py-3 rounded-xl font-semibold hover:bg-[#5bb890] text-sm shadow-sm transition-all"><Check size={16}/> Phê duyệt phát hành</button>
+                        <button onClick={() => setShowRejectInput(true)} className="flex-1 flex items-center justify-center gap-2 bg-white text-rose-600 border border-rose-100 py-3 rounded-xl font-semibold hover:bg-rose-50 text-sm shadow-sm transition-all">Từ chối duyệt</button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleReject(selectedVoucher.voucher_id)} className="flex-1 bg-slate-800 text-white py-3 rounded-lg font-bold hover:bg-slate-900 text-sm shadow-sm transition-all">Xác nhận Từ Chối</button>
-                        <button onClick={() => setShowRejectInput(false)} className="px-5 bg-white border border-slate-200 text-slate-500 py-3 rounded-lg font-bold hover:bg-slate-100 text-sm transition-all">Quay lại</button>
+                        <button onClick={() => handleReject(selectedVoucher.voucher_id)} className="flex-1 bg-rose-500 text-white py-3 rounded-xl font-semibold hover:bg-rose-600 text-sm shadow-sm transition-all">Xác nhận Từ chối</button>
+                        <button onClick={() => setShowRejectInput(false)} className="px-6 bg-slate-50 border border-slate-100 text-slate-600 py-3 rounded-xl font-semibold hover:bg-slate-100 text-sm transition-all">Quay lại</button>
                       </>
                     )}
                   </>
                 )}
 
                 {activeTab === 'Approved' && (
-                  <button onClick={() => handleToggleVisibility(selectedVoucher.voucher_id, 'Approved')} className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-800 border border-slate-200 py-3 rounded-lg font-bold hover:bg-slate-100 text-sm transition-all"><EyeOff size={16}/> Đình chỉ hiển thị (Tạm dừng lưu hành khẩn cấp)</button>
+                  <button onClick={() => handleToggleVisibility(selectedVoucher.voucher_id, 'Approved')} className="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 py-3 rounded-xl font-semibold text-sm transition-all shadow-sm"><EyeOff size={16}/> Đình chỉ hiển thị khẩn cấp</button>
                 )}
 
                 {activeTab === 'Suspended' && (
-                  <button onClick={() => handleToggleVisibility(selectedVoucher.voucher_id, 'Suspended')} className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-850 text-sm transition-all"><Eye size={16}/> Tái kích hoạt hiển thị (Cho phép lưu hành lại)</button>
+                  <button onClick={() => handleToggleVisibility(selectedVoucher.voucher_id, 'Suspended')} className="w-full flex items-center justify-center gap-2 bg-[#1a3a5c] text-white py-3 rounded-xl font-semibold hover:bg-[#132a44] text-sm transition-all shadow-sm"><Eye size={16}/> Cho phép hiển thị lại</button>
                 )}
                 
                 {activeTab === 'Rejected' && (
-                  <div className="w-full p-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-500 font-medium">
-                    <span className="font-bold text-slate-800 block mb-1">Lý do hệ thống từ chối cấp phép:</span> {selectedVoucher.rejected_reason || 'Không có lý do chi tiết.'}
+                  <div className="w-full p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm text-rose-700">
+                    <span className="font-semibold uppercase tracking-wider block mb-1 text-[10px]">Lý do từ chối:</span> 
+                    {selectedVoucher.rejected_reason || 'Không có lý do chi tiết.'}
                   </div>
                 )}
               </div>
@@ -450,15 +371,18 @@ const VoucherManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* TOAST THÔNG BÁO */}
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3.5 rounded-xl text-white font-bold text-sm shadow-lg bg-slate-900 border border-slate-750">
-            {toast.type === 'success' ? <CheckCircle2 size={16}/> : <ShieldAlert size={16}/>} {toast.message}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} 
+            className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-2xl text-white font-medium text-sm shadow-xl ${toast.type === 'success' ? 'bg-[#1a3a5c]' : 'bg-rose-500'}`}
+          >
+            {toast.type === 'success' ? <CheckCircle2 size={16} className="text-[#6ec6a0]"/> : <ShieldAlert size={16} className="text-white"/>} 
+            {toast.message}
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

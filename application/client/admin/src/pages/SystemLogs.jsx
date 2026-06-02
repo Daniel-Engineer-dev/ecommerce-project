@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { History, RefreshCw, Search } from 'lucide-react';
 
 const API = 'http://localhost:5000/api/admin';
@@ -28,54 +29,94 @@ const SystemLogs = () => {
   }, []);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 md:p-8 space-y-6 bg-[#f5f7fa] min-h-screen"
+    >
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
-            <History size={28} /> Nhật ký hệ thống
+          <p className="text-xs font-semibold text-slate-400 mb-1">
+            Tra cứu thao tác quản trị & bảo mật
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+            Nhật ký Hệ thống
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Tra cứu thao tác quản trị quan trọng để kiểm tra và truy vết.</p>
         </div>
-        <button onClick={fetchLogs} className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tải lại
+        <button 
+          onClick={fetchLogs} 
+          className="px-4 py-2.5 rounded-xl bg-white border border-slate-100 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-2 shadow-sm transition-all self-start md:self-auto"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin text-[#6ec6a0]' : ''} /> 
+          Tải lại dữ liệu
         </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex gap-3">
-        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 flex-1">
-          <Search size={18} className="text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm action, bảng, record, user" className="bg-transparent outline-none text-sm w-full" />
+      {/* Tool bar */}
+      <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col md:flex-row gap-3 shadow-sm">
+        <div className="flex items-center gap-3 bg-[#f5f7fa] border border-slate-100 px-4 py-2.5 rounded-xl flex-1 focus-within:bg-white focus-within:border-[#1a3a5c] transition-all">
+          <Search size={16} className="text-slate-400" />
+          <input 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            placeholder="Tìm theo hành động, bảng, record, user..." 
+            className="bg-transparent outline-none text-sm w-full font-normal text-slate-800 placeholder:text-slate-400" 
+          />
         </div>
-        <button onClick={fetchLogs} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold">Tìm</button>
+        <button 
+          onClick={fetchLogs} 
+          className="px-6 py-2.5 rounded-xl bg-[#1a3a5c] hover:bg-[#132a44] text-white text-xs font-semibold shadow-sm transition-all whitespace-nowrap"
+        >
+          Tìm kiếm
+        </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="p-4">Thời gian</th>
-              <th className="p-4">Người dùng</th>
-              <th className="p-4">Hành động</th>
-              <th className="p-4">Đối tượng</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {logs.map((log) => (
-              <tr key={log.log_id} className="hover:bg-slate-50">
-                <td className="p-4 text-xs text-slate-500">{new Date(log.created_at).toLocaleString('vi-VN')}</td>
-                <td className="p-4">
-                  <div className="font-bold text-slate-800">{log.username || 'System'}</div>
-                  <div className="text-xs text-slate-400">{log.role || 'N/A'}</div>
-                </td>
-                <td className="p-4 font-black text-indigo-700">{log.action}</td>
-                <td className="p-4 text-slate-600">{log.table_name || '-'} #{log.record_id || '-'}</td>
+      {/* Table */}
+      <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Thời gian</th>
+                <th className="px-6 py-4">Người dùng</th>
+                <th className="px-6 py-4">Hành động</th>
+                <th className="px-6 py-4">Đối tượng ảnh hưởng</th>
               </tr>
-            ))}
-            {!loading && logs.length === 0 && <tr><td colSpan="4" className="p-10 text-center text-slate-400 font-bold">Chưa có nhật ký phù hợp.</td></tr>}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-50 text-slate-600">
+              {logs.map((log) => (
+                <tr key={log.log_id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-4 text-xs font-medium">
+                    {new Date(log.created_at).toLocaleString('vi-VN')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-slate-800">{log.username || 'System Admin'}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{log.role || 'System'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-block px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 font-semibold text-[10px] uppercase tracking-wider">
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-slate-700">{log.table_name || '---'}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">Record ID: #{log.record_id || '---'}</div>
+                  </td>
+                </tr>
+              ))}
+              {!loading && logs.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="p-16 text-center">
+                    <History size={32} className="mx-auto text-slate-300 mb-3" />
+                    <p className="text-slate-500 font-medium text-sm">Không tìm thấy nhật ký phù hợp.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

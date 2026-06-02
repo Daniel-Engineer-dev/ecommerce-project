@@ -33,16 +33,10 @@ class AdminVoucherService {
 
         if (search && search.trim() !== '') {
             filterQuery += ` AND (
-<<<<<<< HEAD:application/server/modules/admin/Voucher/adminVoucherService.js
-                v.title                 ILIKE $${idx} OR 
-                p.company_name          ILIKE $${idx} OR 
-                v.voucher_id::TEXT      ILIKE $${idx} OR
-                v.partner_id::TEXT      ILIKE $${idx}
-=======
                 v.title ILIKE $${idx} OR
                 p.company_name ILIKE $${idx} OR
-                v.voucher_id::TEXT ILIKE $${idx}
->>>>>>> customer:application/server/modules/admin/adminVoucher/adminVoucherService.js
+                v.voucher_id::TEXT ILIKE $${idx} OR
+                u.email ILIKE $${idx}
             )`;
             values.push(`%${search.trim()}%`);
             idx++;
@@ -112,6 +106,14 @@ class AdminVoucherService {
 
         await logAction(adminId, `TOGGLE_VOUCHER_VISIBILITY:${nextStatus}`, 'Vouchers', voucherId);
         return result.rows[0];
+    }
+
+    async getPartnerVoucherCount(partnerId) {
+        const result = await pool.query(
+            `SELECT COUNT(*) as total FROM Vouchers WHERE partner_id = $1`,
+            [partnerId]
+        );
+        return parseInt(result.rows[0].total, 10);
     }
 }
 

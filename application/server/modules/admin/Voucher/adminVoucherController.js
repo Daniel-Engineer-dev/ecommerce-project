@@ -46,4 +46,13 @@ const toggleVisibility = async (req, res) => {
     }
 };
 
-module.exports = { getAdminVouchers, approveVoucher, rejectVoucher, toggleVisibility };
+const getPartnerVoucherCount = async (req, res) => {
+    try {
+        const count = await adminVoucherService.getPartnerVoucherCount(req.params.partnerId);
+        return res.status(200).json({ count });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { getAdminVouchers, approveVoucher, rejectVoucher, toggleVisibility, getPartnerVoucherCount };

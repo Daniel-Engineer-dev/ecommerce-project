@@ -20,14 +20,6 @@ class AdminService {
         return result.rows;
     }
 
-<<<<<<< HEAD
-    /**
-     * Phê duyệt đối tác và gửi email thông báo tự động (BR-ADM-02)
-     */
-    async approvePartner(id) {
-        await pool.query("UPDATE Partners SET status = 'Approved', is_active = true WHERE user_id = $1", [id]);
-        const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
-=======
     async approvePartner(id, adminId = null) {
         await pool.query("UPDATE Partners SET status = 'Approved' WHERE user_id = $1", [id]);
         const userRes = await pool.query(
@@ -37,19 +29,10 @@ class AdminService {
              WHERE u.user_id = $1`,
             [id]
         );
->>>>>>> customer
         const user = userRes.rows[0];
 
         if (user && user.email) {
             const partnerUrl = process.env.PARTNER_URL || 'http://localhost:5174';
-<<<<<<< HEAD
-            const html = `
-                <h2>Chúc mừng!</h2>
-                <p>Tài khoản đối tác doanh nghiệp <b>${user.username}</b> của bạn đã được phê duyệt thành công.</p>
-                <p><a href="${partnerUrl}">Truy cập hệ thống Đối tác để bắt đầu tạo chương trình Voucher ngay</a></p>
-            `;
-            await sendEmail({ email: user.email, subject: '[Dealzy] Tài khoản đối tác đã phê duyệt', html });
-=======
             const displayName = user.company_name || user.username;
             await sendEmail({
                 email: user.email,
@@ -75,35 +58,18 @@ class AdminService {
                     footer: 'Cảm ơn bạn đã lựa chọn Dealzy làm kênh kết nối khách hàng. Chúc bạn vận hành hiệu quả và đạt được nhiều kết quả tích cực.',
                 },
             });
->>>>>>> customer
         }
 
         await logAction(adminId, 'APPROVE_PARTNER', 'Partners', id);
         return { success: true };
     }
 
-<<<<<<< HEAD
-    /**
-     * Từ chối hồ sơ đối tác đăng ký (BR-ADM-02)
-     */
-    async rejectPartner(id) {
-        await pool.query("UPDATE Partners SET status = 'Rejected', is_active = false WHERE user_id = $1", [id]);
-=======
     async rejectPartner(id, adminId = null) {
         await pool.query("UPDATE Partners SET status = 'Rejected' WHERE user_id = $1", [id]);
->>>>>>> customer
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
 
         if (user && user.email) {
-<<<<<<< HEAD
-            const html = `
-                <h2>Thông báo thẩm định hồ sơ</h2>
-                <p>Chào bạn, hồ sơ đối tác doanh nghiệp của bạn đã bị từ chối do thông tin chưa chính xác hoặc mã số thuế vi phạm.</p>
-                <p>Vui lòng đăng ký lại hồ sơ hoặc liên hệ quản trị viên để giải quyết khiếu nại.</p>
-            `;
-            await sendEmail({ email: user.email, subject: '[Dealzy] Hồ sơ đối tác bị từ chối', html });
-=======
             await sendEmail({
                 email: user.email,
                 subject: 'Ho so doi tac bi tu choi',
@@ -114,7 +80,6 @@ class AdminService {
                     footer: 'Dealzy se luon san sang ho tro ban hoan thien ho so.',
                 },
             });
->>>>>>> customer
         }
 
         await logAction(adminId, 'REJECT_PARTNER', 'Partners', id);
@@ -192,12 +157,6 @@ class AdminService {
         };
     }
 
-<<<<<<< HEAD
-    /**
-     * Xem chi tiết thông tin 1 người dùng (Làm phẳng cấu trúc dữ liệu để React render ngay)
-     */
-=======
->>>>>>> customer
     async getUserById(id) {
         const userRes = await pool.query(
             'SELECT user_id, username, email, phone, role FROM Users WHERE user_id = $1',
@@ -212,16 +171,11 @@ class AdminService {
                  FROM Partners WHERE user_id = $1`,
                 [id]
             );
-<<<<<<< HEAD
-            const branchesRes = await pool.query('SELECT * FROM Branches WHERE partner_id = $1', [id]);
-            return { ...user, ...partnerRes.rows[0], branches: branchesRes.rows };
-        } else if (user.role === 'Customer') {
-=======
-            return { ...user, details: partnerRes.rows[0] || null };
+            return { ...user, ...(partnerRes.rows[0] || {}) };
+
         }
 
         if (user.role === 'Customer') {
->>>>>>> customer
             const customerRes = await pool.query(
                 `SELECT full_name, dob, address, is_active
                  FROM Customers WHERE user_id = $1`,
@@ -233,14 +187,7 @@ class AdminService {
         return user;
     }
 
-<<<<<<< HEAD
-    /**
-     * Đổi vai trò tài khoản
-     */
-    async changeUserRole(id, newRole) {
-=======
     async changeUserRole(id, newRole, adminId = null) {
->>>>>>> customer
         if (!['Customer', 'Partner', 'Admin'].includes(newRole)) {
             throw new Error('Role khong hop le');
         }
@@ -249,12 +196,6 @@ class AdminService {
         return { success: true };
     }
 
-<<<<<<< HEAD
-    /**
-     * Thống kê tổng hợp số liệu Dashboard Mini
-     */
-=======
->>>>>>> customer
     async getUserStats() {
         const result = await pool.query(`
             SELECT
@@ -273,24 +214,13 @@ class AdminService {
         return { ...result.rows[0], ...partnerStats.rows[0] };
     }
 
-<<<<<<< HEAD
-    /**
-     * Logic Khóa / Mở khóa dùng chung cho cả Customer và Partner (BR-ADM-02)
-     */
-    async toggleUserLock(id, currentLockState) {
-=======
     async toggleUserLock(id, currentLockState, adminId = null) {
->>>>>>> customer
         const userRes = await pool.query('SELECT role FROM Users WHERE user_id = $1', [id]);
         if (userRes.rowCount === 0) throw new Error('Nguoi dung khong ton tai');
         const { role } = userRes.rows[0];
 
         const targetTable = role === 'Partner' ? 'Partners' : 'Customers';
-<<<<<<< HEAD
-        const newActiveState = currentLockState; 
-=======
         const newActiveState = !currentLockState;
->>>>>>> customer
 
         const res = await pool.query(
             `UPDATE ${targetTable} SET is_active = $1 WHERE user_id = $2 RETURNING user_id`,

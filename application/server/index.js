@@ -6,7 +6,7 @@ const voucherRoutes = require('./modules/shared/voucherRoutes');
 const authRoutes = require('./modules/auth/authRoutes');
 const adminRoutes = require('./modules/admin/adminRoutes');
 const partnerRoutes = require('./modules/partner/partnerRoutes');
-const adminVoucherRoutes = require('./modules/admin/adminVoucher/adminVoucherRoute');
+const adminVoucherRoutes = require('./modules/admin/Voucher/adminVoucherRoute');
 const orderRoutes = require('./modules/customer/orderRoutes');
 const complaintRoutes = require('./modules/customer/complaintRoutes');
 

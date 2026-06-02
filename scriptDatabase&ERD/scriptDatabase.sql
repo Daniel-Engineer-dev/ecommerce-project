@@ -171,8 +171,7 @@ CREATE TABLE Complaints (
     content TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Processing', 'Resolved', 'Rejected')),
     priority VARCHAR(10) DEFAULT 'Normal' CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    order_id INT REFERENCES Orders(order_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Bảng trung gian lưu danh sách voucher trong một khiếu nại (N-N)
@@ -312,7 +311,7 @@ FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
 
 -- 3.1. Users & Partners
 INSERT INTO Users (username, password, email, role) VALUES 
-('admin', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'admin@dealzy.vn', 'Admin'),
+('admin', '$2y$10$Nu35w4pteLfc7BDCIkDPkecjw8wsH8Y2GMfIewUbXLT7zzW6WOxwq', 'admin@dealzy.vn', 'Admin'),
 ('sheraton_partner', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'sheraton@dealzy.vn', 'Partner'),
 ('fantastic_travel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'travel@dealzy.vn', 'Partner'),
 ('glow_spa', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'glowspa@dealzy.vn', 'Partner'),
@@ -603,7 +602,7 @@ VALUES
     (SELECT user_id FROM Users WHERE username = 'cgv_cinemas'), (SELECT category_id FROM Categories WHERE category_name = 'Entertainment'), 
     'Voucher Bắp Nước My Combo Siêu Tiết Kiệm', 'Đổi ngay 1 bắp lớn (Popcorn 22oz) tự chọn vị ngọt/mặn/phô mai và 1 nước ngọt lớn tại quầy Concession.', 
     'https://images.unsplash.com/photo-1578496479914-7ef3b0193be3?auto=format&fit=crop&q=80&w=800', 40, 900000, 54000, 400, 400, 
-    CURRENT_TIMESTAMP, '2026-12-31 23:59:59', 'Chỉ có giá trị đổi bắp nước, không có giá trị dùng để đổi vé xem phim.', 'Được hoàn trả 100% điểm hệ thống nếu hủy mã trước hạn dùng 3 ngày.', 'Approved', CURRENT_TIMESTAMP
+    CURRENT_TIMESTAMP, '2026-12-31 23:59:59', 'Chỉ có giá trị đổi bắp nước, không có giá trị dùng để đổi vé xem phim.', 'Được hoàn trả 100% điểm hệ thống nếu hủy mã trước hạn dùng 3 ngày.', 'Approved'
 );
 
 INSERT INTO Users (username, password, email, phone, role) VALUES 
@@ -641,3 +640,69 @@ INSERT INTO Partners (user_id, company_name, representative_name, tax_id, headqu
     'Pending',
     TRUE
 );
+
+-- 1.1. Bảng Content_Items (Quản lý nội dung tĩnh của hệ thống)
+INSERT INTO Content_Items (content_key, title, type, body) VALUES
+('terms-of-service', 'Điều khoản dịch vụ', 'policy', 'Nội dung chi tiết về điều khoản sử dụng nền tảng Dealzy, quy định quyền và nghĩa vụ của khách hàng, đối tác...'),
+('privacy-policy', 'Chính sách bảo mật', 'policy', 'Dealzy cam kết bảo vệ dữ liệu cá nhân của bạn tuân thủ theo các tiêu chuẩn bảo mật quốc tế và luật pháp Việt Nam...'),
+('refund-policy', 'Chính sách hoàn tiền', 'policy', 'Chính sách hoàn tiền áp dụng trong vòng 24h đối với các E-Voucher chưa được sử dụng hoặc gặp lỗi từ nhà cung cấp...'),
+('about-us', 'Về chúng tôi', 'page', 'Dealzy là nền tảng thương mại điện tử chuyên cung cấp voucher đa ngành hàng đầu Việt Nam, mang đến giải pháp tiết kiệm tối ưu.'),
+('payment-guide', 'Hướng dẫn thanh toán', 'guide', 'Hỗ trợ đa dạng phương thức thanh toán: thẻ tín dụng/ghi nợ, chuyển khoản ngân hàng, ví MoMo, ZaloPay, VNPay...');
+
+-- 1.2. Bảng Complaints (Khiếu nại của khách hàng)
+-- Lưu ý: Lấy ID khách hàng và ID đơn hàng (đã có từ tập seed data) để liên kết
+INSERT INTO Complaints (customer_id, order_id, title, content, status, priority) VALUES
+((SELECT user_id FROM Users WHERE username = 'customer_daniel'), 1, 'Thức ăn không tươi', 'Hải sản ở buffet Sheraton tối qua không được tươi như quảng cáo, cần phản hồi lại với nhà hàng.', 'Processing', 'High'),
+((SELECT user_id FROM Users WHERE username = 'customer_daniel'), 2, 'Xe đón trễ giờ', 'Hướng dẫn viên và xe của Fantastic Travel đến trễ 45 phút làm ảnh hưởng đến lịch trình chuyến đi Sapa.', 'Resolved', 'Normal'),
+((SELECT user_id FROM Users WHERE username = 'customer_minh'), NULL, 'Không nhận được mã OTP đăng nhập', 'Hệ thống không gửi mã xác thực OTP về điện thoại khi tôi cố gắng đăng nhập vào thiết bị mới.', 'Pending', 'High'),
+((SELECT user_id FROM Users WHERE username = 'customer_lan'), NULL, 'Lỗi nạp tiền vào ví Dealzy', 'Tôi đã chuyển khoản 500k nhưng số dư trên app vẫn chưa được cập nhật. Kèm theo mã giao dịch VCB123456.', 'Pending', 'Urgent'),
+((SELECT user_id FROM Users WHERE username = 'customer_daniel'), 3, 'Thái độ nhân viên kiểm vé', 'Nhân viên soát vé của rạp CGV tỏ thái độ khó chịu khi mã QR của tôi bị lỗi hiển thị.', 'Resolved', 'Normal');
+
+-- 1.3. Bảng Complaint_Vouchers (Bảng trung gian N-N: Khiếu nại liên quan đến voucher nào)
+INSERT INTO Complaint_Vouchers (complaint_id, voucher_id) VALUES
+((SELECT complaint_id FROM Complaints WHERE title = 'Thức ăn không tươi'), (SELECT voucher_id FROM Vouchers WHERE title = 'Buffet Hải Sản 5 Sao - Sheraton')),
+((SELECT complaint_id FROM Complaints WHERE title = 'Thức ăn không tươi'), (SELECT voucher_id FROM Vouchers WHERE title = 'Set Menu Trưa Doanh Nhân - Sheraton')),
+((SELECT complaint_id FROM Complaints WHERE title = 'Xe đón trễ giờ'), (SELECT voucher_id FROM Vouchers WHERE title = 'Combo Du Lịch SaPa 3N2Đ')),
+((SELECT complaint_id FROM Complaints WHERE title = 'Thái độ nhân viên kiểm vé'), (SELECT voucher_id FROM Vouchers WHERE title = 'Vé Xem Phim IMAX Toàn Quốc')),
+((SELECT complaint_id FROM Complaints WHERE title = 'Thái độ nhân viên kiểm vé'), (SELECT voucher_id FROM Vouchers WHERE title = 'Vé Trải Nghiệm Giường Nằm L''amour Đẳng Cấp'));
+
+-- 1.4. Bảng Complaint_Responses (Phản hồi cho các khiếu nại)
+INSERT INTO Complaint_Responses (complaint_id, responder_id, content) VALUES
+((SELECT complaint_id FROM Complaints WHERE title = 'Thức ăn không tươi'), (SELECT user_id FROM Users WHERE username = 'sheraton_partner'), 'Chào bạn, Sheraton vô cùng xin lỗi về trải nghiệm không tốt này. Chúng tôi đã ghi nhận và làm việc trực tiếp với Bếp trưởng.'),
+((SELECT complaint_id FROM Complaints WHERE title = 'Thức ăn không tươi'), (SELECT user_id FROM Users WHERE username = 'admin'), 'Dealzy đã nhận được biên bản xử lý từ đối tác Sheraton. Chúng tôi gửi tặng bạn mã giảm giá 15% coi như lời xin lỗi từ hệ thống.'),
+((SELECT complaint_id FROM Complaints WHERE title = 'Xe đón trễ giờ'), (SELECT user_id FROM Users WHERE username = 'fantastic_travel'), 'Xin lỗi quý khách vì sự cố kẹt xe. Chúng tôi đã đền bù bằng việc nâng cấp hạng phòng miễn phí cho bạn tại Sapa.'),
+((SELECT complaint_id FROM Complaints WHERE title = 'Xe đón trễ giờ'), (SELECT user_id FROM Users WHERE username = 'admin'), 'Xác nhận đối tác đã xử lý thỏa đáng cho khách hàng. Đóng khiếu nại.'),
+((SELECT complaint_id FROM Complaints WHERE title = 'Thái độ nhân viên kiểm vé'), (SELECT user_id FROM Users WHERE username = 'cgv_cinemas'), 'CGV chân thành xin lỗi bạn. Chúng tôi sẽ rà soát lại camera và chấn chỉnh ngay tác phong của nhân viên trực quầy hôm đó.');
+
+-- 1.5. Bảng System_Logs (Lịch sử thao tác hệ thống)
+INSERT INTO System_Logs (user_id, action, table_name, record_id) VALUES
+((SELECT user_id FROM Users WHERE username = 'admin'), 'INSERT on Categories', 'Categories', 1),
+((SELECT user_id FROM Users WHERE username = 'sheraton_partner'), 'UPDATE on Vouchers', 'Vouchers', 1),
+((SELECT user_id FROM Users WHERE username = 'admin'), 'UPDATE on Partners', 'Partners', 2),
+((SELECT user_id FROM Users WHERE username = 'customer_daniel'), 'INSERT on Orders', 'Orders', 1),
+((SELECT user_id FROM Users WHERE username = 'customer_minh'), 'UPDATE on Customers', 'Customers', 9);
+
+
+-- ==============================================================================
+-- 2. BỔ SUNG DỮ LIỆU ĐỂ ĐẠT ĐỦ 5 DÒNG (Các bảng hiện tại mới chỉ có 3 dòng)
+-- ==============================================================================
+
+-- 2.1. Thêm 2 đơn hàng (Orders) cho user Minh và Lan
+INSERT INTO Orders (customer_id, total_amount, status, payment_method) VALUES 
+((SELECT user_id FROM Users WHERE username = 'customer_minh'), 450000, 'Paid', 'VNPay'),
+((SELECT user_id FROM Users WHERE username = 'customer_lan'), 420000, 'Paid', 'Momo');
+
+-- 2.2. Thêm 2 Order_Items tương ứng với 2 Orders trên (Trigger sẽ tự động chạy để giảm stock của Voucher)
+INSERT INTO Order_Items (order_id, voucher_id, quantity, price_at_purchase) VALUES 
+((SELECT order_id FROM Orders WHERE payment_method = 'VNPay' LIMIT 1), (SELECT voucher_id FROM Vouchers WHERE title = 'Liệu Trình Spa Toàn Thân'), 1, 450000),
+((SELECT order_id FROM Orders WHERE payment_method = 'Momo' LIMIT 1), (SELECT voucher_id FROM Vouchers WHERE title = 'Voucher Mua Sắm Nike 500k'), 1, 420000);
+
+-- 2.3. Thêm 2 E_Vouchers phát sinh từ 2 Order_Items trên
+INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date) VALUES
+((SELECT order_item_id FROM Order_Items WHERE price_at_purchase = 450000 LIMIT 1), 'DLZ-GLOW-0001', 'Unused', '2026-10-20'),
+((SELECT order_item_id FROM Order_Items WHERE price_at_purchase = 420000 LIMIT 1), 'DLZ-NIKE-0001', 'Unused', '2026-09-30');
+
+-- 2.4. Thêm 2 Đánh giá (Reviews) (Lưu ý: Trigger bắt buộc khách hàng phải mua voucher mới được đánh giá -> Đã map chuẩn xác user và voucher mua bên trên)
+INSERT INTO Reviews (voucher_id, customer_id, rating, comment) VALUES 
+((SELECT voucher_id FROM Vouchers WHERE title = 'Liệu Trình Spa Toàn Thân'), (SELECT user_id FROM Users WHERE username = 'customer_minh'), 5, 'Không gian spa thơm mùi thảo mộc, các bạn kỹ thuật viên massage rất êm và chuyên nghiệp.'),
+((SELECT voucher_id FROM Vouchers WHERE title = 'Voucher Mua Sắm Nike 500k'), (SELECT user_id FROM Users WHERE username = 'customer_lan'), 4, 'Áp dụng mã rất nhanh tại quầy, tuy nhiên mẫu giày mình thích lại đang hết size nên phải chờ.');
