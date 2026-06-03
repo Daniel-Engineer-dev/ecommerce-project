@@ -17,5 +17,5 @@ router.get('/', auth, adminOnly, adminVoucherController.getAdminVouchers);
 router.patch('/:id/approve', auth, adminOnly, adminVoucherController.approveVoucher);
 router.patch('/:id/reject', auth, adminOnly, adminVoucherController.rejectVoucher);
 router.patch('/:id/toggle-visibility', auth, adminOnly, adminVoucherController.toggleVisibility);
-
+router.get('/count/:partnerId', auth, adminOnly, adminVoucherController.getPartnerVoucherCount);
 module.exports = router;

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquareWarning, RefreshCw, Send } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageSquareWarning, RefreshCw, Send, CheckCircle } from 'lucide-react';
 
 const API = 'http://localhost:5000/api/admin';
 const getToken = () => localStorage.getItem('adminToken');
@@ -27,6 +28,11 @@ const ComplaintManagement = () => {
     }
   };
 
+  const showMessage = (msg) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   const updateStatus = async (id, nextStatus) => {
     const res = await fetch(`${API}/complaints/${id}/status`, {
       method: 'PATCH',
@@ -37,7 +43,7 @@ const ComplaintManagement = () => {
       body: JSON.stringify({ status: nextStatus }),
     });
     const data = await res.json();
-    setMessage(res.ok ? data.message : data.error || 'Update failed');
+    showMessage(res.ok ? data.message : data.error || 'Update failed');
     if (res.ok) fetchComplaints();
   };
 
@@ -53,7 +59,7 @@ const ComplaintManagement = () => {
       body: JSON.stringify({ content }),
     });
     const data = await res.json();
-    setMessage(res.ok ? data.message : data.error || 'Send failed');
+    showMessage(res.ok ? data.message : data.error || 'Send failed');
     if (res.ok) {
       setReply((prev) => ({ ...prev, [id]: '' }));
       fetchComplaints();
@@ -65,61 +71,111 @@ const ComplaintManagement = () => {
   }, [status]);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 md:p-8 space-y-6 bg-[#f5f7fa] min-h-screen relative"
+    >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 flex items-center gap-2">
-            <MessageSquareWarning size={28} /> Xử lý khiếu nại
+          <p className="text-xs font-semibold text-slate-400 mb-1">
+            Hỗ trợ & CSKH
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">
+            Xử lý Khiếu nại
           </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Theo dõi, phản hồi và cập nhật trạng thái khiếu nại của khách hàng.</p>
         </div>
-        <div className="flex gap-2">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white">
-            {statuses.map((item) => <option key={item} value={item}>{item || 'Tất cả'}</option>)}
+        <div className="flex gap-3 self-start md:self-auto">
+          <select 
+            value={status} 
+            onChange={(e) => setStatus(e.target.value)} 
+            className="px-4 py-2.5 rounded-xl border border-slate-100 text-xs font-semibold bg-white text-slate-600 outline-none hover:border-slate-200 transition-colors shadow-sm"
+          >
+            {statuses.map((item) => <option key={item} value={item}>{item || 'Tất cả trạng thái'}</option>)}
           </select>
-          <button onClick={fetchComplaints} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center gap-2">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Tải lại
+          <button 
+            onClick={fetchComplaints} 
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-100 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-2 shadow-sm transition-all"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin text-[#6ec6a0]' : ''} />
+            Đồng bộ
           </button>
         </div>
       </div>
 
-      {message && <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-3 rounded-xl text-sm font-bold">{message}</div>}
-
       <div className="grid gap-4">
         {complaints.map((item) => (
-          <div key={item.complaint_id} className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-slate-400">#{item.complaint_id}</span>
-                  <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700">{item.priority}</span>
-                  <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">{item.status}</span>
-                </div>
-                <h2 className="text-lg font-black text-slate-900 mt-2">{item.title || 'Khiếu nại không tiêu đề'}</h2>
-                <p className="text-sm text-slate-600 mt-1">{item.content}</p>
-                <p className="text-xs text-slate-400 mt-2">{item.full_name || item.username} - {item.email}</p>
+          <div key={item.complaint_id} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-6">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">#{item.complaint_id}</span>
+                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-amber-50 text-amber-600 uppercase tracking-wider">{item.priority}</span>
+                <span className="text-[10px] font-semibold px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 uppercase tracking-wider">{item.status}</span>
               </div>
-              <select value={item.status} onChange={(e) => updateStatus(item.complaint_id, e.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white">
-                {statuses.filter(Boolean).map((st) => <option key={st} value={st}>{st}</option>)}
-              </select>
+              <h2 className="text-base font-bold text-slate-800">{item.title || 'Khiếu nại không có tiêu đề'}</h2>
+              <p className="text-sm text-slate-600 mt-2 leading-relaxed">{item.content}</p>
+              
+              <div className="mt-5 pt-5 border-t border-slate-50 flex items-center gap-6 text-xs">
+                <div>
+                  <span className="text-slate-400 font-medium">Người gửi: </span>
+                  <span className="font-semibold text-slate-800">{item.full_name || item.username}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium">Email: </span>
+                  <span className="font-semibold text-slate-800">{item.email}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-2">
+
+            <div className="w-full md:w-80 flex flex-col gap-3 shrink-0 border-t md:border-t-0 md:border-l border-slate-50 pt-5 md:pt-0 md:pl-6">
+              <select 
+                value={item.status} 
+                onChange={(e) => updateStatus(item.complaint_id, e.target.value)} 
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-100 text-xs font-semibold bg-[#f5f7fa] text-slate-600 outline-none focus:bg-white focus:border-[#1a3a5c] transition-colors"
+              >
+                {statuses.filter(Boolean).map((st) => <option key={st} value={st}>Trạng thái: {st}</option>)}
+              </select>
+              
               <textarea
                 value={reply[item.complaint_id] || ''}
                 onChange={(e) => setReply((prev) => ({ ...prev, [item.complaint_id]: e.target.value }))}
-                rows="2"
-                placeholder="Nhập phản hồi cho khách hàng"
-                className="flex-1 rounded-xl border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                rows="3"
+                placeholder="Nhập nội dung phản hồi..."
+                className="w-full rounded-xl border border-slate-100 p-4 text-sm outline-none bg-[#f5f7fa] focus:bg-white focus:border-[#1a3a5c] transition-all resize-none placeholder:text-slate-400"
               />
-              <button onClick={() => sendReply(item.complaint_id)} className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-black flex items-center justify-center gap-2">
-                <Send size={16} /> Gửi
+              <button 
+                onClick={() => sendReply(item.complaint_id)} 
+                className="w-full px-4 py-2.5 rounded-xl bg-[#1a3a5c] hover:bg-[#132a44] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
+              >
+                <Send size={14} className="text-[#6ec6a0]" /> Gửi phản hồi
               </button>
             </div>
           </div>
         ))}
-        {!loading && complaints.length === 0 && <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center text-slate-400 font-bold">Không có khiếu nại phù hợp.</div>}
+        {!loading && complaints.length === 0 && (
+          <div className="bg-white border border-slate-100 rounded-2xl p-16 text-center shadow-sm">
+            <MessageSquareWarning size={32} className="mx-auto text-slate-300 mb-3" />
+            <p className="text-slate-500 font-medium text-sm">Hệ thống hiện không có khiếu nại nào phù hợp.</p>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-2xl text-white font-medium text-sm shadow-xl bg-[#1a3a5c]"
+          >
+            <CheckCircle size={16} className="text-[#6ec6a0]" />
+            {message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

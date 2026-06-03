@@ -4,6 +4,9 @@ const { logAction } = require('../../utils/systemLog');
 const orderService = require('../customer/orderService');
 
 class AdminService {
+    /**
+     * Lấy danh sách hồ sơ đối tác đang chờ duyệt (Pending)
+     */
     async getPendingPartners() {
         const query = `
             SELECT u.user_id, u.username, u.email, u.phone,
@@ -11,6 +14,7 @@ class AdminService {
             FROM Users u
             JOIN Partners p ON u.user_id = p.user_id
             WHERE p.status = 'Pending'
+            ORDER BY p.user_id DESC
         `;
         const result = await pool.query(query);
         return result.rows;
@@ -167,7 +171,8 @@ class AdminService {
                  FROM Partners WHERE user_id = $1`,
                 [id]
             );
-            return { ...user, details: partnerRes.rows[0] || null };
+            return { ...user, ...(partnerRes.rows[0] || {}) };
+
         }
 
         if (user.role === 'Customer') {
@@ -176,7 +181,7 @@ class AdminService {
                  FROM Customers WHERE user_id = $1`,
                 [id]
             );
-            return { ...user, details: customerRes.rows[0] || null };
+            return { ...user, ...customerRes.rows[0] };
         }
 
         return user;
