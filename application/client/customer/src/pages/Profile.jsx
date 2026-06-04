@@ -20,8 +20,9 @@ import {
   Check,
   FileText,
   MessageSquare,
-  Barcode,
+  QrCode,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../config";
@@ -234,19 +235,6 @@ const Profile = () => {
 
   const canShowEVoucherCode = (item) =>
     item?.status === "Unused" && !isExpired(item.expiry_date);
-
-  const getBarcodeBars = (code = "") => {
-    const seed = `*${code}*`;
-    const bars = [];
-    for (const char of seed) {
-      const value = char.charCodeAt(0);
-      for (let i = 0; i < 7; i++) {
-        bars.push(((value >> i) & 1) ? 3 : 1);
-      }
-      bars.push(1);
-    }
-    return bars;
-  };
 
   useEffect(() => {
     if (location.state?.tab) {
@@ -1705,7 +1693,7 @@ const Profile = () => {
                                     whiteSpace: "nowrap",
                                   }}
                                 >
-                                  <Barcode size={14} /> Barcode
+                                  <QrCode size={14} /> QR
                                 </button>
                               )}
                               <div
@@ -2519,31 +2507,26 @@ const Profile = () => {
                   }}
                 >
                   <div
-                    aria-label={`Barcode ${selectedEVoucher.unique_code}`}
+                    aria-label={`QR ${selectedEVoucher.unique_code}`}
                     style={{
-                      minHeight: "96px",
+                      minHeight: "224px",
                       padding: "1rem",
                       background: "white",
                       borderRadius: "14px",
                       display: "flex",
-                      alignItems: "stretch",
+                      alignItems: "center",
                       justifyContent: "center",
-                      gap: "2px",
                       overflow: "hidden",
                     }}
                   >
-                    {getBarcodeBars(selectedEVoucher.unique_code).map(
-                      (width, index) => (
-                        <span
-                          key={`${selectedEVoucher.unique_code}-${index}`}
-                          style={{
-                            width: `${width}px`,
-                            background:
-                              index % 2 === 0 ? "#0f172a" : "transparent",
-                          }}
-                        />
-                      ),
-                    )}
+                    <QRCodeSVG
+                      value={selectedEVoucher.unique_code}
+                      size={192}
+                      level="M"
+                      includeMargin
+                      bgColor="#ffffff"
+                      fgColor="#0f172a"
+                    />
                   </div>
                   <div
                     style={{

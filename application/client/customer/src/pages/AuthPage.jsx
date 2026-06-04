@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Building, ChevronRight, Lock, Mail, Phone, User, Users } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Building, ChevronRight, Lock, Mail, Phone, User, Users, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { API_BASE_URL } from '../config';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/';
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [regMethod, setRegMethod] = useState('email');
@@ -17,18 +19,49 @@ const AuthPage = () => {
     phone: ''
   });
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  // States for unified forgot password flow
+  const [forgotStep, setForgotStep] = useState('request'); // 'request', 'otp', 'reset'
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [receivedOtp, setReceivedOtp] = useState('');
+  const [tempToken, setTempToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    otp: "",
+  });
 
   const showLogin = () => {
     setError('');
+    setSuccessMsg('');
     setIsForgotPassword(false);
     setIsLogin(true);
+    setForgotStep('request');
+    setForgotIdentifier('');
+    setOtpCode('');
+    setTempToken('');
+    setNewPassword('');
+    setConfirmNewPassword('');
   };
 
   const showRegister = () => {
     setError('');
+    setSuccessMsg('');
     setIsForgotPassword(false);
     setIsLogin(false);
+    setForgotStep('request');
+    setForgotIdentifier('');
+    setOtpCode('');
+    setTempToken('');
+    setNewPassword('');
+    setConfirmNewPassword('');
   };
 
   const handleSubmit = async (e) => {
@@ -53,7 +86,7 @@ const AuthPage = () => {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
+        navigate(redirectUrl);
       } else {
         setError(data.message || 'Có lỗi xảy ra');
       }
@@ -67,39 +100,113 @@ const AuthPage = () => {
     if (isForgotLoading) return;
     setError('');
 
-    if (regMethod === 'email' && !formData.email) {
-      setError('Vui lòng nhập email của bạn');
-      return;
-    }
-
-    if (regMethod === 'phone' && !formData.phone) {
-      setError('Vui lòng nhập số điện thoại của bạn');
-      return;
-    }
-
-    setIsForgotLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: regMethod === 'email' ? formData.email : null,
-          phone: regMethod === 'phone' ? formData.phone : null
-        })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alert(data.message);
-        showLogin();
-      } else {
-        setError(data.message);
+    if (forgotStep === 'request') {
+      if (regMethod === 'email' && !formData.email) {
+        setError('Vui lòng nhập email của bạn');
+        return;
       }
-    } catch {
-      setError('Không thể kết nối đến server');
-    } finally {
-      setIsForgotLoading(false);
+      if (regMethod === 'phone' && !formData.phone) {
+        setError('Vui lòng nhập số điện thoại của bạn');
+        return;
+      }
+
+      setIsForgotLoading(true);
+      const identifier = regMethod === 'email' ? formData.email : formData.phone;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: regMethod === 'email' ? formData.email : null,
+            phone: regMethod === 'phone' ? formData.phone : null
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setForgotIdentifier(identifier);
+          if (data.otp) {
+            setReceivedOtp(data.otp);
+          }
+          setForgotStep('otp');
+          setModalConfig({
+            title: "Gửi mã OTP thành công",
+            message: typeof data.message === "object" ? data.message.message : (data.message || "Mã OTP khôi phục mật khẩu đã được gửi!"),
+            otp: data.otp || "",
+          });
+          setModalOpen(true);
+        } else {
+          setError(data.message);
+        }
+      } catch {
+        setError('Không thể kết nối đến server');
+      } finally {
+        setIsForgotLoading(false);
+      }
+    } else if (forgotStep === 'otp') {
+      if (!otpCode || otpCode.length !== 6) {
+        setError('Vui lòng nhập mã OTP gồm 6 chữ số');
+        return;
+      }
+
+      setIsForgotLoading(true);
+      try {
+        const isEmail = forgotIdentifier.includes('@');
+        const res = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: isEmail ? forgotIdentifier : null,
+            phone: !isEmail ? forgotIdentifier : null,
+            otp: otpCode
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setTempToken(data.tempToken);
+          setForgotStep('reset');
+        } else {
+          setError(data.message || 'Mã OTP không chính xác hoặc đã hết hạn');
+        }
+      } catch {
+        setError('Không thể kết nối đến server');
+      } finally {
+        setIsForgotLoading(false);
+      }
+    } else if (forgotStep === 'reset') {
+      if (newPassword.length < 6) {
+        setError('Mật khẩu mới phải ít nhất 6 ký tự');
+        return;
+      }
+      if (newPassword !== confirmNewPassword) {
+        setError('Mật khẩu xác nhận không trùng khớp');
+        return;
+      }
+
+      setIsForgotLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/reset-password/${tempToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: newPassword })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setSuccessMsg('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+          showLogin();
+        } else {
+          setError(data.message || 'Yêu cầu hết hạn hoặc không hợp lệ. Vui lòng thử lại.');
+        }
+      } catch {
+        setError('Không thể kết nối đến server');
+      } finally {
+        setIsForgotLoading(false);
+      }
     }
   };
 
@@ -170,6 +277,22 @@ const AuthPage = () => {
                 exit={{ opacity: 0, x: -22 }}
               >
                 <h3>Đăng nhập</h3>
+                {successMsg && (
+                  <div
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '12px',
+                      background: '#dcfce7',
+                      border: '1px solid #bbf7d0',
+                      color: '#15803d',
+                      fontSize: '0.85rem',
+                      marginBottom: '1rem',
+                      textAlign: 'center'
+                    }}
+                  >
+                    {successMsg}
+                  </div>
+                )}
                 <form onSubmit={handleSubmit} className="auth-form">
                   <div className="input-group">
                     <User size={18} className="input-icon" />
@@ -219,66 +342,150 @@ const AuthPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -22 }}
               >
-                <h3>Quên mật khẩu?</h3>
-                <p className="auth-form-note">Chọn phương thức để nhận liên kết khôi phục</p>
+                {forgotStep === 'request' && (
+                  <>
+                    <h3>Quên mật khẩu?</h3>
+                    <p className="auth-form-note">Chọn phương thức để nhận mã xác thực OTP</p>
+                  </>
+                )}
+                {forgotStep === 'otp' && (
+                  <>
+                    <h3>Xác thực OTP</h3>
+                    <p className="auth-form-note">Mã OTP đã được gửi đến {forgotIdentifier}</p>
+                  </>
+                )}
+                {forgotStep === 'reset' && (
+                  <>
+                    <h3>Đặt mật khẩu mới</h3>
+                    <p className="auth-form-note">Vui lòng thiết lập mật khẩu mới</p>
+                  </>
+                )}
 
                 <form onSubmit={handleForgotPassword} className="auth-form">
-                  <div className="auth-method-tabs">
-                    <button
-                      type="button"
-                      disabled={isForgotLoading}
-                      onClick={() => {
-                        setRegMethod('email');
-                        setFormData({ ...formData, phone: '' });
-                      }}
-                      className={regMethod === 'email' ? 'active' : ''}
-                    >
-                      Email
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isForgotLoading}
-                      onClick={() => {
-                        setRegMethod('phone');
-                        setFormData({ ...formData, email: '' });
-                      }}
-                      className={regMethod === 'phone' ? 'active' : ''}
-                    >
-                      Số điện thoại
-                    </button>
-                  </div>
+                  {forgotStep === 'request' && (
+                    <>
+                      <div className="auth-method-tabs">
+                        <button
+                          type="button"
+                          disabled={isForgotLoading}
+                          onClick={() => {
+                            setRegMethod('email');
+                            setFormData({ ...formData, phone: '' });
+                          }}
+                          className={regMethod === 'email' ? 'active' : ''}
+                        >
+                          Email
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isForgotLoading}
+                          onClick={() => {
+                            setRegMethod('phone');
+                            setFormData({ ...formData, email: '' });
+                          }}
+                          className={regMethod === 'phone' ? 'active' : ''}
+                        >
+                          Số điện thoại
+                        </button>
+                      </div>
 
-                  <AnimatePresence mode="wait">
-                    {regMethod === 'email' ? (
-                      <motion.div key="forgot-email" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
-                        <div className="input-group">
-                          <Mail size={18} className="input-icon" />
-                          <input
-                            type="email"
-                            placeholder="Email của bạn"
-                            className="auth-input"
-                            value={formData.email}
-                            disabled={isForgotLoading}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          />
+                      <AnimatePresence mode="wait">
+                        {regMethod === 'email' ? (
+                          <motion.div key="forgot-email" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+                            <div className="input-group">
+                              <Mail size={18} className="input-icon" />
+                              <input
+                                type="email"
+                                placeholder="Email của bạn"
+                                className="auth-input"
+                                value={formData.email}
+                                disabled={isForgotLoading}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                              />
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <motion.div key="forgot-phone" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
+                            <div className="input-group">
+                              <Phone size={18} className="input-icon" />
+                              <input
+                                type="text"
+                                placeholder="Số điện thoại của bạn"
+                                className="auth-input"
+                                value={formData.phone}
+                                disabled={isForgotLoading}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
+
+                  {forgotStep === 'otp' && (
+                    <motion.div key="forgot-otp" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '100%' }}>
+                      {receivedOtp && (
+                        <div
+                          style={{
+                            padding: '1rem',
+                            borderRadius: '12px',
+                            background: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            color: '#1e3a8a',
+                            fontSize: '0.85rem',
+                            lineHeight: '1.5',
+                            textAlign: 'left'
+                          }}
+                        >
+                          Vì quy định của các nhà mạng Việt Nam yêu cầu đăng ký Brandname nghiêm ngặt để gửi tin nhắn SMS, chúng tôi hiển thị mã OTP mô phỏng để bạn kiểm thử luồng này. Mã OTP của bạn là:{" "}
+                          <strong style={{ fontSize: '1rem', fontFamily: 'monospace', letterSpacing: '2px' }}>{receivedOtp}</strong>
                         </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div key="forgot-phone" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
-                        <div className="input-group">
-                          <Phone size={18} className="input-icon" />
-                          <input
-                            type="text"
-                            placeholder="Số điện thoại của bạn"
-                            className="auth-input"
-                            value={formData.phone}
-                            disabled={isForgotLoading}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      )}
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <Lock size={18} className="input-icon" />
+                        <input
+                          type="text"
+                          placeholder="Mã OTP gồm 6 chữ số"
+                          className="auth-input"
+                          maxLength={6}
+                          value={otpCode}
+                          disabled={isForgotLoading}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                          required
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {forgotStep === 'reset' && (
+                    <motion.div key="forgot-reset" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'grid', gap: '15px', width: '100%' }}>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <Lock size={18} className="input-icon" />
+                        <input
+                          type="password"
+                          placeholder="Mật khẩu mới"
+                          className="auth-input"
+                          value={newPassword}
+                          disabled={isForgotLoading}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="input-group" style={{ margin: 0 }}>
+                        <Lock size={18} className="input-icon" />
+                        <input
+                          type="password"
+                          placeholder="Xác nhận mật khẩu"
+                          className="auth-input"
+                          value={confirmNewPassword}
+                          disabled={isForgotLoading}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </motion.div>
+                  )}
 
                   {error && <p className="auth-error">{error}</p>}
                   <button
@@ -294,7 +501,13 @@ const AuthPage = () => {
                         transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
                       />
                     )}
-                    {isForgotLoading ? 'Đang gửi yêu cầu...' : 'Gửi yêu cầu khôi phục'}
+                    {isForgotLoading
+                      ? 'Đang xử lý...'
+                      : forgotStep === 'request'
+                      ? 'Gửi mã xác thực OTP'
+                      : forgotStep === 'otp'
+                      ? 'Xác thực mã OTP'
+                      : 'Đặt lại mật khẩu'}
                   </button>
                   <button
                     type="button"
@@ -347,7 +560,183 @@ const AuthPage = () => {
           </div>
         )}
       </section>
+      <NotificationModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        otp={modalConfig.otp}
+      />
     </div>
+  );
+};
+
+const NotificationModal = ({ isOpen, onClose, title, message, otp }) => {
+  if (!isOpen) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.4)",
+          backdropFilter: "blur(8px)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem",
+        }}
+      >
+        <motion.div
+          initial={{ scale: 0.95, y: 15 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.95, y: 15 }}
+          transition={{ type: "spring", duration: 0.4 }}
+          style={{
+            background: "white",
+            width: "100%",
+            maxWidth: "420px",
+            borderRadius: "24px",
+            padding: "2rem",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
+            border: "1px solid #f1f5f9",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              background: "#dcfce7",
+              color: "#16a34a",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <CheckCircle2 size={28} />
+          </div>
+          <h3
+            style={{
+              fontSize: "1.35rem",
+              fontWeight: 800,
+              color: "#1e293b",
+              marginBottom: "0.75rem",
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              color: "#64748b",
+              fontSize: "0.9rem",
+              lineHeight: "1.6",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {message}
+          </p>
+
+          {otp && (
+            <div
+              style={{
+                width: "100%",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: "16px",
+                padding: "1.25rem 1rem",
+                marginBottom: "1.75rem",
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#1e3a8a",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Mã xác thực OTP của bạn:
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: "1.8rem",
+                    fontWeight: 800,
+                    color: "#1d4ed8",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  {otp}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(otp);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#3b82f6",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  Sao chép
+                </button>
+              </div>
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#64748b",
+                  marginTop: "0.75rem",
+                  lineHeight: "1.4",
+                }}
+              >
+                (Hiển thị để phục vụ mục đích kiểm thử do hạn chế Brandname)
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-primary"
+            style={{
+              width: "100%",
+              height: "48px",
+              borderRadius: "999px",
+              fontWeight: 700,
+            }}
+          >
+            Xác nhận
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

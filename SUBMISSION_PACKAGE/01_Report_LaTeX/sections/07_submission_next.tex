@@ -1,0 +1,85 @@
+\chapter{Sản phẩm bàn giao và định hướng tiếp theo}
+
+\section{Sản phẩm bàn giao}
+
+Gói nộp bài được tổ chức trong thư mục \texttt{SUBMISSION\_PACKAGE} với các nhóm tài liệu:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|p{4.2cm}|Y|p{2.4cm}|}
+\hline
+\textbf{Thành phần} & \textbf{Nội dung} & \textbf{Trạng thái} \\ \hline
+Báo cáo đồ án & Mã nguồn LaTeX và PDF báo cáo & Đã có \\ \hline
+Mô hình nghiệp vụ & Mô tả actor, phạm vi, giá trị và giới hạn & Đã có \\ \hline
+Use case & Danh sách use case theo Khách hàng, Đối tác, Admin & Đã có \\ \hline
+ERD & Hình ERD và link bản vẽ & Đã có \\ \hline
+Biểu đồ xử lý & Mermaid flow cho các luồng chính & Đã có \\ \hline
+Mã nguồn & Source code client/server, không kèm node\_modules/dist & Đã có \\ \hline
+Script database & SQL tạo bảng, trigger và seed data & Đã có \\ \hline
+Slide & Thư mục placeholder để đặt slide & Chưa có file \\ \hline
+Video demo & Thư mục placeholder để đặt video demo & Chưa có file \\ \hline
+\end{tabularx}
+\caption{Danh mục sản phẩm bàn giao}
+\end{table}
+
+\section{Hướng dẫn chạy hệ thống}
+
+\subsection{Backend}
+
+\begin{lstlisting}
+cd application/server
+npm install
+copy .env-sample .env
+npm run dev
+\end{lstlisting}
+
+Cần cấu hình PostgreSQL trong file \texttt{.env} theo môi trường máy chạy demo.
+
+\subsection{Frontend}
+
+Mỗi app frontend chạy độc lập:
+
+\begin{lstlisting}
+cd application/client/customer
+npm install
+npm run dev
+
+cd application/client/partner
+npm install
+npm run dev
+
+cd application/client/admin
+npm install
+npm run dev
+\end{lstlisting}
+
+\section{Định hướng tiếp theo}
+
+\subsection{Hoàn thiện quy trình mua voucher}
+
+Ưu tiên cao nhất là hoàn thiện luồng khách hàng từ giỏ hàng đến đơn hàng:
+
+\begin{enumerate}[leftmargin=1.2cm]
+    \item Tạo API checkout nhận danh sách voucher trong giỏ hàng.
+    \item Kiểm tra tồn kho và trạng thái voucher trong transaction.
+    \item Tạo Orders và Order\_Items.
+    \item Mô phỏng thanh toán thành công/thất bại.
+    \item Sau khi order Paid, sinh E\_Voucher unique code cho từng item.
+\end{enumerate}
+
+\subsection{Hoàn thiện trải nghiệm sau mua}
+
+Bổ sung trang khách hàng xem lịch sử đơn, voucher đã mua, trạng thái sử dụng, QR mô phỏng và điều kiện sử dụng.
+
+\subsection{Mở rộng admin}
+
+Bổ sung quản lý đơn hàng, hoàn/hủy mô phỏng, tra cứu nhật ký hệ thống và quản lý nội dung như banner, bài viết, popup chính sách.
+
+\section{Kết luận}
+
+Đến thời điểm hiện tại, Dealzy đã hình thành được khung hệ thống thương mại điện tử voucher với ba vai trò rõ ràng, database quan hệ, luồng đối tác và admin khá đầy đủ, cùng giao diện khách hàng để tìm kiếm và chọn voucher. Những phần còn thiếu chủ yếu tập trung ở nghiệp vụ thanh toán và phát hành voucher sau thanh toán. Đây là nền tảng đủ tốt để nhóm tiếp tục hoàn thiện thành một demo end-to-end trong giai đoạn tiếp theo.
+
+\vspace{1.5cm}
+\begin{center}
+-------------------- \textit{Chúc nhóm hoàn thành tốt đồ án} --------------------
+\end{center}

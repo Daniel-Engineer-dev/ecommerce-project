@@ -6,10 +6,8 @@ const auth = require('../../middleware/authMiddleware');
 router.post('/validate-cart', auth, OrderController.validateCart);
 router.post('/checkout', auth, OrderController.checkout);
 
-router.get('/vnpay-return', OrderController.vnpayReturn);
 router.get('/paypal-return', OrderController.paypalReturn);
 router.get('/momo-return', OrderController.momoReturn);
-router.get('/vnpay-ipn', OrderController.vnpayIpn);
 router.post('/momo-ipn', OrderController.momoIpn);
 
 router.post('/confirm-vietqr', auth, OrderController.confirmVietQR);

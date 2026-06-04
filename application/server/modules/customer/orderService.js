@@ -1,4 +1,5 @@
 const pool = require('../../config/db');
+const { sendEmail } = require('../../utils/sendEmail');
 
 const ORDER_STATUS = {
     PENDING: 'Pending',
@@ -85,17 +86,43 @@ class OrderService {
                 throw new Error(errors[0]?.message || 'Cart contains unavailable vouchers.');
             }
 
-            const { name, phone, email, address } = shippingInfo;
+            const {
+                name,
+                phone,
+                email,
+                address,
+                isGift = false,
+                recipientName = null,
+                recipientPhone = null,
+                recipientEmail = null,
+                giftMessage = null,
+            } = shippingInfo;
             const orderRes = await client.query(
                 `
                     INSERT INTO Orders (
                         customer_id, total_amount, status, payment_method,
-                        shipping_name, shipping_phone, shipping_email, shipping_address
+                        shipping_name, shipping_phone, shipping_email, shipping_address,
+                        is_gift, gift_recipient_name, gift_recipient_phone,
+                        gift_recipient_email, gift_message
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     RETURNING order_id
                 `,
-                [customerId, totalAmount, ORDER_STATUS.PENDING, paymentMethod, name, phone, email, address || null]
+                [
+                    customerId,
+                    totalAmount,
+                    ORDER_STATUS.PENDING,
+                    paymentMethod,
+                    name,
+                    phone,
+                    email,
+                    address || null,
+                    Boolean(isGift),
+                    isGift ? recipientName : null,
+                    isGift ? recipientPhone : null,
+                    isGift ? recipientEmail : null,
+                    isGift ? giftMessage : null,
+                ]
             );
 
             const orderId = orderRes.rows[0].order_id;
@@ -200,6 +227,7 @@ class OrderService {
 
     async completeOrder(orderId, transactionRef, customerId = null) {
         const client = await pool.connect();
+        let committed = false;
         try {
             await client.query('BEGIN');
 
@@ -218,6 +246,7 @@ class OrderService {
             const order = orderRes.rows[0];
             if (order.status === ORDER_STATUS.PAID) {
                 await client.query('COMMIT');
+                committed = true;
                 return true;
             }
             if (order.status !== ORDER_STATUS.PENDING) {
@@ -251,9 +280,17 @@ class OrderService {
             }
 
             await client.query('COMMIT');
+            committed = true;
+            try {
+                await this.sendGiftEVoucherEmail(orderId);
+            } catch (emailError) {
+                console.error('sendGiftEVoucherEmail error:', emailError);
+            }
             return true;
         } catch (err) {
-            await client.query('ROLLBACK');
+            if (!committed) {
+                await client.query('ROLLBACK');
+            }
             throw err;
         } finally {
             client.release();
@@ -267,6 +304,7 @@ class OrderService {
                     `
                         INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
                         VALUES ($1, $2, 'Unused', $3)
+                        RETURNING evoucher_id
                     `,
                     [orderItemId, this.generateUniqueCode(), expiryDate]
                 );
@@ -276,6 +314,86 @@ class OrderService {
             }
         }
         throw new Error('Could not generate a unique e-voucher code.');
+    }
+
+    escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    formatDate(value) {
+        if (!value) return 'Không giới hạn';
+        return new Date(value).toLocaleDateString('vi-VN');
+    }
+
+    async sendGiftEVoucherEmail(orderId) {
+        const { rows } = await pool.query(
+            `
+                SELECT
+                    o.order_id, o.shipping_name, o.is_gift, o.gift_recipient_name,
+                    o.gift_recipient_email, o.gift_message,
+                    ev.unique_code, ev.expiry_date,
+                    v.title, p.company_name
+                FROM Orders o
+                JOIN Order_Items oi ON oi.order_id = o.order_id
+                JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                JOIN Vouchers v ON v.voucher_id = oi.voucher_id
+                JOIN Partners p ON p.user_id = v.partner_id
+                WHERE o.order_id = $1 AND o.status = $2
+                ORDER BY ev.evoucher_id
+            `,
+            [orderId, ORDER_STATUS.PAID]
+        );
+
+        if (rows.length === 0 || !rows[0].is_gift || !rows[0].gift_recipient_email) {
+            return;
+        }
+
+        const order = rows[0];
+        const recipientName = order.gift_recipient_name || 'bạn';
+        const buyerName = order.shipping_name || 'một người thân';
+        const voucherRows = rows.map((item) => `
+            <tr>
+                <td style="padding:12px;border-bottom:1px solid #e5e7eb;">
+                    <div style="font-weight:700;color:#0f172a;">${this.escapeHtml(item.title)}</div>
+                    <div style="font-size:13px;color:#64748b;">${this.escapeHtml(item.company_name)}</div>
+                </td>
+                <td style="padding:12px;border-bottom:1px solid #e5e7eb;font-family:Consolas, monospace;font-weight:800;color:#0f4c81;white-space:nowrap;">${this.escapeHtml(item.unique_code)}</td>
+                <td style="padding:12px;border-bottom:1px solid #e5e7eb;color:#475569;white-space:nowrap;">${this.formatDate(item.expiry_date)}</td>
+            </tr>
+        `).join('');
+
+        const giftMessage = order.gift_message
+            ? `<p style="margin:18px 0 0;padding:14px 16px;background:#f8fafc;border-left:4px solid #0f4c81;border-radius:10px;color:#334155;"><strong>Lời nhắn:</strong><br />${this.escapeHtml(order.gift_message)}</p>`
+            : '';
+
+        await sendEmail({
+            email: order.gift_recipient_email,
+            subject: 'Bạn vừa nhận được E-Voucher từ Dealzy',
+            template: {
+                title: 'Bạn vừa nhận được E-Voucher',
+                intro: `Xin chào ${this.escapeHtml(recipientName)}, ${this.escapeHtml(buyerName)} đã gửi tặng bạn E-Voucher trên Dealzy.`,
+                body: `
+                    <p style="margin:0 0 18px;">Bạn có thể dùng các mã dưới đây tại điểm áp dụng theo điều kiện của từng voucher.</p>
+                    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+                        <thead>
+                            <tr style="background:#f1f5f9;color:#334155;font-size:13px;text-align:left;">
+                                <th style="padding:12px;">Voucher</th>
+                                <th style="padding:12px;">Mã sử dụng</th>
+                                <th style="padding:12px;">Hạn dùng</th>
+                            </tr>
+                        </thead>
+                        <tbody>${voucherRows}</tbody>
+                    </table>
+                    ${giftMessage}
+                `,
+                footer: 'Vui lòng giữ email này để xuất trình mã khi sử dụng E-Voucher.',
+            },
+        });
     }
 
     async restoreStockForOrder(client, orderId) {
@@ -398,6 +516,7 @@ class OrderService {
             `
                 SELECT o.order_id, o.order_date, o.total_amount, o.status, o.payment_method,
                     o.transaction_reference, o.shipping_name, o.shipping_phone, o.shipping_email,
+                    o.is_gift, o.gift_recipient_name, o.gift_recipient_phone, o.gift_recipient_email,
                     COUNT(DISTINCT oi.order_item_id)::int AS item_count,
                     COALESCE(SUM(oi.quantity), 0)::int AS voucher_quantity,
                     COUNT(ev.evoucher_id)::int AS evoucher_count
@@ -419,7 +538,8 @@ class OrderService {
         const orderRes = await pool.query(
             `
                 SELECT order_id, customer_id, order_date, total_amount, status, payment_method,
-                    transaction_reference, shipping_name, shipping_phone, shipping_email, shipping_address
+                    transaction_reference, shipping_name, shipping_phone, shipping_email, shipping_address,
+                    is_gift, gift_recipient_name, gift_recipient_phone, gift_recipient_email, gift_message
                 FROM Orders
                 WHERE order_id = $1 AND customer_id = $2
             `,

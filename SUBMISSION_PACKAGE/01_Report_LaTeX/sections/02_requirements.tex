@@ -1,0 +1,80 @@
+\chapter{Yêu cầu nghiệp vụ}
+
+\section{Tác nhân hệ thống}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|p{3.4cm}|Y|}
+\hline
+\textbf{Tác nhân} & \textbf{Trách nhiệm chính} \\ \hline
+Khách hàng & Tạo tài khoản, đăng nhập, cập nhật hồ sơ, tìm kiếm voucher, xem thông tin chi tiết, thêm voucher vào giỏ hàng và chuẩn bị mua voucher. \\ \hline
+Đối tác & Đăng ký doanh nghiệp, khai báo chi nhánh, tạo và quản lý voucher, gửi duyệt, xem báo cáo, kiểm tra và xác nhận voucher code. \\ \hline
+Quản trị viên & Duyệt hồ sơ đối tác, quản lý người dùng, duyệt/từ chối/tạm ẩn voucher, theo dõi dashboard và kiểm soát chất lượng dữ liệu trên sàn. \\ \hline
+\end{tabularx}
+\caption{Tác nhân và trách nhiệm}
+\end{table}
+
+\section{Yêu cầu chức năng theo vai trò}
+
+\subsection{Khách hàng}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Đăng ký tài khoản bằng email hoặc số điện thoại, có kiểm tra trùng.
+    \item Đăng nhập, quên mật khẩu, đổi mật khẩu và cập nhật hồ sơ cá nhân.
+    \item Tìm kiếm voucher theo từ khóa và lọc theo danh mục, khu vực, giá, mức giảm, đối tác.
+    \item Xem chi tiết voucher gồm giá gốc, giá bán, thời hạn, điều kiện, chi nhánh và đánh giá.
+    \item Quản lý giỏ hàng ở phía client: thêm, cập nhật số lượng, xóa voucher và xem tổng tiền tạm tính.
+\end{itemize}
+
+\subsection{Đối tác}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Đăng ký tài khoản đối tác cùng thông tin doanh nghiệp, người đại diện, mã số thuế, trụ sở và chi nhánh.
+    \item Tạo voucher với danh mục, giá, mô tả, hình ảnh, thời gian bán, thời hạn sử dụng, chính sách hoàn/hủy và chi nhánh áp dụng.
+    \item Gửi voucher sang trạng thái chờ duyệt và theo dõi trạng thái.
+    \item Quản lý voucher trong phạm vi cho phép, xem số lượng phát hành, đã bán, đã dùng.
+    \item Kiểm tra voucher code và xác nhận sử dụng tại chi nhánh hợp lệ.
+    \item Xem dashboard/báo cáo doanh thu, số lượng bán, tỷ lệ sử dụng và hiệu quả từng chương trình.
+\end{itemize}
+
+\subsection{Quản trị viên}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Xem danh sách đối tác chờ duyệt, duyệt hoặc từ chối hồ sơ.
+    \item Xem, tìm kiếm, lọc, khóa/mở khóa tài khoản người dùng và đổi vai trò.
+    \item Xem danh sách voucher theo trạng thái: Pending, Approved, Rejected, Suspended.
+    \item Duyệt voucher, từ chối kèm lý do hoặc tạm ẩn voucher.
+    \item Xem dashboard tổng quan về người dùng, đối tác, voucher và các chỉ số mô phỏng.
+\end{itemize}
+
+\section{Use case tiêu biểu}
+
+\begin{longtable}{|p{2.8cm}|p{5.3cm}|p{6.2cm}|}
+\hline
+\textbf{Mã} & \textbf{Use case} & \textbf{Ghi chú} \\ \hline
+\endfirsthead
+\hline
+\textbf{Mã} & \textbf{Use case} & \textbf{Ghi chú} \\ \hline
+\endhead
+UC-CUS-01 & Tìm kiếm và xem voucher & Đã có API chung và giao diện khách hàng. \\ \hline
+UC-CUS-02 & Quản lý giỏ hàng & Đã có ở frontend, lưu bằng localStorage. \\ \hline
+UC-CUS-03 & Tạo đơn hàng và thanh toán mô phỏng & Chưa hoàn tất trên API/UI. \\ \hline
+UC-PAR-01 & Tạo voucher mới & Đã có backend partner và giao diện partner. \\ \hline
+UC-PAR-02 & Xác thực voucher code & Đã có tra cứu và redeem theo chi nhánh. \\ \hline
+UC-ADM-01 & Duyệt đối tác & Đã có route/service và giao diện admin. \\ \hline
+UC-ADM-02 & Quản lý người dùng & Đã có tìm kiếm, phân trang, khóa/mở khóa, đổi role. \\ \hline
+UC-ADM-03 & Duyệt voucher & Đã có duyệt, từ chối, tạm ẩn voucher. \\ \hline
+\caption[]{Danh sách use case chính}\\
+\end{longtable}
+
+\section{Quy tắc nghiệp vụ}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Voucher chỉ được bán khi đã được quản trị viên duyệt.
+    \item Giá bán voucher phải nhỏ hơn giá gốc.
+    \item Voucher phải có thời gian bắt đầu và hết hạn hợp lệ.
+    \item Số lượng tồn không âm và không vượt quá tổng số lượng phát hành.
+    \item Voucher code là duy nhất và không được sử dụng lại sau khi đã chuyển sang trạng thái Used.
+    \item Đối tác chỉ được xác thực voucher thuộc chương trình hoặc chi nhánh của mình.
+    \item Người dùng chỉ được đánh giá voucher sau khi có giao dịch liên quan.
+\end{itemize}

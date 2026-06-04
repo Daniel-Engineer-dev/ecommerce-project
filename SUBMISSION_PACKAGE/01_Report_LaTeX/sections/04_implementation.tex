@@ -1,0 +1,59 @@
+\chapter{Hiện thực hệ thống}
+
+\section{Các chức năng đã hoàn thành}
+
+\begin{longtable}{|p{3.5cm}|p{7.0cm}|p{3.2cm}|}
+\hline
+\textbf{Nhóm chức năng} & \textbf{Mô tả} & \textbf{Trạng thái} \\ \hline
+\endfirsthead
+\hline
+\textbf{Nhóm chức năng} & \textbf{Mô tả} & \textbf{Trạng thái} \\ \hline
+\endhead
+Tài khoản & Đăng ký, đăng nhập, JWT, hồ sơ, đổi mật khẩu, quên mật khẩu qua email/SMS mô phỏng & Đã có \\ \hline
+Voucher công khai & Danh sách voucher Approved, chi tiết voucher, tìm kiếm và lọc & Đã có \\ \hline
+Giỏ hàng & Thêm, xóa, cập nhật số lượng, tính tạm tính ở frontend khách hàng & Đã có \\ \hline
+Partner dashboard & Thống kê tổng voucher, approved/pending, doanh thu, số lượng đã bán/đã dùng & Đã có \\ \hline
+Partner voucher & Tạo, cập nhật, gửi duyệt, tạm ngưng, gắn chi nhánh áp dụng & Đã có \\ \hline
+Partner redeem & Tra cứu code, kiểm tra điều kiện, xác nhận sử dụng tại chi nhánh & Đã có \\ \hline
+Admin partner approval & Xem đối tác pending, duyệt hoặc từ chối & Đã có \\ \hline
+Admin user management & Danh sách, tìm kiếm, phân trang, khóa/mở khóa, đổi role & Đã có \\ \hline
+Admin voucher management & Lọc theo trạng thái, tìm kiếm, duyệt, từ chối, tạm ẩn voucher & Đã có \\ \hline
+Order/Payment & Tạo đơn từ giỏ hàng, thanh toán mô phỏng, phát hành code sau thanh toán & Chưa hoàn tất \\ \hline
+\caption[]{Trạng thái hiện thực theo nhóm chức năng}\\
+\end{longtable}
+
+\section{Frontend}
+
+Các frontend đều dùng React + Vite, tổ chức theo trang và component. Một số trang quan trọng:
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Customer: \texttt{Home.jsx}, \texttt{SearchVouchers.jsx}, \texttt{VoucherDetail.jsx}, \texttt{Cart.jsx}, \texttt{Profile.jsx}.
+    \item Partner: \texttt{App.jsx} chứa trải nghiệm quản lý chính cho đối tác, gồm dashboard, voucher, chi nhánh, xác thực code và báo cáo.
+    \item Admin: \texttt{AdminDashboard.jsx}, \texttt{PartnerApproval.jsx}, \texttt{UserManagement.jsx}, \texttt{VoucherManagement.jsx}.
+\end{itemize}
+
+\section{Backend}
+
+Server Express mount các nhóm route chính:
+
+\begin{lstlisting}[language=JavaScript]
+app.use('/api/vouchers', voucherRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/partner', partnerRoutes);
+app.use('/api/admin/vouchers', adminVoucherRoutes);
+\end{lstlisting}
+
+Các service sử dụng PostgreSQL thông qua \texttt{pg}. Mật khẩu được hash bằng bcryptjs, token đăng nhập dùng JWT. Email/SMS được đóng gói trong \texttt{utils/sendEmail.js} và \texttt{utils/sendSms.js}.
+
+\section{Những điểm đã xử lý khi tích hợp nhánh}
+
+Trong quá trình gom các nhánh role vào nhánh \texttt{partner}, nhóm đã:
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Merge chức năng admin từ nhánh \texttt{admin} vào nhánh \texttt{partner}.
+    \item Giữ cả route partner và route admin voucher trong \texttt{application/server/index.js}.
+    \item Giữ seed user có email/password hash để tương thích luồng auth mới.
+    \item Sửa tên cột \texttt{reject\_reason} thành \texttt{rejected\_reason} để khớp schema database.
+    \item Loại file tạm Office khỏi merge cuối.
+\end{itemize}

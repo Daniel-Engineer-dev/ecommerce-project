@@ -56,8 +56,8 @@ const changePassword = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     try {
-        const message = await authService.forgotPassword(req.body);
-        res.json({ message });
+        const result = await authService.forgotPassword(req.body);
+        res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -74,8 +74,18 @@ const resetPassword = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-        const tempToken = await authService.verifyOtp(req.body.phone, req.body.otp);
+        const { email, phone, otp } = req.body;
+        const tempToken = await authService.verifyOtp(email || phone, otp);
         res.json({ message: 'OTP verified successfully', tempToken });
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+};
+
+const sendVerificationOtp = async (req, res) => {
+    try {
+        const result = await authService.sendVerificationOtp(req.body);
+        res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -101,4 +111,5 @@ module.exports = {
     forgotPassword,
     resetPassword,
     verifyOtp,
+    sendVerificationOtp,
 };

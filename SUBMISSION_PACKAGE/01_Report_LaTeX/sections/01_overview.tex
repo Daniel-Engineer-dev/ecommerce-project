@@ -1,0 +1,43 @@
+\chapter{Tổng quan đề tài}
+
+\section{Bối cảnh}
+
+Dealzy là hệ thống thương mại điện tử tập trung vào mô hình bán voucher giảm giá trực tuyến. Hệ thống đóng vai trò trung gian giữa khách hàng có nhu cầu mua ưu đãi và các đối tác cung cấp dịch vụ như nhà hàng, du lịch, spa, mua sắm hoặc giải trí. Trong phạm vi đồ án, nhóm xây dựng một nền tảng demo có đủ ba vai trò cốt lõi: Khách hàng, Đối tác và Quản trị viên.
+
+Điểm trọng tâm của đề tài không chỉ là hiển thị voucher, mà còn là quản lý vòng đời voucher: đối tác tạo voucher, quản trị viên kiểm duyệt, voucher được công bố cho khách hàng, khách hàng lựa chọn voucher, hệ thống quản lý mã voucher điện tử và đối tác xác thực việc sử dụng voucher. Đến thời điểm báo cáo, nhóm đã hoàn thiện phần lớn luồng quản lý, kiểm duyệt và xác thực; phần checkout, thanh toán mô phỏng và phát hành code tự động từ đơn hàng vẫn được ghi nhận là phần cần tiếp tục hoàn thiện.
+
+\section{Mục tiêu}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Xây dựng hệ thống thương mại điện tử có cơ sở dữ liệu quan hệ và phân quyền theo vai trò.
+    \item Cung cấp giao diện riêng cho khách hàng, đối tác và quản trị viên để giảm chồng chéo nghiệp vụ.
+    \item Thiết kế backend theo kiến trúc module để mỗi nhóm vai trò có route, controller và service riêng.
+    \item Hiện thực các quy tắc nghiệp vụ quan trọng bằng cả code backend và ràng buộc trong PostgreSQL.
+    \item Chuẩn bị bộ sản phẩm bàn giao gồm báo cáo, mã nguồn, ERD, script database, dữ liệu mẫu và tài liệu chuyển tiếp.
+\end{itemize}
+
+\section{Phạm vi hiện tại}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|p{3.2cm}|Y|p{3.0cm}|}
+\hline
+\textbf{Mảng} & \textbf{Nội dung} & \textbf{Trạng thái} \\ \hline
+Khách hàng & Đăng ký, đăng nhập, hồ sơ, tìm kiếm voucher, xem chi tiết, giỏ hàng & Đã có \\ \hline
+Đối tác & Đăng ký doanh nghiệp, chi nhánh, tạo voucher, gửi duyệt, quản lý, báo cáo, xác thực code & Đã có \\ \hline
+Quản trị viên & Duyệt đối tác, quản lý user, duyệt/từ chối/tạm ẩn voucher, dashboard & Đã có \\ \hline
+Mua hàng & Tạo đơn từ giỏ hàng, thanh toán mô phỏng, phát hành voucher code sau thanh toán & Chưa hoàn tất \\ \hline
+Dữ liệu & PostgreSQL, ERD, script tạo bảng, trigger/ràng buộc, seed data & Đã có \\ \hline
+\end{tabularx}
+\caption{Tổng quan phạm vi hiện thực}
+\end{table}
+
+\section{Công nghệ sử dụng}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Frontend: React, Vite, React Router, Framer Motion, Lucide React, Recharts.
+    \item Backend: Node.js, Express, JWT, bcryptjs, pg, Nodemailer.
+    \item Database: PostgreSQL.
+    \item Tài liệu: LaTeX, Mermaid, Markdown.
+    \item Quản lý mã nguồn: Git, GitHub; nhánh tổng hợp hiện tại là \texttt{partner}.
+\end{itemize}

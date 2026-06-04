@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../apiClient';
-import { ArrowLeft, CreditCard, Wallet, QrCode, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Wallet, QrCode, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
 
 const Checkout = () => {
   const { cartItems, totalPrice, totalItems, clearCart } = useCart();
@@ -14,10 +14,15 @@ const Checkout = () => {
     name: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    isGift: false,
+    recipientName: '',
+    recipientPhone: '',
+    recipientEmail: '',
+    giftMessage: ''
   });
   
-  const [paymentMethod, setPaymentMethod] = useState('VNPay'); // Default to VNPay
+  const [paymentMethod, setPaymentMethod] = useState('MoMo'); // Mặc định MoMo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -45,7 +50,12 @@ const Checkout = () => {
             name: data.full_name || '',
             phone: data.phone || '',
             email: data.email || '',
-            address: data.address || ''
+            address: data.address || '',
+            isGift: false,
+            recipientName: '',
+            recipientPhone: '',
+            recipientEmail: '',
+            giftMessage: ''
           });
         }
       } catch (err) {
@@ -81,9 +91,10 @@ const Checkout = () => {
   };
 
   const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setShippingInfo({
       ...shippingInfo,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -98,7 +109,8 @@ const Checkout = () => {
         voucher_id: item.voucher_id,
         quantity: item.quantity
       })),
-      paymentMethod
+      paymentMethod,
+      frontendUrl: window.location.origin
     };
     
     try {
@@ -128,10 +140,10 @@ const Checkout = () => {
         throw new Error(data.message || 'Thanh toán đơn hàng thất bại.');
       }
       
-      if (paymentMethod === 'VNPay' || paymentMethod === 'MoMo' || paymentMethod === 'PayPal') {
-        // External gateways leave the checkout page immediately, so clear the local cart now.
-        clearCart();
-        // Redirect trực tiếp sang trang cổng thanh toán
+      if (paymentMethod === 'MoMo' || paymentMethod === 'PayPal') {
+        // Redirect tới cổng thanh toán — KHÔNG xóa giỏ hàng ở đây.
+        // Giỏ hàng sẽ được xóa tại PaymentStatus khi thanh toán thành công.
+        // Nếu thanh toán thất bại, người dùng giữ nguyên giỏ hàng để thử lại.
         window.location.href = data.paymentUrl;
       } 
       else if (paymentMethod === 'VietQR') {
@@ -302,187 +314,181 @@ const Checkout = () => {
                     />
                   </div>
                 </div>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.9rem 1rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#1e293b'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    name="isGift"
+                    checked={shippingInfo.isGift}
+                    onChange={handleInputChange}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                  />
+                  Mua tặng người khác
+                </label>
+
+                {shippingInfo.isGift && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '14px', background: '#f8fafc' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>TÊN NGƯỜI NHẬN QUÀ</label>
+                      <input
+                        type="text"
+                        name="recipientName"
+                        value={shippingInfo.recipientName}
+                        onChange={handleInputChange}
+                        required={shippingInfo.isGift}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                        placeholder="Nhập họ tên người nhận"
+                      />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>SỐ ĐIỆN THOẠI NGƯỜI NHẬN</label>
+                        <input
+                          type="tel"
+                          name="recipientPhone"
+                          value={shippingInfo.recipientPhone}
+                          onChange={handleInputChange}
+                          required={shippingInfo.isGift}
+                          style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                          placeholder="Số điện thoại người nhận"
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>EMAIL NGƯỜI NHẬN</label>
+                        <input
+                          type="email"
+                          name="recipientEmail"
+                          value={shippingInfo.recipientEmail}
+                          onChange={handleInputChange}
+                          required={shippingInfo.isGift}
+                          style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem' }}
+                          placeholder="Email nhận mã voucher"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)' }}>LỜI NHẮN</label>
+                      <textarea
+                        name="giftMessage"
+                        value={shippingInfo.giftMessage}
+                        onChange={handleInputChange}
+                        rows={3}
+                        style={{ width: '100%', padding: '0.8rem 1rem', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '0.95rem', resize: 'vertical' }}
+                        placeholder="Lời nhắn ngắn gửi kèm voucher"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Chọn phương thức thanh toán */}
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', color: '#1e293b' }}>
                 Phương thức thanh toán
               </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                
-                {/* Option 1: VNPay */}
-                <div 
-                  onClick={() => setPaymentMethod('VNPay')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1.2rem',
-                    border: paymentMethod === 'VNPay' ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'VNPay' ? 'rgba(239, 68, 68, 0.02)' : 'white',
-                    transition: '0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      width: '44px', 
-                      height: '44px', 
-                      background: 'rgba(59, 130, 246, 0.1)', 
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#3b82f6'
-                    }}>
-                      <CreditCard size={22} />
+                {[
+                  {
+                    id: 'MoMo',
+                    name: 'Ví điện tử MoMo',
+                    desc: 'Ví điện tử siêu tốc độ hàng đầu Việt Nam',
+                    icon: <Wallet size={22} />,
+                    primaryColor: '#e11b74',
+                    bgColor: '#fff0f6',
+                    iconColor: '#e11b74',
+                    iconBg: '#ffe0ee',
+                    shadow: '0 8px 20px rgba(225, 27, 116, 0.08)'
+                  },
+                  {
+                    id: 'VietQR',
+                    name: 'Chuyển khoản VietQR demo',
+                    desc: 'Quét mã và xác nhận mô phỏng để hoàn tất đơn hàng demo',
+                    icon: <QrCode size={22} />,
+                    primaryColor: '#00b0ad',
+                    bgColor: '#e6faf9',
+                    iconColor: '#00b0ad',
+                    iconBg: '#ccf5f3',
+                    shadow: '0 8px 20px rgba(0, 176, 173, 0.08)'
+                  },
+                  {
+                    id: 'PayPal',
+                    name: 'Ví điện tử PayPal',
+                    desc: 'Cổng thanh toán quốc tế an toàn bằng USD (Quy đổi tự động)',
+                    icon: <Wallet size={22} />,
+                    primaryColor: '#0079c1',
+                    bgColor: '#f0f9ff',
+                    iconColor: '#0079c1',
+                    iconBg: '#e0f2fe',
+                    shadow: '0 8px 20px rgba(0, 121, 193, 0.08)'
+                  }
+                ].map((option) => {
+                  const isSelected = paymentMethod === option.id;
+                  return (
+                    <div 
+                      key={option.id}
+                      onClick={() => setPaymentMethod(option.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '1.2rem',
+                        border: isSelected ? `2px solid ${option.primaryColor}` : '1px solid #e2e8f0',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        background: isSelected ? option.bgColor : 'white',
+                        boxShadow: isSelected ? option.shadow : 'none',
+                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: isSelected ? 'translateY(-2px)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ 
+                          width: '44px', 
+                          height: '44px', 
+                          background: isSelected ? option.iconBg : 'rgba(15, 23, 42, 0.05)', 
+                          borderRadius: 'var(--radius-sm)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isSelected ? option.iconColor : 'var(--primary)',
+                          transition: 'all 0.25s ease'
+                        }}>
+                          {option.icon}
+                        </div>
+                        <div>
+                          <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{option.name}</h4>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{option.desc}</p>
+                        </div>
+                      </div>
+                      <div style={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        borderRadius: '50%', 
+                        border: isSelected ? `6px solid ${option.primaryColor}` : '2px solid #cbd5e1',
+                        transition: 'all 0.25s ease'
+                      }} />
                     </div>
-                    <div>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Cổng thanh toán VNPay</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Thanh toán qua mã QR VNPay hoặc thẻ ATM/Quốc tế</p>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    borderRadius: '50%', 
-                    border: paymentMethod === 'VNPay' ? '6px solid var(--primary)' : '2px solid #cbd5e1'
-                  }} />
-                </div>
-
-                {/* Option 2: MoMo */}
-                <div 
-                  onClick={() => setPaymentMethod('MoMo')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1.2rem',
-                    border: paymentMethod === 'MoMo' ? '2px solid #d82d8b' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'MoMo' ? 'rgba(216, 45, 139, 0.02)' : 'white',
-                    transition: '0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      width: '44px', 
-                      height: '44px', 
-                      background: 'rgba(216, 45, 139, 0.1)', 
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#d82d8b'
-                    }}>
-                      <Wallet size={22} />
-                    </div>
-                    <div>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Ví điện tử MoMo</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ví điện tử siêu tốc độ hàng đầu Việt Nam</p>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    borderRadius: '50%', 
-                    border: paymentMethod === 'MoMo' ? '6px solid #d82d8b' : '2px solid #cbd5e1'
-                  }} />
-                </div>
-
-                {/* Option 3: VietQR */}
-                <div 
-                  onClick={() => setPaymentMethod('VietQR')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1.2rem',
-                    border: paymentMethod === 'VietQR' ? '2px solid #059669' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'VietQR' ? 'rgba(5, 150, 105, 0.02)' : 'white',
-                    transition: '0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      width: '44px', 
-                      height: '44px', 
-                      background: 'rgba(5, 150, 105, 0.1)', 
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#059669'
-                    }}>
-                      <QrCode size={22} />
-                    </div>
-                    <div>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Chuyển khoản VietQR demo</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Quét mã và xác nhận mô phỏng để hoàn tất đơn hàng demo</p>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    borderRadius: '50%', 
-                    border: paymentMethod === 'VietQR' ? '6px solid #059669' : '2px solid #cbd5e1'
-                  }} />
-                </div>
-
-                {/* Option 4: PayPal */}
-                <div 
-                  onClick={() => setPaymentMethod('PayPal')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '1.2rem',
-                    border: paymentMethod === 'PayPal' ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    cursor: 'pointer',
-                    background: paymentMethod === 'PayPal' ? 'rgba(37, 99, 235, 0.02)' : 'white',
-                    transition: '0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ 
-                      width: '44px', 
-                      height: '44px', 
-                      background: 'rgba(37, 99, 235, 0.1)', 
-                      borderRadius: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#2563eb'
-                    }}>
-                      <Wallet size={22} />
-                    </div>
-                    <div>
-                      <h4 style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Ví điện tử PayPal</h4>
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Cổng thanh toán quốc tế an toàn bằng USD (Quy đổi tự động)</p>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    borderRadius: '50%', 
-                    border: paymentMethod === 'PayPal' ? '6px solid #2563eb' : '2px solid #cbd5e1'
-                  }} />
-                </div>
-
+                  );
+                })}
               </div>
             </div>
 
           </form>
 
-          {/* CỘT PHẢI: TÓM TẮT GIỎ HÀNG */}
           <div>
             <div style={{ background: 'white', padding: '2rem', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', position: 'sticky', top: '180px' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', color: '#1e293b' }}>Tóm tắt đơn hàng</h3>
@@ -534,8 +540,8 @@ const Checkout = () => {
                   width: '100%', 
                   height: '56px', 
                   fontSize: '1.1rem', 
-                  borderRadius: '16px',
-                  background: paymentMethod === 'MoMo' ? '#d82d8b' : paymentMethod === 'VietQR' ? '#059669' : paymentMethod === 'PayPal' ? '#2563eb' : 'var(--primary)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--primary)',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'flex',

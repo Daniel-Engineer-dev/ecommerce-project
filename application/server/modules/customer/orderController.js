@@ -1,8 +1,9 @@
 const orderService = require('./orderService');
-const vnpay = require('../../utils/vnpay');
 const momo = require('../../utils/momo');
 const vietqr = require('../../utils/vietqr');
 const paypal = require('../../utils/paypal');
+
+const orderOrigins = new Map();
 
 class OrderController {
     async validateCart(req, res) {
@@ -17,7 +18,7 @@ class OrderController {
     async checkout(req, res) {
         try {
             const customerId = req.user.id;
-            const { shippingInfo, items, paymentMethod } = req.body;
+            const { shippingInfo, items, paymentMethod, frontendUrl } = req.body;
 
             if (!shippingInfo || !items || items.length === 0 || !paymentMethod) {
                 return res.status(400).json({ message: 'Missing order or payment information.' });
@@ -30,10 +31,15 @@ class OrderController {
                 paymentMethod
             );
 
-            if (paymentMethod === 'VNPay') {
-                const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-                const paymentUrl = vnpay.createPaymentUrl(orderId, totalAmount, ipAddr);
-                return res.json({ success: true, orderId, totalAmount, paymentUrl });
+            if (frontendUrl) {
+                // Ring buffer cleanup to keep memory usage bounded
+                if (orderOrigins.size > 1000) {
+                    const keys = Array.from(orderOrigins.keys());
+                    for (let i = 0; i < 100; i++) {
+                        orderOrigins.delete(keys[i]);
+                    }
+                }
+                orderOrigins.set(String(orderId), frontendUrl);
             }
 
             if (paymentMethod === 'MoMo') {
@@ -73,7 +79,8 @@ class OrderController {
 
     async paypalReturn(req, res) {
         const { token, orderId, demo } = req.query;
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = orderOrigins.get(String(orderId)) || process.env.FRONTEND_URL || 'http://localhost:5174';
+        orderOrigins.delete(String(orderId));
 
         try {
             if (!orderId) {
@@ -102,49 +109,6 @@ class OrderController {
         }
     }
 
-    async vnpayReturn(req, res) {
-        const queryParams = req.query;
-        const orderId = queryParams.vnp_TxnRef;
-        const responseCode = queryParams.vnp_ResponseCode;
-        const transactionRef = queryParams.vnp_TransactionNo;
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-        try {
-            const isValid = vnpay.verifyReturnUrl(queryParams);
-            if (isValid && responseCode === '00') {
-                await orderService.completeOrder(orderId, transactionRef);
-                return res.redirect(`${frontendUrl}/payment/status?status=success&orderId=${orderId}&payment=vnpay`);
-            }
-
-            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${orderId}&payment=vnpay`);
-        } catch (error) {
-            console.error('vnpayReturn error:', error);
-            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${orderId}&payment=vnpay`);
-        }
-    }
-
-    async vnpayIpn(req, res) {
-        const queryParams = req.query;
-        const orderId = queryParams.vnp_TxnRef;
-        const responseCode = queryParams.vnp_ResponseCode;
-        const transactionRef = queryParams.vnp_TransactionNo;
-
-        try {
-            const isValid = vnpay.verifyReturnUrl(queryParams);
-            if (!isValid) {
-                return res.status(400).json({ RspCode: '97', Message: 'Invalid Checksum' });
-            }
-
-            if (responseCode === '00') {
-                await orderService.completeOrder(orderId, transactionRef);
-            }
-            return res.json({ RspCode: '00', Message: 'Confirm Success' });
-        } catch (error) {
-            console.error('vnpayIpn error:', error);
-            return res.status(500).json({ RspCode: '99', Message: 'Internal Error' });
-        }
-    }
-
     async momoIpn(req, res) {
         const body = req.body;
 
@@ -163,28 +127,21 @@ class OrderController {
 
     async momoReturn(req, res) {
         const queryParams = req.query;
+        const orderId = momo.getInternalOrderId(queryParams);
+        const frontendUrl = orderOrigins.get(String(orderId)) || process.env.FRONTEND_URL || 'http://localhost:5174';
+        orderOrigins.delete(String(orderId));
 
         try {
             const isValid = momo.verifySignature(queryParams);
             if (isValid && Number(queryParams.resultCode) === 0) {
-                await orderService.completeOrder(momo.getInternalOrderId(queryParams), queryParams.transId);
+                await orderService.completeOrder(orderId, queryParams.transId);
             }
 
-            if (!isValid) {
-                console.warn('MoMo return signature verification failed:', queryParams);
-                return res.redirect(momo.buildFrontendRedirect({
-                    ...queryParams,
-                    resultCode: queryParams.resultCode ?? -1,
-                }));
-            }
-
-            return res.redirect(momo.buildFrontendRedirect(queryParams));
+            const status = (isValid && Number(queryParams.resultCode) === 0) ? 'success' : 'fail';
+            return res.redirect(`${frontendUrl}/payment/status?status=${status}&orderId=${encodeURIComponent(orderId)}&payment=momo`);
         } catch (error) {
             console.error('momoReturn error:', error);
-            return res.redirect(momo.buildFrontendRedirect({
-                ...queryParams,
-                resultCode: -1,
-            }));
+            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${encodeURIComponent(orderId)}&payment=momo`);
         }
     }
 
