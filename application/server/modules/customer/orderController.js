@@ -1,5 +1,4 @@
 const orderService = require('./orderService');
-const vnpay = require('../../utils/vnpay');
 const momo = require('../../utils/momo');
 const vietqr = require('../../utils/vietqr');
 const paypal = require('../../utils/paypal');
@@ -41,12 +40,6 @@ class OrderController {
                     }
                 }
                 orderOrigins.set(String(orderId), frontendUrl);
-            }
-
-            if (paymentMethod === 'VNPay') {
-                const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-                const paymentUrl = vnpay.createPaymentUrl(orderId, totalAmount, ipAddr);
-                return res.json({ success: true, orderId, totalAmount, paymentUrl });
             }
 
             if (paymentMethod === 'MoMo') {
@@ -113,50 +106,6 @@ class OrderController {
         } catch (error) {
             console.error('paypalReturn error:', error);
             return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${orderId}&payment=paypal`);
-        }
-    }
-
-    async vnpayReturn(req, res) {
-        const queryParams = req.query;
-        const orderId = queryParams.vnp_TxnRef;
-        const responseCode = queryParams.vnp_ResponseCode;
-        const transactionRef = queryParams.vnp_TransactionNo;
-        const frontendUrl = orderOrigins.get(String(orderId)) || process.env.FRONTEND_URL || 'http://localhost:5174';
-        orderOrigins.delete(String(orderId));
-
-        try {
-            const isValid = vnpay.verifyReturnUrl(queryParams);
-            if (isValid && responseCode === '00') {
-                await orderService.completeOrder(orderId, transactionRef);
-                return res.redirect(`${frontendUrl}/payment/status?status=success&orderId=${orderId}&payment=vnpay`);
-            }
-
-            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${orderId}&payment=vnpay`);
-        } catch (error) {
-            console.error('vnpayReturn error:', error);
-            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${orderId}&payment=vnpay`);
-        }
-    }
-
-    async vnpayIpn(req, res) {
-        const queryParams = req.query;
-        const orderId = queryParams.vnp_TxnRef;
-        const responseCode = queryParams.vnp_ResponseCode;
-        const transactionRef = queryParams.vnp_TransactionNo;
-
-        try {
-            const isValid = vnpay.verifyReturnUrl(queryParams);
-            if (!isValid) {
-                return res.status(400).json({ RspCode: '97', Message: 'Invalid Checksum' });
-            }
-
-            if (responseCode === '00') {
-                await orderService.completeOrder(orderId, transactionRef);
-            }
-            return res.json({ RspCode: '00', Message: 'Confirm Success' });
-        } catch (error) {
-            console.error('vnpayIpn error:', error);
-            return res.status(500).json({ RspCode: '99', Message: 'Internal Error' });
         }
     }
 
