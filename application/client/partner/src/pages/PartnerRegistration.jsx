@@ -207,17 +207,15 @@ const PartnerRegistration = () => {
                                         <div className="input-group">
                                             <Mail size={18} className="input-icon" />
                                             <input name="email" type="email" placeholder="Email liên hệ *" required value={formData.email} onChange={handleChange} className="auth-input" />
-                                            {emailAvailability.message && (
-                                                <p
-                                                    className="auth-error"
-                                                    style={{
-                                                        margin: '0.45rem 0 0',
-                                                        color: emailAvailability.status === 'checking' ? '#64748b' : '#ef4444',
-                                                    }}
-                                                >
-                                                    {emailAvailability.message}
-                                                </p>
-                                            )}
+                                            <p
+                                                className="auth-field-message"
+                                                style={{
+                                                    color: emailAvailability.status === 'checking' ? '#64748b' : '#ef4444',
+                                                    visibility: emailAvailability.message ? 'visible' : 'hidden',
+                                                }}
+                                            >
+                                                {emailAvailability.message || 'Giữ chỗ kiểm tra email'}
+                                            </p>
                                         </div>
                                         <div className="input-group"><Phone size={18} className="input-icon" /><input name="phone" placeholder="Số điện thoại *" required value={formData.phone} onChange={handleChange} className="auth-input" /></div>
                                     </div>

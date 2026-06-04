@@ -88,7 +88,7 @@ h1, h2, h3 {
 .input-icon {
   position: absolute;
   left: 16px;
-  top: 50%;
+  top: 27px;
   transform: translateY(-50%);
   color: var(--text-muted);
 }
@@ -112,6 +112,10 @@ h1, h2, h3 {
 }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   background: var(--primary);
   color: white;
   border: none;
@@ -130,5 +134,19 @@ h1, h2, h3 {
 
 .btn-primary:active {
   transform: scale(0.98);
+}
+
+.auth-error {
+  color: #ef4444;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.auth-field-message {
+  min-height: 1.1rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.1rem;
+  text-align: left;
 }
 

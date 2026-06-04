@@ -237,7 +237,20 @@ const AuthPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 ml-1">Mật khẩu</label>
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-sm font-bold text-slate-700">Mật khẩu</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError('');
+                      setSuccessMsg('');
+                      setIsForgotPassword(true);
+                    }}
+                    className="text-sm font-bold text-primary hover:underline"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                   <input
@@ -267,20 +280,6 @@ const AuthPage = () => {
               </Link>
             </p>
 
-            <p className="mt-4 text-center text-slate-400 text-sm">
-              Bạn quên mật khẩu? <br />
-              <button
-                type="button"
-                onClick={() => {
-                  setError('');
-                  setSuccessMsg('');
-                  setIsForgotPassword(true);
-                }}
-                className="text-primary font-bold hover:underline"
-              >
-                Khôi phục tại đây
-              </button>
-            </p>
           </>
         ) : (
           <form onSubmit={handleForgotPassword} className="space-y-5">
