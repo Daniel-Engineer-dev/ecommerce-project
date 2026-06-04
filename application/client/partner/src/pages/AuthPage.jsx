@@ -42,6 +42,9 @@ const AuthPage = () => {
         localStorage.setItem('partnerUser', JSON.stringify(data.user));
         window.location.href = '/';
       } else {
+        localStorage.removeItem('partnerToken');
+        localStorage.removeItem('partnerRefreshToken');
+        localStorage.removeItem('partnerUser');
         setError(data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại quyền truy cập.');
       }
     } catch {
@@ -161,6 +164,9 @@ const AuthPage = () => {
         showLogin();
         setSuccessMsg('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
       } else {
+        localStorage.removeItem('partnerToken');
+        localStorage.removeItem('partnerRefreshToken');
+        localStorage.removeItem('partnerUser');
         setError(data.message || 'Yêu cầu hết hạn hoặc không hợp lệ. Vui lòng thử lại.');
       }
     } catch {
@@ -407,3 +413,5 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
+
+

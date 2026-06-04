@@ -23,6 +23,9 @@ const AuthPage = () => {
         localStorage.setItem('adminUser', JSON.stringify(data.user));
         window.location.href = '/';
       } else {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminRefreshToken');
+        localStorage.removeItem('adminUser');
         alert(data.message || 'Truy cập bị từ chối. Chỉ dành cho quản trị viên.');
       }
     } catch {
@@ -108,3 +111,5 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
+
+

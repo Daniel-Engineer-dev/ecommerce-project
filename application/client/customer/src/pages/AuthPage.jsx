@@ -80,7 +80,7 @@ const AuthPage = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
+      if (res.ok && data.user?.role === 'Customer') {
         localStorage.setItem('token', data.accessToken || data.token);
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
@@ -88,7 +88,10 @@ const AuthPage = () => {
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate(redirectUrl);
       } else {
-        setError(data.message || 'Có lỗi xảy ra');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        setError(res.ok ? 'Tai khoan nay khong the dang nhap o trang khach hang.' : (data.message || 'Co loi xay ra'));
       }
     } catch {
       setError('Không thể kết nối đến server');
@@ -741,3 +744,5 @@ const NotificationModal = ({ isOpen, onClose, title, message, otp }) => {
 };
 
 export default AuthPage;
+
+
