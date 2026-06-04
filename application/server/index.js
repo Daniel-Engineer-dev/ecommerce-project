@@ -9,6 +9,7 @@ const partnerRoutes = require('./modules/partner/partnerRoutes');
 const adminVoucherRoutes = require('./modules/admin/Voucher/adminVoucherRoute');
 const orderRoutes = require('./modules/customer/orderRoutes');
 const complaintRoutes = require('./modules/customer/complaintRoutes');
+const pool = require('./config/db');
 
 const app = express();
 
@@ -44,6 +45,37 @@ app.use('/api/complaints', complaintRoutes);
 
 // Health check
 app.get('/', (req, res) => res.send('API TMDT Voucher is running...'));
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'dealzy-api',
+    timestamp: new Date().toISOString(),
+  });
+});
+app.get('/health/db', async (req, res) => {
+  const timeoutMs = Number(process.env.DB_HEALTH_TIMEOUT_MS) || 5000;
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Database health check timed out')), timeoutMs);
+  });
+
+  try {
+    await Promise.race([pool.query('SELECT 1'), timeout]);
+    res.status(200).json({
+      status: 'ok',
+      service: 'dealzy-api',
+      database: 'ok',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      service: 'dealzy-api',
+      database: 'unavailable',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
