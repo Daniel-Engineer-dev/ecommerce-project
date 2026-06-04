@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const { sendEmail } = require('../../utils/sendEmail');
 const sendSms = require('../../utils/sendSms');
 
+const registrationOtps = new Map();
+
 class AuthService {
     createAccessToken(user) {
         return jwt.sign(
@@ -39,7 +41,18 @@ class AuthService {
                 headquarters,
                 phone,
                 branches,
+                otp,
             } = data;
+
+            if (role === 'Customer') {
+                const identifier = email || phone;
+                if (!identifier) throw new Error('Email hoặc số điện thoại là bắt buộc');
+                const stored = registrationOtps.get(identifier);
+                if (!stored || stored.otp !== otp || stored.expiry < Date.now()) {
+                    throw new Error('Mã xác thực OTP không chính xác hoặc đã hết hạn');
+                }
+                registrationOtps.delete(identifier);
+            }
 
             const userExists = await client.query('SELECT user_id FROM Users WHERE username = $1', [username]);
             if (userExists.rows.length > 0) throw new Error(`Ten dang nhap "${username}" da ton tai.`);
@@ -295,17 +308,16 @@ class AuthService {
     async forgotPassword(data) {
         const { email, phone } = data;
         const result = await pool.query(
-            email ? 'SELECT * FROM Users WHERE email = $1' : 'SELECT * FROM Users WHERE phone = $1',
+            email ? 'SELECT * FROM Users WHERE lower(email) = lower($1)' : 'SELECT * FROM Users WHERE phone = $1',
             [email || phone]
         );
         const user = result.rows[0];
         if (!user) throw new Error(email ? 'Email khong ton tai' : 'So dien thoai khong ton tai');
 
-        const resetToken = email
-            ? crypto.randomBytes(32).toString('hex')
-            : Math.floor(100000 + Math.random() * 900000).toString();
-        const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const expiry = new Date(Date.now() + (email ? 15 : 5) * 60 * 1000);
+        // Always generate a 6-digit OTP code for both email and phone
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
         await pool.query(
             'UPDATE Users SET reset_token = $1, reset_token_expiry = $2 WHERE user_id = $3',
@@ -313,24 +325,27 @@ class AuthService {
         );
 
         if (email) {
-            const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
             await sendEmail({
                 email: user.email,
-                subject: 'Dealzy - Khoi phuc mat khau',
+                subject: 'Dealzy - Mã OTP khôi phục mật khẩu',
                 template: {
-                    title: 'Khoi phuc mat khau',
-                    intro: 'Chung toi da nhan duoc yeu cau dat lai mat khau cho tai khoan cua ban.',
-                    body: 'Nhan nut ben duoi de thiet lap mat khau moi. Lien ket chi co hieu luc trong 15 phut.',
-                    buttonText: 'Dat lai mat khau',
-                    buttonUrl: resetUrl,
-                    footer: 'Neu ban khong yeu cau, hay bo qua email nay.',
+                    title: 'Khôi phục mật khẩu',
+                    intro: 'Chúng tôi nhận được yêu cầu đặt lại mật khẩu từ bạn.',
+                    body: `<p style="font-size: 16px; margin: 0;">Mã OTP xác minh của bạn là:</p>
+                           <p style="font-size: 32px; font-weight: 800; color: #0f4c81; letter-spacing: 4px; margin: 10px 0; text-align: center;">${otp}</p>
+                           <p style="font-size: 14px; color: #64748b; margin: 0;">Mã OTP này có hiệu lực trong vòng 10 phút. Tuyệt đối không chia sẻ mã này với bất kỳ ai.</p>`,
+                    footer: 'Nếu bạn không yêu cầu, vui lòng bỏ qua email này.',
                 },
             });
-            return 'Link khoi phuc da duoc gui den Email';
+            return { message: 'Mã OTP khôi phục đã được gửi đến Email', otp };
         }
 
-        await sendSms({ phone: user.phone, content: `Ma OTP cua ban la: ${resetToken}` });
-        return 'Ma OTP da duoc gui den SDT';
+        const smsContent = `Ma xac minh Dealzy cua ban la: ${otp}`;
+        const sent = await sendSms({ phone: user.phone, content: smsContent });
+        if (!sent) {
+            throw new Error('Không thể gửi tin nhắn SMS khôi phục mật khẩu. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.');
+        }
+        return { message: 'Ma OTP da duoc gui den SDT', otp };
     }
 
     async resetPassword(token, password) {
@@ -348,8 +363,13 @@ class AuthService {
         );
     }
 
-    async verifyOtp(phone, otp) {
-        const result = await pool.query('SELECT * FROM Users WHERE phone = $1', [phone]);
+    async verifyOtp(identifier, otp) {
+        if (!identifier) throw new Error('Email hoặc số điện thoại là bắt buộc');
+        const isEmail = identifier.includes('@');
+        const result = await pool.query(
+            isEmail ? 'SELECT * FROM Users WHERE lower(email) = lower($1)' : 'SELECT * FROM Users WHERE phone = $1',
+            [identifier]
+        );
         if (result.rows.length === 0) throw new Error('Nguoi dung khong ton tai');
         const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
         if (result.rows[0].reset_token !== tokenHash || new Date(result.rows[0].reset_token_expiry) < new Date()) {
@@ -388,6 +408,41 @@ class AuthService {
 
         result.available = result.conflicts.length === 0;
         return result;
+    }
+
+    async sendVerificationOtp(data) {
+        const { email, phone } = data;
+        const identifier = email || phone;
+        if (!identifier) throw new Error('Email hoặc số điện thoại là bắt buộc');
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        registrationOtps.set(identifier, {
+            otp,
+            expiry: Date.now() + 10 * 60 * 1000 // 10 minutes
+        });
+
+        if (email) {
+            await sendEmail({
+                email,
+                subject: 'Dealzy - Mã xác minh đăng ký tài khoản',
+                template: {
+                    title: 'Xác minh đăng ký tài khoản',
+                    intro: 'Cảm ơn bạn đã lựa chọn Dealzy. Đây là mã xác minh của bạn.',
+                    body: `<p style="font-size: 16px; margin: 0;">Mã xác thực (OTP) của bạn là:</p>
+                           <p style="font-size: 32px; font-weight: 800; color: #0f4c81; letter-spacing: 4px; margin: 10px 0; text-align: center;">${otp}</p>
+                           <p style="font-size: 14px; color: #64748b; margin: 0;">Mã này có hiệu lực trong vòng 10 phút. Tuyệt đối không chia sẻ mã này với người khác.</p>`,
+                    footer: 'Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.',
+                },
+            });
+            return { message: 'Mã xác minh đã được gửi đến Email', otp };
+        }
+
+        const smsContent = `Ma xac minh dang ky Dealzy cua ban la: ${otp}`;
+        const sent = await sendSms({ phone, content: smsContent });
+        if (!sent) {
+            throw new Error('Không thể gửi tin nhắn SMS xác thực. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.');
+        }
+        return { message: 'Mã xác minh đã được gửi đến SĐT', otp };
     }
 }
 

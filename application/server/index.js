@@ -11,8 +11,27 @@ const orderRoutes = require('./modules/customer/orderRoutes');
 const complaintRoutes = require('./modules/customer/complaintRoutes');
 
 const app = express();
-app.use(cors());
+
+// Cho phép request từ frontend (localhost dev + Vercel production)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.FRONTEND_URL,           // Vercel URL hoặc bất kỳ origin nào trong .env
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Cho phép request không có origin (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
+
 
 // Routes
 app.use('/api/vouchers', voucherRoutes);
