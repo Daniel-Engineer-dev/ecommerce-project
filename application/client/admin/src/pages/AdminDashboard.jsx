@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import {
+  Users, Store, Ticket, MessageSquareWarning,
+  TrendingUp, ArrowUpRight, ArrowDownRight, CalendarDays
+} from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, BarChart, Bar, Legend
+} from 'recharts';
+
+const API_BASE = 'http://localhost:5000/api/admin';
+
+const timeDataMock = {
+  month: [
+    { name: 'T1', doanhThu: 45, voucher: 320, customer: 210, partner: 15 },
+    { name: 'T2', doanhThu: 52, voucher: 410, customer: 280, partner: 18 },
+    { name: 'T3', doanhThu: 49, voucher: 380, customer: 240, partner: 14 },
+    { name: 'T4', doanhThu: 72, voucher: 650, customer: 460, partner: 25 },
+    { name: 'T5', doanhThu: 85, voucher: 890, customer: 590, partner: 32 },
+    { name: 'T6', doanhThu: 98, voucher: 1050, customer: 680, partner: 40 },
+  ],
+  quarter: [
+    { name: 'Q1', doanhThu: 146, voucher: 1110, customer: 730, partner: 47 },
+    { name: 'Q2', doanhThu: 255, voucher: 2590, customer: 1730, partner: 97 },
+    { name: 'Q3', doanhThu: 310, voucher: 3400, customer: 2100, partner: 120 },
+    { name: 'Q4', doanhThu: 420, voucher: 4800, customer: 3200, partner: 165 },
+  ],
+  year: [
+    { name: '2024', doanhThu: 850, voucher: 7800, customer: 4500, partner: 210 },
+    { name: '2025', doanhThu: 1240, voucher: 12400, customer: 8200, partner: 340 },
+    { name: '2026', doanhThu: 1890, voucher: 19500, customer: 11400, partner: 490 },
+  ]
+};
+
+const StatCard = ({ title, value, icon: Icon, change, isPositive, accent }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between"
+  >
+    <div className="flex justify-between items-start">
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{title}</p>
+        <p className="text-2xl font-bold text-slate-800 tracking-tight">{value}</p>
+      </div>
+      <div className={`p-2.5 rounded-xl ${accent.bg}`}>
+        <Icon size={18} strokeWidth={2} className={accent.icon} />
+      </div>
+    </div>
+    <div className="flex items-center gap-1.5 mt-4 text-xs font-semibold">
+      <span className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full ${
+        isPositive ? 'text-emerald-600 bg-emerald-50' : 'text-rose-500 bg-rose-50'
+      }`}>
+        {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+        {change}
+      </span>
+      <span className="text-slate-400 font-normal">So với kỳ trước</span>
+    </div>
+  </motion.div>
+);
+
+const AdminDashboard = () => {
+  const [timeUnit, setTimeUnit] = useState('month');
+  const [stats, setStats] = useState({
+    totalUsers: 1240,
+    approvedPartners: 42,
+    activeVouchers: 8500,
+    newComplaints: 5
+  });
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(`${API_BASE}/users/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(prev => ({
+            ...prev,
+            totalUsers: data.total_users || prev.totalUsers,
+            approvedPartners: data.total_partners || prev.approvedPartners
+          }));
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ dữ liệu API Dashboard:", err);
+      }
+    };
+    fetchDashboardStats();
+  }, []);
+
+  const cardAccents = [
+    { bg: 'bg-blue-50',   icon: 'text-blue-400' },
+    { bg: 'bg-violet-50', icon: 'text-violet-400' },
+    { bg: 'bg-emerald-50',icon: 'text-emerald-400' },
+    { bg: 'bg-amber-50',  icon: 'text-amber-400' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-6 md:p-8 space-y-6 bg-[#f5f7fa] min-h-screen"
+    >
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5">
+        <div>
+          <p className="text-xs font-semibold text-slate-400 mb-1">
+            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Tổng quan</h1>
+        </div>
+
+        <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm self-start md:self-auto">
+          <CalendarDays size={14} className="text-slate-400 ml-2 mr-1" />
+          {[
+            { id: 'month', label: 'Tháng' },
+            { id: 'quarter', label: 'Quý' },
+            { id: 'year', label: 'Năm' }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setTimeUnit(item.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                timeUnit === item.id
+                  ? 'bg-[#1a3a5c] text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Tổng người dùng"     value={stats.totalUsers.toLocaleString()}       icon={Users}                 change="+12.4%" isPositive={true}  accent={cardAccents[0]} />
+        <StatCard title="Đối tác đã duyệt"    value={stats.approvedPartners.toLocaleString()} icon={Store}                 change="+8.2%"  isPositive={true}  accent={cardAccents[1]} />
+        <StatCard title="Voucher hiện có"      value={stats.activeVouchers.toLocaleString()}   icon={Ticket}                change="+24.5%" isPositive={true}  accent={cardAccents[2]} />
+        <StatCard title="Khiếu nại cần xử lý" value={stats.newComplaints.toLocaleString()}    icon={MessageSquareWarning}  change="-4.1%"  isPositive={false} accent={cardAccents[3]} />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+        {/* Area Chart */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-7">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h3 className="font-semibold text-slate-700 text-sm">Tăng trưởng doanh thu</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Đơn vị tính: Triệu VNĐ</p>
+            </div>
+            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-semibold">
+              <TrendingUp size={13} /> +18.6%
+            </div>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={timeDataMock[timeUnit]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorDoanhThu" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#6ec6a0" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6ec6a0" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Area type="monotone" dataKey="doanhThu" stroke="#6ec6a0" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDoanhThu)" dot={false} activeDot={{ r: 5, fill: '#6ec6a0', strokeWidth: 0 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Bar Chart */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-5">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h3 className="font-semibold text-slate-700 text-sm">Cơ cấu tài khoản mới</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Khách hàng & Đối tác</p>
+            </div>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={timeDataMock[timeUnit]} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '600', paddingTop: '12px', color: '#64748b' }} />
+                <Bar dataKey="customer" name="Khách Hàng" stackId="a" fill="#a5d8c8" radius={[0, 0, 0, 0]} barSize={22} />
+                <Bar dataKey="partner"  name="Đối Tác"    stackId="a" fill="#1a3a5c" radius={[6, 6, 0, 0]} barSize={22} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
+    </motion.div>
+  );
+};
+
+export default AdminDashboard;

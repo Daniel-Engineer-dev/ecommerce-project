@@ -1,0 +1,73 @@
+\chapter{Phân tích và thiết kế}
+
+\section{Kiến trúc tổng thể}
+
+Hệ thống được tổ chức theo mô hình monorepo tách biệt client và server. Phía frontend gồm ba ứng dụng React độc lập cho ba vai trò. Phía backend dùng Express và được chia module theo nghiệp vụ. Cách tổ chức này giúp nhóm có thể phát triển theo nhánh vai trò, giảm xung đột khi nhiều thành viên cùng làm việc.
+
+\begin{figure}[H]
+\centering
+\IfFileExists{images/architecture.png}{\includegraphics[width=0.85\textwidth]{images/architecture.png}}{\fbox{Architecture image not found}}
+\caption{Kiến trúc tổng quan hệ thống}
+\end{figure}
+
+\section{Cấu trúc frontend}
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item \texttt{application/client/customer}: giao diện khách hàng, gồm trang chủ, tìm kiếm voucher, chi tiết voucher, giỏ hàng, đăng ký khách hàng/đối tác, hồ sơ và khôi phục mật khẩu.
+    \item \texttt{application/client/partner}: cổng đối tác, mở rộng từ giao diện chung và bổ sung dashboard, quản lý voucher, chi nhánh, báo cáo và xác thực voucher code.
+    \item \texttt{application/client/admin}: cổng quản trị, gồm dashboard, duyệt đối tác, quản lý người dùng và quản lý voucher.
+\end{itemize}
+
+\section{Cấu trúc backend}
+
+Backend được chia thành các module:
+
+\begin{table}[H]
+\centering
+\caption{Module backend}
+\begin{tabularx}{\textwidth}{|p{3.8cm}|Y|}
+\hline
+\textbf{Module} & \textbf{Chức năng} \\ \hline
+\texttt{auth} & Đăng ký, đăng nhập, JWT, hồ sơ, đổi mật khẩu, quên mật khẩu, OTP/email mô phỏng. \\ \hline
+\texttt{shared} & API voucher dùng chung: danh sách voucher đã duyệt, danh mục, đối tác, tìm kiếm và chi tiết voucher. \\ \hline
+\texttt{partner} & Dashboard đối tác, chi nhánh, CRUD voucher, gửi duyệt, tạm ngưng, kiểm tra và redeem voucher code. \\ \hline
+\texttt{admin} & Duyệt đối tác, quản lý người dùng, thống kê user. \\ \hline
+\texttt{admin/adminVoucher} & Danh sách voucher theo trạng thái, duyệt, từ chối, tạm ẩn voucher. \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Nguyên tắc thiết kế module}
+
+Mỗi module backend tuân theo mô hình ba lớp:
+
+\begin{enumerate}[leftmargin=1.2cm]
+    \item Route: định nghĩa endpoint và middleware.
+    \item Controller: nhận request, gọi service và trả response.
+    \item Service: chứa logic nghiệp vụ và truy vấn database.
+\end{enumerate}
+
+Ví dụ, nhóm route quản trị voucher được mount ở \texttt{/api/admin/vouchers}; nhóm route đối tác được mount ở \texttt{/api/partner}; nhóm API chung được mount ở \texttt{/api/vouchers}.
+
+\section{Luồng xử lý chính}
+
+\subsection{Tạo và duyệt voucher}
+
+Đối tác tạo voucher ở trạng thái Pending. Admin xem danh sách voucher Pending, kiểm tra thông tin, sau đó duyệt sang Approved, từ chối sang Rejected kèm lý do hoặc chuyển sang Suspended để tạm ẩn.
+
+\subsection{Tìm kiếm và xem voucher}
+
+Khách hàng chỉ nhìn thấy voucher có trạng thái Approved và còn hiệu lực. API tìm kiếm hỗ trợ lọc theo từ khóa, danh mục, giá, mức giảm, khu vực và đối tác.
+
+\subsection{Xác thực voucher code}
+
+Đối tác nhập voucher code. Backend kiểm tra code có tồn tại, thuộc voucher của đối tác, trạng thái còn Unused, chưa hết hạn và chi nhánh xác thực thuộc đúng đối tác. Nếu hợp lệ, hệ thống cập nhật trạng thái E\_Voucher thành Used và ghi nhận thời điểm sử dụng.
+
+\section{Thiết kế phân quyền}
+
+Backend sử dụng JWT. Middleware \texttt{authMiddleware} đọc token từ header Authorization. Các route admin và partner bổ sung kiểm tra role trước khi cho phép thao tác. Thiết kế này giúp tách rõ quyền truy cập:
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Admin chỉ truy cập endpoint quản trị.
+    \item Partner chỉ truy cập endpoint đối tác.
+    \item API voucher công khai chỉ trả voucher đã được duyệt.
+\end{itemize}
