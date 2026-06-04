@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, MapPin, Calendar, Building, Briefcase, Phone, Lock, Save, ShieldCheck, ArrowLeft, Plus, X } from 'lucide-react';
 
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -32,7 +33,7 @@ const Profile = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/auth/profile', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -72,7 +73,7 @@ const Profile = () => {
         setSuccess('');
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/auth/profile', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ const Profile = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:5000/api/auth/change-password', {
+            const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

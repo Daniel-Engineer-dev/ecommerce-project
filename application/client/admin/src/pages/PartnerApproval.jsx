@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Building2, User, Mail, ShieldCheck, Phone, MapPin, RefreshCw, Hash, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = API_BASE_URL;
 const getToken = () => localStorage.getItem('adminToken');
 
 const apiFetch = async (path, options = {}) => {

@@ -22,8 +22,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
+import { API_BASE_URL } from './config';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = API_BASE_URL;
 
 const money = (value) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(value || 0));

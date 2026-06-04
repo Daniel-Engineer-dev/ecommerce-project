@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Search, ShoppingBag, Eye, CheckCircle2, XCircle, RotateCcw, Calendar, User, Phone, Mail, CreditCard, Ticket } from 'lucide-react';
+import { API_ADMIN_URL } from '../config';
 
-const API = 'http://localhost:5000/api/admin';
+const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
 const statuses = ['', 'Pending', 'Paid', 'Cancelled', 'Failed', 'Expired', 'Refunded'];
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { History, RefreshCw, Search } from 'lucide-react';
+import { API_ADMIN_URL } from '../config';
 
-const API = 'http://localhost:5000/api/admin';
+const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
 
 const SystemLogs = () => {

@@ -8,8 +8,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts';
+import { API_ADMIN_URL } from '../config';
 
-const API_BASE = 'http://localhost:5000/api/admin';
+const API_BASE = API_ADMIN_URL;
 
 const timeDataMock = {
   month: [

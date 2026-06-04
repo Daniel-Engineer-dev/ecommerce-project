@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import VoucherCard from '../components/VoucherCard';
 import { Search, Filter, X, ChevronDown, MapPin, Tag, CircleDollarSign, Percent } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../config';
 
 const SearchVouchers = () => {
   const location = useLocation();
@@ -27,7 +28,7 @@ const SearchVouchers = () => {
 
   useEffect(() => {
     // Lấy danh sách danh mục
-    fetch('http://localhost:5000/api/vouchers/categories') // Giả định có API này, nếu chưa có sẽ tạo sau
+    fetch(`${API_BASE_URL}/api/vouchers/categories`) // Giả định có API này, nếu chưa có sẽ tạo sau
       .then(res => res.json())
       .then(data => setCategories(data))
       .catch(err => console.error("Error fetching categories:", err));
@@ -37,7 +38,7 @@ const SearchVouchers = () => {
 
   const fetchVouchers = () => {
     setLoading(true);
-    const searchUrl = `http://localhost:5000/api/vouchers/search${location.search}`;
+    const searchUrl = `${API_BASE_URL}/api/vouchers/search${location.search}`;
     fetch(searchUrl)
       .then(res => res.json())
       .then(data => {
@@ -247,3 +248,4 @@ const SearchVouchers = () => {
 };
 
 export default SearchVouchers;
+

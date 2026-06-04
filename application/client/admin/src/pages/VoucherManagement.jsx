@@ -6,8 +6,9 @@ import {
   Clock, CheckCircle2, Ban, EyeOff, Calendar, Tag, Building2,
   Package, Info, HelpCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { API_ADMIN_URL } from '../config';
 
-const API = 'http://localhost:5000/api/admin';
+const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
 
 const VoucherManagement = () => {

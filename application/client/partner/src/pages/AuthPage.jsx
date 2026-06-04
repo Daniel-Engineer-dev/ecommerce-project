@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = API_BASE_URL;
 
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '', email: '', phone: '' });

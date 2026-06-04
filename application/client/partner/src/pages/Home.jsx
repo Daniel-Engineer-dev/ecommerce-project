@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import VoucherCard from '../components/VoucherCard';
 import { Sparkles, ArrowRight, Search, SlidersHorizontal, X, Tag, MapPin, CircleDollarSign, Percent, Building2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE_URL } from '../config';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ const Home = () => {
 
   useEffect(() => {
     // Fetch initial vouchers
-    fetch('http://localhost:5000/api/vouchers')
+    fetch(`${API_BASE_URL}/api/vouchers`)
       .then(res => res.json())
       .then(data => {
         setVouchers(data);
@@ -38,8 +39,8 @@ const Home = () => {
       });
 
     // Fetch categories & partners for filter
-    fetch('http://localhost:5000/api/vouchers/categories').then(res => res.json()).then(data => setCategories(data));
-    fetch('http://localhost:5000/api/vouchers/partners').then(res => res.json()).then(data => setPartners(data));
+    fetch(`${API_BASE_URL}/api/vouchers/categories`).then(res => res.json()).then(data => setCategories(data));
+    fetch(`${API_BASE_URL}/api/vouchers/partners`).then(res => res.json()).then(data => setPartners(data));
   }, []);
 
   const handleSearchSubmit = (e) => {

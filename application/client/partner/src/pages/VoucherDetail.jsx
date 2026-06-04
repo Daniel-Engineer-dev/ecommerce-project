@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
+import { API_BASE_URL } from '../config';
 
 const VoucherDetail = () => {
   const { id } = useParams();
@@ -17,7 +18,7 @@ const VoucherDetail = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    fetch(`http://localhost:5000/api/vouchers/${id}`)
+    fetch(`${API_BASE_URL}/api/vouchers/${id}`)
       .then(res => {
         if (!res.ok) throw new Error("Không thể tải thông tin voucher");
         return res.json();
