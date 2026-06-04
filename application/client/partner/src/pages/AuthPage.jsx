@@ -45,7 +45,7 @@ const AuthPage = () => {
         localStorage.removeItem('partnerToken');
         localStorage.removeItem('partnerRefreshToken');
         localStorage.removeItem('partnerUser');
-        setError(data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại quyền truy cập.');
+        setError(response.ok ? 'Tài khoản này không thể đăng nhập ở trang đối tác.' : (data.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.'));
       }
     } catch {
       setError('Lỗi kết nối server');
@@ -261,9 +261,9 @@ const AuthPage = () => {
             </form>
 
             <p className="mt-8 text-center text-slate-400 text-sm">
-              ChÆ°a cÃ³ tÃ i khoáº£n Ä‘á»‘i tÃ¡c? <br />
+              Chưa có tài khoản đối tác? <br />
               <Link to="/register-partner" className="text-primary font-bold hover:underline">
-                ÄÄƒng kÃ½ há»“ sÆ¡ Ä‘á»‘i tÃ¡c
+                Đăng ký hồ sơ đối tác
               </Link>
             </p>
 

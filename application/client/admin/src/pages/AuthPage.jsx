@@ -26,7 +26,7 @@ const AuthPage = () => {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminRefreshToken');
         localStorage.removeItem('adminUser');
-        alert(data.message || 'Truy cập bị từ chối. Chỉ dành cho quản trị viên.');
+        alert(response.ok ? 'Tài khoản này không thể đăng nhập ở trang quản trị.' : (data.message || 'Truy cập bị từ chối. Chỉ dành cho quản trị viên.'));
       }
     } catch {
       alert('Lỗi kết nối server');

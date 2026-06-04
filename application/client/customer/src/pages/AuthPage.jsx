@@ -91,7 +91,7 @@ const AuthPage = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        setError(res.ok ? 'Tai khoan nay khong the dang nhap o trang khach hang.' : (data.message || 'Co loi xay ra'));
+        setError(res.ok ? 'Tài khoản này không thể đăng nhập ở trang khách hàng.' : (data.message || 'Có lỗi xảy ra'));
       }
     } catch {
       setError('Không thể kết nối đến server');
