@@ -511,20 +511,20 @@ const CustomerRegistration = () => {
                         onChange={handleChange}
                         className="auth-input"
                       />
-                      {emailAvailability.message && (
-                        <p
-                          className="auth-error"
-                          style={{
-                            margin: "0.45rem 0 0",
-                            color:
-                              emailAvailability.status === "checking"
-                                ? "#64748b"
-                                : "#ef4444",
-                          }}
-                        >
-                          {emailAvailability.message}
-                        </p>
-                      )}
+                      <p
+                        className="auth-field-message"
+                        style={{
+                          color:
+                            emailAvailability.status === "checking"
+                              ? "#64748b"
+                              : "#ef4444",
+                          visibility: emailAvailability.message
+                            ? "visible"
+                            : "hidden",
+                        }}
+                      >
+                        {emailAvailability.message || "Giữ chỗ kiểm tra email"}
+                      </p>
                     </div>
                   ) : (
                     <div className="input-group">
