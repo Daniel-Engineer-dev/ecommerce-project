@@ -3,11 +3,13 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import { useCart } from '../context/CartContext';
 import { CheckCircle, XCircle, Tag, Calendar, QrCode, Barcode, ShoppingCart, Home } from 'lucide-react';
 
 const PaymentStatus = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   
   const status = searchParams.get('status'); // 'success' hoặc 'fail'
   const orderId = searchParams.get('orderId');
@@ -35,6 +37,8 @@ const PaymentStatus = () => {
     }
 
     if (status === 'success' && orderId) {
+      // Xóa giỏ hàng chỉ khi thanh toán thật sự thành công
+      clearCart();
       setLoading(true);
       apiFetch(`${API_BASE_URL}/api/orders/evouchers/${orderId}`)
         .then(res => {

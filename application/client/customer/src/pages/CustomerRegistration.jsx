@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -37,6 +37,12 @@ const CustomerRegistration = () => {
   const [emailAvailability, setEmailAvailability] = useState({
     status: "idle",
     message: "",
+  });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    otp: "",
   });
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -139,18 +145,45 @@ const CustomerRegistration = () => {
           );
           return;
         }
-        const demoCode = Math.floor(100000 + Math.random() * 900000).toString();
-        setVerificationCode(demoCode);
-        setVerificationInput("");
       } catch (err) {
         setError("Không thể kiểm tra tài khoản. Vui lòng thử lại.");
         return;
       }
     }
     if (step === 2) {
-      if (verificationInput.trim() !== verificationCode) {
-        setError("Mã xác thực demo không chính xác.");
+      // Step 2 is now "Cá nhân" (dob, address)
+      // Request real OTP from backend for Step 3
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/send-verification-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: regMethod === "email" ? formData.email : null,
+            phone: regMethod === "phone" ? formData.phone : null,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (data.otp) {
+            setVerificationCode(data.otp);
+          }
+          setVerificationInput("");
+          setModalConfig({
+            title: "Gửi mã OTP thành công",
+            message: typeof data.message === "object" ? data.message.message : (data.message || "Mã xác minh OTP đã được gửi!"),
+            otp: data.otp || "",
+          });
+          setModalOpen(true);
+        } else {
+          setError(data.message || "Không thể gửi mã xác minh.");
+          return;
+        }
+      } catch {
+        setError("Không thể kết nối đến server để gửi OTP.");
         return;
+      } finally {
+        setLoading(false);
       }
     }
     setStep(step + 1);
@@ -159,12 +192,19 @@ const CustomerRegistration = () => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     setError("");
+
+    if (!verificationInput.trim()) {
+      setError("Vui lòng nhập mã xác thực OTP.");
+      return;
+    }
+
     setLoading(true);
 
     const payload = {
       ...formData,
       email: regMethod === "email" ? formData.email : "",
       phone: regMethod === "phone" ? formData.phone : "",
+      otp: verificationInput.trim(),
     };
 
     try {
@@ -261,8 +301,8 @@ const CustomerRegistration = () => {
 
   const steps = [
     { id: 1, label: "Cơ bản", icon: <User size={18} /> },
-    { id: 2, label: "Xác thực", icon: <CheckCircle2 size={18} /> },
-    { id: 3, label: "Cá nhân", icon: <MapPin size={18} /> },
+    { id: 2, label: "Cá nhân", icon: <MapPin size={18} /> },
+    { id: 3, label: "Xác thực", icon: <CheckCircle2 size={18} /> },
   ];
 
   return (
@@ -527,55 +567,6 @@ const CustomerRegistration = () => {
                     gap: "1.25rem",
                   }}
                 >
-                  <div
-                    style={{
-                      padding: "1rem",
-                      borderRadius: "16px",
-                      background: "#eff6ff",
-                      border: "1px solid #bfdbfe",
-                      color: "#1e3a8a",
-                      lineHeight: 1.6,
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Nhap ma xac thuc demo de tiep tuc dang ky. Ma demo cua ban
-                    la{" "}
-                    <strong
-                      style={{
-                        fontFamily: "monospace",
-                        fontSize: "1.1rem",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      {verificationCode}
-                    </strong>
-                    .
-                  </div>
-                  <div className="input-group">
-                    <CheckCircle2 size={18} className="input-icon" />
-                    <input
-                      value={verificationInput}
-                      onChange={(e) => setVerificationInput(e.target.value)}
-                      placeholder="Nhap ma xac thuc demo"
-                      required
-                      className="auth-input"
-                    />
-                  </div>
-                </motion.div>
-              )}
-
-              {step === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -20, opacity: 0 }}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1.25rem",
-                  }}
-                >
                   <div className="input-group">
                     <Calendar size={18} className="input-icon" />
                     <input
@@ -596,6 +587,103 @@ const CustomerRegistration = () => {
                       onChange={handleChange}
                       className="auth-input"
                     />
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -20, opacity: 0 }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "1rem",
+                      borderRadius: "16px",
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                      color: "#1e3a8a",
+                      lineHeight: 1.6,
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Vì quy định của các nhà mạng Việt Nam yêu cầu đăng ký Brandname nghiêm ngặt để gửi tin nhắn SMS, chúng tôi hiển thị mã OTP mô phỏng để bạn kiểm thử luồng này. Mã OTP của bạn là:{" "}
+                    <strong
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: "1.1rem",
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      {verificationCode}
+                    </strong>
+                  </div>
+                  <div className="input-group">
+                    <CheckCircle2 size={18} className="input-icon" />
+                    <input
+                      value={verificationInput}
+                      onChange={(e) => setVerificationInput(e.target.value)}
+                      placeholder="Nhập mã OTP (6 chữ số)"
+                      required
+                      className="auth-input"
+                    />
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={async () => {
+                        setLoading(true);
+                        setError("");
+                        try {
+                          const res = await fetch(`${API_BASE_URL}/api/auth/send-verification-otp`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              email: regMethod === "email" ? formData.email : null,
+                              phone: regMethod === "phone" ? formData.phone : null,
+                            }),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            if (data.otp) {
+                              setVerificationCode(data.otp);
+                            }
+                            setVerificationInput("");
+                            setModalConfig({
+                              title: "Gửi lại mã OTP thành công",
+                              message: typeof data.message === "object" ? data.message.message : (data.message || "Đã gửi lại mã xác minh OTP!"),
+                              otp: data.otp || "",
+                            });
+                            setModalOpen(true);
+                          } else {
+                            setError(data.message || "Không thể gửi lại mã xác minh.");
+                          }
+                        } catch {
+                          setError("Không thể kết nối đến server để gửi lại OTP.");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--primary)",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      Gửi lại mã OTP
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -649,7 +737,183 @@ const CustomerRegistration = () => {
           </form>
         </div>
       </div>
+      <NotificationModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        otp={modalConfig.otp}
+      />
     </div>
+  );
+};
+
+const NotificationModal = ({ isOpen, onClose, title, message, otp }) => {
+  if (!isOpen) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.4)",
+          backdropFilter: "blur(8px)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem",
+        }}
+      >
+        <motion.div
+          initial={{ scale: 0.95, y: 15 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.95, y: 15 }}
+          transition={{ type: "spring", duration: 0.4 }}
+          style={{
+            background: "white",
+            width: "100%",
+            maxWidth: "420px",
+            borderRadius: "24px",
+            padding: "2rem",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.15)",
+            border: "1px solid #f1f5f9",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              background: "#dcfce7",
+              color: "#16a34a",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "1.25rem",
+            }}
+          >
+            <CheckCircle2 size={28} />
+          </div>
+          <h3
+            style={{
+              fontSize: "1.35rem",
+              fontWeight: 800,
+              color: "#1e293b",
+              marginBottom: "0.75rem",
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              color: "#64748b",
+              fontSize: "0.9rem",
+              lineHeight: "1.6",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {message}
+          </p>
+
+          {otp && (
+            <div
+              style={{
+                width: "100%",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: "16px",
+                padding: "1.25rem 1rem",
+                marginBottom: "1.75rem",
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.8rem",
+                  color: "#1e3a8a",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Mã xác thực OTP của bạn:
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: "1.8rem",
+                    fontWeight: 800,
+                    color: "#1d4ed8",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  {otp}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(otp);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#3b82f6",
+                    cursor: "pointer",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    marginLeft: "0.5rem",
+                  }}
+                >
+                  Sao chép
+                </button>
+              </div>
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#64748b",
+                  marginTop: "0.75rem",
+                  lineHeight: "1.4",
+                }}
+              >
+                (Hiển thị để phục vụ mục đích kiểm thử do hạn chế Brandname)
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-primary"
+            style={{
+              width: "100%",
+              height: "48px",
+              borderRadius: "999px",
+              fontWeight: 700,
+            }}
+          >
+            Xác nhận
+          </button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

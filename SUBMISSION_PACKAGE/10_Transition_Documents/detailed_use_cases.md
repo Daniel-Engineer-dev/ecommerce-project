@@ -5,10 +5,12 @@
 Primary actor: Customer
 
 Preconditions:
+
 - Customer is logged in.
 - Voucher is approved, in selling period and has stock.
 
 Main flow:
+
 1. Customer searches or opens a voucher detail page.
 2. Customer adds voucher to cart.
 3. Customer reviews cart and quantity.
@@ -20,6 +22,7 @@ Main flow:
 9. Customer views order history and e-voucher QR/barcode.
 
 Alternative flows:
+
 - If stock is insufficient, checkout is rejected.
 - If payment fails, order is marked failed and e-voucher is not issued.
 - If customer cancels before payment, stock is restored.
@@ -29,9 +32,11 @@ Alternative flows:
 Primary actor: Partner
 
 Preconditions:
+
 - Partner account is approved by Admin.
 
 Main flow:
+
 1. Partner logs in to partner app.
 2. Partner creates voucher with price, discount, period, quantity, terms and branches.
 3. System stores voucher as pending.
@@ -44,10 +49,12 @@ Main flow:
 Primary actor: Partner
 
 Preconditions:
+
 - E-voucher is issued, unused and not expired.
 - E-voucher belongs to the partner's voucher/branch scope.
 
 Main flow:
+
 1. Partner enters or scans voucher code.
 2. System validates status, expiry and partner scope.
 3. Partner confirms redemption.
@@ -58,6 +65,7 @@ Main flow:
 Primary actor: Admin
 
 Main flow:
+
 1. Admin opens Order Management.
 2. Admin searches by order ID, customer, email or phone.
 3. Admin opens order detail.
@@ -69,6 +77,7 @@ Main flow:
 Primary actor: Admin
 
 Main flow:
+
 1. Admin opens Complaint Management.
 2. Admin filters complaints by status.
 3. Admin updates complaint status.
