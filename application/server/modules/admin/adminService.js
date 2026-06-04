@@ -3,6 +3,16 @@ const { sendEmail } = require('../../utils/sendEmail');
 const { logAction } = require('../../utils/systemLog');
 const orderService = require('../customer/orderService');
 
+const sendNotificationEmail = async (mailOptions) => {
+    try {
+        await sendEmail(mailOptions);
+        return { sent: true, error: null };
+    } catch (error) {
+        console.error('Partner notification email failed:', error.message);
+        return { sent: false, error: error.message };
+    }
+};
+
 class AdminService {
     /**
      * Lấy danh sách hồ sơ đối tác đang chờ duyệt (Pending)
@@ -30,11 +40,12 @@ class AdminService {
             [id]
         );
         const user = userRes.rows[0];
+        let emailResult = { sent: false, error: null };
 
         if (user && user.email) {
             const partnerUrl = process.env.PARTNER_URL || 'http://localhost:5174';
             const displayName = user.company_name || user.username;
-            await sendEmail({
+            emailResult = await sendNotificationEmail({
                 email: user.email,
                 subject: 'Dealzy - Hồ sơ đối tác đã được phê duyệt',
                 template: {
@@ -61,16 +72,17 @@ class AdminService {
         }
 
         await logAction(adminId, 'APPROVE_PARTNER', 'Partners', id);
-        return { success: true };
+        return { success: true, emailSent: emailResult.sent, emailError: emailResult.error };
     }
 
     async rejectPartner(id, adminId = null) {
         await pool.query("UPDATE Partners SET status = 'Rejected' WHERE user_id = $1", [id]);
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
+        let emailResult = { sent: false, error: null };
 
         if (user && user.email) {
-            await sendEmail({
+            emailResult = await sendNotificationEmail({
                 email: user.email,
                 subject: 'Ho so doi tac bi tu choi',
                 template: {
@@ -83,7 +95,7 @@ class AdminService {
         }
 
         await logAction(adminId, 'REJECT_PARTNER', 'Partners', id);
-        return { success: true };
+        return { success: true, emailSent: emailResult.sent, emailError: emailResult.error };
     }
 
     async getAllUsers({ role, search, status, page = 1, limit = 10 }) {

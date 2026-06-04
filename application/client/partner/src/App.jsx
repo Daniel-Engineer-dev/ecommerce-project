@@ -22,7 +22,9 @@ import {
   XCircle,
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
+import PartnerRegistration from './pages/PartnerRegistration';
 import { API_BASE_URL } from './config';
+import { apiJson, clearSession } from './apiClient';
 
 const API_URL = API_BASE_URL;
 
@@ -35,18 +37,13 @@ const dateOnly = (value) => {
 };
 
 const apiFetch = async (path, options = {}) => {
-  const token = localStorage.getItem('partnerToken');
-  const response = await fetch(`${API_URL}${path}`, {
+  return apiJson(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
       ...(options.headers || {}),
     },
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || data.error || 'Không thể xử lý yêu cầu');
-  return data;
 };
 
 const shell = {
@@ -648,8 +645,7 @@ function Sidebar() {
   ];
 
   const logout = () => {
-    localStorage.removeItem('partnerToken');
-    localStorage.removeItem('partnerUser');
+    clearSession();
     navigate('/');
     window.location.reload();
   };
@@ -705,6 +701,7 @@ function App() {
     return (
       <Router>
         <Routes>
+          <Route path="/register-partner" element={<PartnerRegistration />} />
           <Route path="*" element={<AuthPage />} />
         </Routes>
       </Router>
@@ -719,3 +716,4 @@ function App() {
 }
 
 export default App;
+

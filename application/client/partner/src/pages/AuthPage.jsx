@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
 import { API_BASE_URL } from '../config';
@@ -36,7 +37,8 @@ const AuthPage = () => {
       });
       const data = await response.json();
       if (response.ok && data.user.role === 'Partner') {
-        localStorage.setItem('partnerToken', data.token);
+        localStorage.setItem('partnerToken', data.accessToken || data.token);
+        if (data.refreshToken) localStorage.setItem('partnerRefreshToken', data.refreshToken);
         localStorage.setItem('partnerUser', JSON.stringify(data.user));
         window.location.href = '/';
       } else {
@@ -253,6 +255,13 @@ const AuthPage = () => {
             </form>
 
             <p className="mt-8 text-center text-slate-400 text-sm">
+              ChÆ°a cÃ³ tÃ i khoáº£n Ä‘á»‘i tÃ¡c? <br />
+              <Link to="/register-partner" className="text-primary font-bold hover:underline">
+                ÄÄƒng kÃ½ há»“ sÆ¡ Ä‘á»‘i tÃ¡c
+              </Link>
+            </p>
+
+            <p className="mt-4 text-center text-slate-400 text-sm">
               Bạn quên mật khẩu? <br />
               <button
                 type="button"

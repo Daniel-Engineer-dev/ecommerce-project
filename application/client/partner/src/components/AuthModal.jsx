@@ -33,8 +33,9 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
       
       if (res.ok) {
         if (isLogin) {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('partnerToken', data.accessToken || data.token);
+          if (data.refreshToken) localStorage.setItem('partnerRefreshToken', data.refreshToken);
+          localStorage.setItem('partnerUser', JSON.stringify(data.user));
           onAuthSuccess(data.user);
         } else {
           setIsLogin(true);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, RefreshCw, Save, CheckCircle } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -23,7 +24,7 @@ const ContentManagement = () => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/content`, {
+      const res = await apiFetch(`${API}/content`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
@@ -40,7 +41,7 @@ const ContentManagement = () => {
 
   const save = async (event) => {
     event.preventDefault();
-    const res = await fetch(`${API}/content`, {
+    const res = await apiFetch(`${API}/content`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -211,3 +212,4 @@ const ContentManagement = () => {
 };
 
 export default ContentManagement;
+

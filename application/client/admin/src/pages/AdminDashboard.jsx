@@ -9,6 +9,7 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API_BASE = API_ADMIN_URL;
 
@@ -74,7 +75,7 @@ const AdminDashboard = () => {
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('adminToken');
-        const res = await fetch(`${API_BASE}/users/stats`, {
+        const res = await apiFetch(`${API_BASE}/users/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -213,3 +214,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

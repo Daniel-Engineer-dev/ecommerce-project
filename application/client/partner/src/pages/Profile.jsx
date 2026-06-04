@@ -4,6 +4,7 @@ import { User, Mail, MapPin, Calendar, Building, Briefcase, Phone, Lock, Save, S
 
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -32,18 +33,15 @@ const Profile = () => {
 
     const fetchProfile = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await apiFetch(`${API_BASE_URL}/api/auth/profile`);
             const data = await res.json();
             if (res.ok) {
                 setProfile(data);
                 // Cập nhật email trong localStorage nếu có thay đổi
-                const user = JSON.parse(localStorage.getItem('user'));
+                const user = JSON.parse(localStorage.getItem('partnerUser'));
                 if (user) {
                     user.email = data.email;
-                    localStorage.setItem('user', JSON.stringify(user));
+                    localStorage.setItem('partnerUser', JSON.stringify(user));
                 }
             } else {
                 setError(data.message || 'Không thể tải thông tin hồ sơ');
@@ -72,12 +70,10 @@ const Profile = () => {
         setError('');
         setSuccess('');
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+            const res = await apiFetch(`${API_BASE_URL}/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(profile)
             });
@@ -103,12 +99,10 @@ const Profile = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+            const res = await apiFetch(`${API_BASE_URL}/api/auth/change-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     oldPassword: passwords.oldPassword,
@@ -427,3 +421,4 @@ const Profile = () => {
 };
 
 export default Profile;
+

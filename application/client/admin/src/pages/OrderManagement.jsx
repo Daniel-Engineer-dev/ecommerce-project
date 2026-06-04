@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Search, ShoppingBag, Eye, CheckCircle2, XCircle, RotateCcw, Calendar, User, Phone, Mail, CreditCard, Ticket } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -22,7 +23,7 @@ const OrderManagement = () => {
     try {
       const params = new URLSearchParams({ limit: '20', search });
       if (status) params.set('status', status);
-      const res = await fetch(`${API}/orders?${params.toString()}`, {
+      const res = await apiFetch(`${API}/orders?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
@@ -33,7 +34,7 @@ const OrderManagement = () => {
   };
 
   const fetchDetail = async (id) => {
-    const res = await fetch(`${API}/orders/${id}`, {
+    const res = await apiFetch(`${API}/orders/${id}`, {
       headers: { Authorization: `Bearer ${getToken()}` },
     });
     if (res.ok) setSelected(await res.json());
@@ -48,7 +49,7 @@ const OrderManagement = () => {
     const note = window.prompt(`Ghi chú thay đổi trạng thái sang ${nextStatus}`, `ADMIN_${nextStatus}_${Date.now()}`);
     if (note === null) return;
 
-    const res = await fetch(`${API}/orders/${orderId}/status`, {
+    const res = await apiFetch(`${API}/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -274,3 +275,4 @@ const OrderManagement = () => {
 };
 
 export default OrderManagement;
+

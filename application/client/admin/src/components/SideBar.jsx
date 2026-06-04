@@ -31,6 +31,7 @@ const Sidebar = () => {
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminRefreshToken');
       localStorage.removeItem('adminUser');
       navigate('/login');
     }

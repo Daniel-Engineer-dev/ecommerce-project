@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareWarning, RefreshCw, Send, CheckCircle } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -19,7 +20,7 @@ const ComplaintManagement = () => {
     try {
       const params = new URLSearchParams({ limit: '30' });
       if (status) params.set('status', status);
-      const res = await fetch(`${API}/complaints?${params.toString()}`, {
+      const res = await apiFetch(`${API}/complaints?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
@@ -35,7 +36,7 @@ const ComplaintManagement = () => {
   };
 
   const updateStatus = async (id, nextStatus) => {
-    const res = await fetch(`${API}/complaints/${id}/status`, {
+    const res = await apiFetch(`${API}/complaints/${id}/status`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -51,7 +52,7 @@ const ComplaintManagement = () => {
   const sendReply = async (id) => {
     const content = reply[id];
     if (!content?.trim()) return;
-    const res = await fetch(`${API}/complaints/${id}/responses`, {
+    const res = await apiFetch(`${API}/complaints/${id}/responses`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -181,3 +182,4 @@ const ComplaintManagement = () => {
 };
 
 export default ComplaintManagement;
+

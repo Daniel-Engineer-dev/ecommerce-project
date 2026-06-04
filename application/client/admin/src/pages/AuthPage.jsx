@@ -18,7 +18,8 @@ const AuthPage = () => {
       });
       const data = await response.json();
       if (response.ok && data.user.role === 'Admin') {
-        localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminToken', data.accessToken || data.token);
+        if (data.refreshToken) localStorage.setItem('adminRefreshToken', data.refreshToken);
         localStorage.setItem('adminUser', JSON.stringify(data.user));
         window.location.href = '/';
       } else {

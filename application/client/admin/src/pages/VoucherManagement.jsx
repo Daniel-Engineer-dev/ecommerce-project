@@ -7,6 +7,7 @@ import {
   Package, Info, HelpCircle, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -47,7 +48,7 @@ const VoucherManagement = () => {
     setLoading(true);
     try {
       const queryPage = Number(currentPage) || 1;
-      const res = await fetch(`${API}/vouchers?status=${activeTab}&search=${search}&page=${queryPage}&limit=10`, {
+      const res = await apiFetch(`${API}/vouchers?status=${activeTab}&search=${search}&page=${queryPage}&limit=10`, {
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
       const data = await res.json();
@@ -71,7 +72,7 @@ const VoucherManagement = () => {
 
   const handleApprove = async (id) => {
     try {
-      const res = await fetch(`${API}/vouchers/${id}/approve`, {
+      const res = await apiFetch(`${API}/vouchers/${id}/approve`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${getToken()}` }
       });
@@ -91,7 +92,7 @@ const VoucherManagement = () => {
       return;
     }
     try {
-      const res = await fetch(`${API}/vouchers/${id}/reject`, {
+      const res = await apiFetch(`${API}/vouchers/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: rejectReason })
@@ -110,7 +111,7 @@ const VoucherManagement = () => {
 
   const handleToggleVisibility = async (id, currentStatus) => {
     try {
-      const res = await fetch(`${API}/vouchers/${id}/toggle-visibility`, {
+      const res = await apiFetch(`${API}/vouchers/${id}/toggle-visibility`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentStatus })
@@ -388,3 +389,4 @@ const VoucherManagement = () => {
 };
 
 export default VoucherManagement;
+

@@ -2,22 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Building2, User, Mail, ShieldCheck, Phone, MapPin, RefreshCw, Hash, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { apiJson } from '../apiClient';
 
 const API_BASE = API_BASE_URL;
-const getToken = () => localStorage.getItem('adminToken');
 
 const apiFetch = async (path, options = {}) => {
-    const res = await fetch(`${API_BASE}${path}`, {
+    return apiJson(`${API_BASE}${path}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken()}`,
             ...options.headers,
         },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
-    return data;
 };
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ const Navbar = () => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
 
-    const savedUser = localStorage.getItem('user');
+    const savedUser = localStorage.getItem('partnerUser');
     if (savedUser) setUser(JSON.parse(savedUser));
 
     return () => window.removeEventListener('scroll', handleScroll);

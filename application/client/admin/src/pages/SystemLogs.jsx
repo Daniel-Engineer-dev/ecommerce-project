@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { History, RefreshCw, Search } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -15,7 +16,7 @@ const SystemLogs = () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: '50', search });
-      const res = await fetch(`${API}/logs?${params.toString()}`, {
+      const res = await apiFetch(`${API}/logs?${params.toString()}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       const data = await res.json();
@@ -122,3 +123,4 @@ const SystemLogs = () => {
 };
 
 export default SystemLogs;
+

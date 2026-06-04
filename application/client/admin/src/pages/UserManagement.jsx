@@ -9,6 +9,7 @@ import {
     AlertTriangle, CheckCircle, Ticket, ArrowRight, Filter
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
+import { apiFetch } from '../apiClient';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -52,7 +53,7 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
     const fetchDetail = useCallback(async () => {
         try {
             // 1. Lấy thông tin chi tiết User
-            const res = await fetch(`${API}/users/${userId}`, {
+            const res = await apiFetch(`${API}/users/${userId}`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
             });
             const data = await res.json();
@@ -60,7 +61,7 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
             if (res.ok) {
                 // 2. Nếu là Đối tác, tiến hành gọi thêm API đếm số lượng voucher
                 if (data.role === 'Partner') {
-                    const countRes = await fetch(`${API}/vouchers/count/${userId}`, {
+                    const countRes = await apiFetch(`${API}/vouchers/count/${userId}`, {
                         headers: { 'Authorization': `Bearer ${getToken()}` }
                     });
                     if (countRes.ok) {
@@ -84,7 +85,7 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
         setActionLoading(true);
         try {
             const currentLockState = !user.is_active;
-            const res = await fetch(`${API}/users/${userId}/toggle-lock`, {
+            const res = await apiFetch(`${API}/users/${userId}/toggle-lock`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                 body: JSON.stringify({ lock: currentLockState })
@@ -260,7 +261,7 @@ const UserManagement = () => {
         setLoading(true);
         try {
             const query = new URLSearchParams({ page, limit: 6, role: roleFilter, status: statusFilter, search: searchTerm }).toString();
-            const res = await fetch(`${API}/users?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const res = await apiFetch(`${API}/users?${query}`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             const data = await res.json();
             if (res.ok) { setUsers(data.users); setTotalPages(data.totalPages); }
         } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -268,7 +269,7 @@ const UserManagement = () => {
 
     const fetchStats = async () => {
         try {
-            const res = await fetch(`${API}/users/stats`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const res = await apiFetch(`${API}/users/stats`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             const data = await res.json();
             if (res.ok) setStats(data);
         } catch (err) { console.error(err); }
@@ -468,3 +469,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+
