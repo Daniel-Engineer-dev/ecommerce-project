@@ -13,28 +13,7 @@ import { apiFetch } from '../apiClient';
 
 const API_BASE = API_ADMIN_URL;
 
-const timeDataMock = {
-  month: [
-    { name: 'T1', doanhThu: 45, voucher: 320, customer: 210, partner: 15 },
-    { name: 'T2', doanhThu: 52, voucher: 410, customer: 280, partner: 18 },
-    { name: 'T3', doanhThu: 49, voucher: 380, customer: 240, partner: 14 },
-    { name: 'T4', doanhThu: 72, voucher: 650, customer: 460, partner: 25 },
-    { name: 'T5', doanhThu: 85, voucher: 890, customer: 590, partner: 32 },
-    { name: 'T6', doanhThu: 98, voucher: 1050, customer: 680, partner: 40 },
-  ],
-  quarter: [
-    { name: 'Q1', doanhThu: 146, voucher: 1110, customer: 730, partner: 47 },
-    { name: 'Q2', doanhThu: 255, voucher: 2590, customer: 1730, partner: 97 },
-    { name: 'Q3', doanhThu: 310, voucher: 3400, customer: 2100, partner: 120 },
-    { name: 'Q4', doanhThu: 420, voucher: 4800, customer: 3200, partner: 165 },
-  ],
-  year: [
-    { name: '2024', doanhThu: 850, voucher: 7800, customer: 4500, partner: 210 },
-    { name: '2025', doanhThu: 1240, voucher: 12400, customer: 8200, partner: 340 },
-    { name: '2026', doanhThu: 1890, voucher: 19500, customer: 11400, partner: 490 },
-  ]
-};
-
+// ── Stat Card component ────────────────────────────────────────────────────────
 const StatCard = ({ title, value, icon: Icon, change, isPositive, accent }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -62,42 +41,88 @@ const StatCard = ({ title, value, icon: Icon, change, isPositive, accent }) => (
   </motion.div>
 );
 
+// ── Skeleton placeholder khi đang tải biểu đồ ─────────────────────────────────
+const ChartSkeleton = () => (
+  <div className="h-64 w-full flex items-center justify-center">
+    <div className="w-full h-full animate-pulse bg-slate-50 rounded-xl" />
+  </div>
+);
+
+// ── Main Dashboard ─────────────────────────────────────────────────────────────
 const AdminDashboard = () => {
   const [timeUnit, setTimeUnit] = useState('month');
   const [stats, setStats] = useState({
-    totalUsers: 1240,
-    approvedPartners: 42,
-    activeVouchers: 8500,
-    newComplaints: 5
+    totalUsers:       0,
+    approvedPartners: 0,
+    activeVouchers:   0,
+    newComplaints:    0,
   });
+  const [chartData, setChartData]     = useState([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
+  // ── Stat cards: /users/stats  +  /dashboard/stats ──────────────────────────
   useEffect(() => {
-    const fetchDashboardStats = async () => {
+    const fetchStatCards = async () => {
       try {
-        const token = localStorage.getItem('adminToken');
-        const res = await apiFetch(`${API_BASE}/users/stats`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
+        const token   = localStorage.getItem('adminToken');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [userRes, extraRes] = await Promise.all([
+          apiFetch(`${API_BASE}/users/stats`,     { headers }),
+          apiFetch(`${API_BASE}/dashboard/stats`, { headers }),
+        ]);
+
+        if (userRes.ok) {
+          const data = await userRes.json();
           setStats(prev => ({
             ...prev,
-            totalUsers: data.total_users || prev.totalUsers,
-            approvedPartners: data.total_partners || prev.approvedPartners
+            totalUsers:       data.total_users    ?? prev.totalUsers,
+            approvedPartners: data.total_partners ?? prev.approvedPartners,
+          }));
+        }
+
+        if (extraRes.ok) {
+          const data = await extraRes.json();
+          setStats(prev => ({
+            ...prev,
+            activeVouchers: data.active_vouchers    ?? prev.activeVouchers,
+            newComplaints:  data.pending_complaints ?? prev.newComplaints,
           }));
         }
       } catch (err) {
-        console.error("Lỗi đồng bộ dữ liệu API Dashboard:", err);
+        console.error('Lỗi tải stat cards:', err);
       }
     };
-    fetchDashboardStats();
+    fetchStatCards();
   }, []);
 
+  // ── Chart data: /dashboard/chart?unit=... (gọi lại khi timeUnit đổi) ────────
+  useEffect(() => {
+    const fetchChart = async () => {
+      setChartLoading(true);
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res   = await apiFetch(`${API_BASE}/dashboard/chart?unit=${timeUnit}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setChartData(data.chartData ?? []);
+        }
+      } catch (err) {
+        console.error('Lỗi tải chart data:', err);
+      } finally {
+        setChartLoading(false);
+      }
+    };
+    fetchChart();
+  }, [timeUnit]);
+
   const cardAccents = [
-    { bg: 'bg-blue-50',   icon: 'text-blue-400' },
-    { bg: 'bg-violet-50', icon: 'text-violet-400' },
-    { bg: 'bg-emerald-50',icon: 'text-emerald-400' },
-    { bg: 'bg-amber-50',  icon: 'text-amber-400' },
+    { bg: 'bg-blue-50',    icon: 'text-blue-400'    },
+    { bg: 'bg-violet-50',  icon: 'text-violet-400'  },
+    { bg: 'bg-emerald-50', icon: 'text-emerald-400' },
+    { bg: 'bg-amber-50',   icon: 'text-amber-400'   },
   ];
 
   return (
@@ -110,7 +135,9 @@ const AdminDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5">
         <div>
           <p className="text-xs font-semibold text-slate-400 mb-1">
-            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {new Date().toLocaleDateString('vi-VN', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            })}
           </p>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Tổng quan</h1>
         </div>
@@ -118,9 +145,9 @@ const AdminDashboard = () => {
         <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-100 shadow-sm self-start md:self-auto">
           <CalendarDays size={14} className="text-slate-400 ml-2 mr-1" />
           {[
-            { id: 'month', label: 'Tháng' },
-            { id: 'quarter', label: 'Quý' },
-            { id: 'year', label: 'Năm' }
+            { id: 'month',   label: 'Tháng' },
+            { id: 'quarter', label: 'Quý'   },
+            { id: 'year',    label: 'Năm'   },
           ].map((item) => (
             <button
               key={item.id}
@@ -139,50 +166,50 @@ const AdminDashboard = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Tổng người dùng"     value={stats.totalUsers.toLocaleString()}       icon={Users}                 change="+12.4%" isPositive={true}  accent={cardAccents[0]} />
-        <StatCard title="Đối tác đã duyệt"    value={stats.approvedPartners.toLocaleString()} icon={Store}                 change="+8.2%"  isPositive={true}  accent={cardAccents[1]} />
-        <StatCard title="Voucher hiện có"      value={stats.activeVouchers.toLocaleString()}   icon={Ticket}                change="+24.5%" isPositive={true}  accent={cardAccents[2]} />
-        <StatCard title="Khiếu nại cần xử lý" value={stats.newComplaints.toLocaleString()}    icon={MessageSquareWarning}  change="-4.1%"  isPositive={false} accent={cardAccents[3]} />
+        <StatCard title="Tổng người dùng"     value={stats.totalUsers.toLocaleString()}       icon={Users}                change="+12.4%" isPositive={true}  accent={cardAccents[0]} />
+        <StatCard title="Đối tác đã duyệt"    value={stats.approvedPartners.toLocaleString()} icon={Store}                change="+8.2%"  isPositive={true}  accent={cardAccents[1]} />
+        <StatCard title="Voucher hiện có"      value={stats.activeVouchers.toLocaleString()}   icon={Ticket}               change="+24.5%" isPositive={true}  accent={cardAccents[2]} />
+        <StatCard title="Khiếu nại cần xử lý" value={stats.newComplaints.toLocaleString()}    icon={MessageSquareWarning} change="-4.1%"  isPositive={false} accent={cardAccents[3]} />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* Area Chart */}
+        {/* Area Chart – Doanh thu */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-7">
           <div className="flex items-start justify-between mb-5">
             <div>
               <h3 className="font-semibold text-slate-700 text-sm">Tăng trưởng doanh thu</h3>
               <p className="text-xs text-slate-400 mt-0.5">Đơn vị tính: Triệu VNĐ</p>
             </div>
-            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-semibold">
-              <TrendingUp size={13} /> +18.6%
-            </div>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={timeDataMock[timeUnit]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorDoanhThu" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#6ec6a0" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6ec6a0" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
-                <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                  labelStyle={{ color: '#94a3b8' }}
-                />
-                <Area type="monotone" dataKey="doanhThu" stroke="#6ec6a0" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDoanhThu)" dot={false} activeDot={{ r: 5, fill: '#6ec6a0', strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {chartLoading ? <ChartSkeleton /> : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorDoanhThu" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#6ec6a0" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6ec6a0" stopOpacity={0}   />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                  <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                    labelStyle={{ color: '#94a3b8' }}
+                    formatter={(value) => [`${value} Tr.đ`, 'Doanh thu']}
+                  />
+                  <Area type="monotone" dataKey="doanhThu" stroke="#6ec6a0" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDoanhThu)" dot={false} activeDot={{ r: 5, fill: '#6ec6a0', strokeWidth: 0 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
-        {/* Bar Chart */}
+        {/* Bar Chart – Cơ cấu tài khoản */}
         <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-5">
           <div className="flex items-start justify-between mb-5">
             <div>
@@ -191,21 +218,23 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={timeDataMock[timeUnit]} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
-                <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '600', paddingTop: '12px', color: '#64748b' }} />
-                <Bar dataKey="customer" name="Khách Hàng" stackId="a" fill="#a5d8c8" radius={[0, 0, 0, 0]} barSize={22} />
-                <Bar dataKey="partner"  name="Đối Tác"    stackId="a" fill="#1a3a5c" radius={[6, 6, 0, 0]} barSize={22} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {chartLoading ? <ChartSkeleton /> : (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                  <YAxis tickLine={false} axisLine={false} stroke="#94a3b8" style={{ fontSize: '11px', fontWeight: '600' }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '10px', color: '#334155', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: '600', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: '600', paddingTop: '12px', color: '#64748b' }} />
+                  <Bar dataKey="customer" name="Khách Hàng" stackId="a" fill="#a5d8c8" radius={[0, 0, 0, 0]} barSize={22} />
+                  <Bar dataKey="partner"  name="Đối Tác"    stackId="a" fill="#1a3a5c" radius={[6, 6, 0, 0]} barSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
       </div>
@@ -214,4 +243,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-

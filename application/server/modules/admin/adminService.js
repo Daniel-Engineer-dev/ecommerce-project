@@ -589,6 +589,167 @@ class AdminService {
         await logAction(adminId, 'UPSERT_CONTENT_ITEM', 'Content_Items', result.rows[0].content_id);
         return result.rows[0];
     }
+
+    /**
+     * Lấy số lượng voucher đang hoạt động (status = 'Approved') và số khiếu nại chờ xử lý (status = 'Pending').
+     * Dùng cho phần Stat Cards trên AdminDashboard.
+     */
+    async getVoucherAndComplaintStats() {
+        const result = await pool.query(`
+            SELECT
+                (SELECT COUNT(*) FROM Vouchers WHERE status = 'Approved')::int      AS active_vouchers,
+                (SELECT COUNT(*) FROM Complaints WHERE status = 'Pending')::int     AS pending_complaints
+        `);
+        return result.rows[0];
+    }
+
+    /**
+     * Trả về dữ liệu biểu đồ doanh thu (AreaChart) và cơ cấu tài khoản mới (BarChart)
+     * được nhóm theo đơn vị thời gian: 'month' | 'quarter' | 'year'.
+     *
+     * - doanhThu   : Tổng doanh thu từ đơn hàng trạng thái 'Paid' (triệu VNĐ)
+     * - voucher    : Tổng số lượng voucher item được bán ra trong các đơn 'Paid'
+     * - customer   : Số tài khoản Customer đăng ký mới trong kỳ
+     * - partner    : Số tài khoản Partner được Approved trong kỳ
+     */
+    async getDashboardChartData(unit = 'month') {
+        const safeUnit = (unit ?? '').trim().toLowerCase();
+        const validUnits = ['month', 'quarter', 'year'];
+        if (!validUnits.includes(safeUnit)) throw new Error('Đơn vị thời gian không hợp lệ (month | quarter | year)');
+        unit = safeUnit;
+
+        // ── Cấu hình trục thời gian theo từng unit ──────────────────────────────
+        // month   → 6 tháng gần nhất  (label: 'Tháng N/YYYY')
+        // quarter → 4 quý gần nhất    (label: 'QN/YYYY')
+        // year    → 3 năm gần nhất    (label: 'YYYY')
+        let revenueSql, userSql;
+
+        if (unit === 'month') {
+            revenueSql = `
+                SELECT
+                    TO_CHAR(DATE_TRUNC('month', o.order_date), 'MM/YYYY')   AS label,
+                    DATE_TRUNC('month', o.order_date)                        AS period_start,
+                    ROUND(COALESCE(SUM(o.total_amount), 0) / 1000000, 2)    AS "doanhThu",
+                    COALESCE(SUM(oi.quantity), 0)::int                       AS voucher
+                FROM Orders o
+                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                WHERE o.status = 'Paid'
+                  AND o.order_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
+                GROUP BY DATE_TRUNC('month', o.order_date)
+                ORDER BY period_start
+            `;
+            userSql = `
+                SELECT
+                    TO_CHAR(DATE_TRUNC('month', series.month), 'MM/YYYY') AS label,
+                    series.month                                            AS period_start,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Customer' THEN u.user_id END)::int AS customer,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Partner'  AND p.status = 'Approved' THEN u.user_id END)::int AS partner
+                FROM generate_series(
+                    DATE_TRUNC('month', NOW()) - INTERVAL '5 months',
+                    DATE_TRUNC('month', NOW()),
+                    INTERVAL '1 month'
+                ) AS series(month)
+                LEFT JOIN Users u
+                    ON  DATE_TRUNC('month', u.create_at) = series.month
+                    AND u.role IN ('Customer', 'Partner')
+                LEFT JOIN Partners p ON p.user_id = u.user_id
+                GROUP BY series.month
+                ORDER BY series.month
+            `;
+        } else if (unit === 'quarter') {
+            revenueSql = `
+                SELECT
+                    'Q' || TO_CHAR(DATE_TRUNC('quarter', o.order_date), 'Q/YYYY') AS label,
+                    DATE_TRUNC('quarter', o.order_date)                             AS period_start,
+                    ROUND(COALESCE(SUM(o.total_amount), 0) / 1000000, 2)           AS "doanhThu",
+                    COALESCE(SUM(oi.quantity), 0)::int                              AS voucher
+                FROM Orders o
+                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                WHERE o.status = 'Paid'
+                  AND o.order_date >= DATE_TRUNC('quarter', NOW()) - INTERVAL '3 quarters'
+                GROUP BY DATE_TRUNC('quarter', o.order_date)
+                ORDER BY period_start
+            `;
+            userSql = `
+                SELECT
+                    'Q' || TO_CHAR(series.q, 'Q/YYYY')                             AS label,
+                    series.q                                                         AS period_start,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Customer' THEN u.user_id END)::int AS customer,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Partner'  AND p.status = 'Approved' THEN u.user_id END)::int AS partner
+                FROM generate_series(
+                    DATE_TRUNC('quarter', NOW()) - INTERVAL '3 quarters',
+                    DATE_TRUNC('quarter', NOW()),
+                    INTERVAL '3 months'
+                ) AS series(q)
+                LEFT JOIN Users u
+                    ON  DATE_TRUNC('quarter', u.create_at) = series.q
+                    AND u.role IN ('Customer', 'Partner')
+                LEFT JOIN Partners p ON p.user_id = u.user_id
+                GROUP BY series.q
+                ORDER BY series.q
+            `;
+        } else {
+            // year
+            revenueSql = `
+                SELECT
+                    TO_CHAR(DATE_TRUNC('year', o.order_date), 'YYYY')  AS label,
+                    DATE_TRUNC('year', o.order_date)                     AS period_start,
+                    ROUND(COALESCE(SUM(o.total_amount), 0) / 1000000, 2) AS "doanhThu",
+                    COALESCE(SUM(oi.quantity), 0)::int                   AS voucher
+                FROM Orders o
+                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                WHERE o.status = 'Paid'
+                  AND o.order_date >= DATE_TRUNC('year', NOW()) - INTERVAL '2 years'
+                GROUP BY DATE_TRUNC('year', o.order_date)
+                ORDER BY period_start
+            `;
+            userSql = `
+                SELECT
+                    TO_CHAR(series.y, 'YYYY')                                       AS label,
+                    series.y                                                          AS period_start,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Customer' THEN u.user_id END)::int AS customer,
+                    COUNT(DISTINCT CASE WHEN u.role = 'Partner'  AND p.status = 'Approved' THEN u.user_id END)::int AS partner
+                FROM generate_series(
+                    DATE_TRUNC('year', NOW()) - INTERVAL '2 years',
+                    DATE_TRUNC('year', NOW()),
+                    INTERVAL '1 year'
+                ) AS series(y)
+                LEFT JOIN Users u
+                    ON  DATE_TRUNC('year', u.create_at) = series.y
+                    AND u.role IN ('Customer', 'Partner')
+                LEFT JOIN Partners p ON p.user_id = u.user_id
+                GROUP BY series.y
+                ORDER BY series.y
+            `;
+        }
+
+        const [revenueRes, userRes] = await Promise.all([
+            pool.query(revenueSql),
+            pool.query(userSql),
+        ]);
+
+        // Merge hai tập kết quả theo label (trục X đồng nhất nhờ generate_series phía user)
+        const userMap = {};
+        for (const row of userRes.rows) {
+            userMap[row.label] = { customer: row.customer, partner: row.partner };
+        }
+
+        const revenueMap = {};
+        for (const row of revenueRes.rows) {
+            revenueMap[row.label] = { doanhThu: Number(row.doanhThu), voucher: row.voucher };
+        }
+
+        // Lấy danh sách label từ user (generate_series đảm bảo đủ kỳ kể cả kỳ 0 đơn hàng)
+        const chartData = userRes.rows.map((row) => ({
+            name: row.label,
+            doanhThu: revenueMap[row.label]?.doanhThu ?? 0,
+            voucher:  revenueMap[row.label]?.voucher  ?? 0,
+            customer: row.customer,
+            partner:  row.partner,
+        }));
+
+        return chartData;
+    }
 }
 
 module.exports = new AdminService();

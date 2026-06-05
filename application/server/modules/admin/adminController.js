@@ -156,6 +156,30 @@ const upsertContentItem = async (req, res) => {
     }
 };
 
+// ── Dashboard stat cards ─────────────────────────────────────────────────────
+const getVoucherAndComplaintStats = async (req, res) => {
+    try {
+        const stats = await adminService.getVoucherAndComplaintStats();
+        res.json(stats);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// ── Dashboard chart data (AreaChart + BarChart) ──────────────────────────────
+// Query param: ?unit=month | quarter | year  (default: month)
+const getDashboardChartData = async (req, res) => {
+    try {
+        const validUnits = ['month', 'quarter', 'year'];
+        const rawUnit = (req.query.unit ?? '').trim().toLowerCase();
+        const unit = validUnits.includes(rawUnit) ? rawUnit : 'month';
+        const chartData = await adminService.getDashboardChartData(unit);
+        res.json({ unit, chartData });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
 module.exports = {
     getPendingPartners,
     approvePartner,
@@ -174,4 +198,6 @@ module.exports = {
     getSystemLogs,
     getContentItems,
     upsertContentItem,
+    getVoucherAndComplaintStats,
+    getDashboardChartData,
 };

@@ -33,4 +33,10 @@ router.get('/logs', auth, adminOnly, adminController.getSystemLogs);
 router.get('/content', auth, adminOnly, adminController.getContentItems);
 router.post('/content', auth, adminOnly, adminController.upsertContentItem);
 
+// ── Dashboard tổng hợp ───────────────────────────────────────────────────────
+// GET /admin/dashboard/stats    → active_vouchers + pending_complaints
+router.get('/dashboard/stats', auth, adminOnly, adminController.getVoucherAndComplaintStats);
+// GET /admin/dashboard/chart?unit=month|quarter|year  → dữ liệu biểu đồ
+router.get('/dashboard/chart', auth, adminOnly, adminController.getDashboardChartData);
+
 module.exports = router;
