@@ -420,13 +420,37 @@ class AdminService {
         const values = [];
         let idx = 1;
 
+        // Cập nhật câu SQL: Lấy gộp dữ liệu Order, Voucher và Lịch sử phản hồi thành Object JSON
         let baseQuery = `
             SELECT c.*, u.username, u.email, cu.full_name,
-                COUNT(cr.response_id)::int AS response_count
+                (SELECT content FROM Complaint_Responses WHERE complaint_id = c.complaint_id ORDER BY created_at DESC LIMIT 1) AS response_content,
+                (SELECT action_type FROM Complaint_Responses WHERE complaint_id = c.complaint_id ORDER BY created_at DESC LIMIT 1) AS action_type,
+                (
+                    SELECT json_build_object(
+                        'order_id', o.order_id,
+                        'purchase_date', o.order_date,
+                        'amount', o.total_amount,
+                        'payment_status', o.status
+                    )
+                    FROM Orders o WHERE o.order_id = c.order_id
+                ) AS "order",
+                (
+                    SELECT json_build_object(
+                        'name', v.title,
+                        'code', COALESCE(ev.unique_code, 'Không có mã'),
+                        'usage_status', COALESCE(ev.status, 'Chưa xác định'),
+                        'expiry_date', ev.expiry_date
+                    )
+                    FROM Complaint_Vouchers cv
+                    JOIN Vouchers v ON cv.voucher_id = v.voucher_id
+                    LEFT JOIN Order_Items oi ON oi.voucher_id = v.voucher_id AND oi.order_id = c.order_id
+                    LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                    WHERE cv.complaint_id = c.complaint_id
+                    LIMIT 1
+                ) AS voucher
             FROM Complaints c
             LEFT JOIN Users u ON c.customer_id = u.user_id
             LEFT JOIN Customers cu ON c.customer_id = cu.user_id
-            LEFT JOIN Complaint_Responses cr ON c.complaint_id = cr.complaint_id
             WHERE 1=1
         `;
 
@@ -446,11 +470,12 @@ class AdminService {
             idx++;
         }
 
-        const groupBy = 'GROUP BY c.complaint_id, u.username, u.email, cu.full_name';
-        const countResult = await pool.query(`SELECT COUNT(*) FROM (${baseQuery} ${groupBy}) AS complaint_rows`, values);
+        // Bỏ GROUP BY vì đã xử lý ở dạng subquery vô hướng (scalar)
+        const countResult = await pool.query(`SELECT COUNT(*) FROM (${baseQuery}) AS complaint_rows`, values);
         const total = parseInt(countResult.rows[0].count, 10);
+        
         const dataResult = await pool.query(
-            `${baseQuery} ${groupBy} ORDER BY c.created_at DESC, c.complaint_id DESC LIMIT $${idx++} OFFSET $${idx++}`,
+            `${baseQuery} ORDER BY c.created_at DESC, c.complaint_id DESC LIMIT $${idx++} OFFSET $${idx++}`,
             [...values, Number(limit), offset]
         );
 
@@ -462,17 +487,62 @@ class AdminService {
         };
     }
 
-    async updateComplaintStatus(complaintId, status, adminId = null) {
+    async updateComplaintStatus(complaintId, payload, adminId = null) {
+        const { status, actionType, responseContent } = payload;
         const allowed = ['Pending', 'Processing', 'Resolved', 'Rejected'];
-        if (!allowed.includes(status)) throw new Error('Trang thai khieu nai khong hop le');
+        
+        if (!allowed.includes(status)) {
+            throw new Error('Trạng thái khiếu nại không hợp lệ');
+        }
 
-        const result = await pool.query(
-            'UPDATE Complaints SET status = $1 WHERE complaint_id = $2 RETURNING *',
-            [status, complaintId]
-        );
-        if (result.rowCount === 0) throw new Error('Khieu nai khong ton tai');
+        // 1. Kiểm tra Ngoại lệ E1
+        const checkRes = await pool.query('SELECT status FROM Complaints WHERE complaint_id = $1', [complaintId]);
+        if (checkRes.rowCount === 0) throw new Error('Khiếu nại không tồn tại');
+        const currentStatus = checkRes.rows[0].status;
+
+        if (['Resolved', 'Rejected'].includes(currentStatus)) {
+            throw new Error('Lỗi E1: Không thể thay đổi trạng thái của khiếu nại đã Đã xử lý hoặc Từ chối.');
+        }
+
+        // 2. Kiểm tra quy tắc Luồng A & Luồng B
+        if (status === 'Resolved' && (!actionType || !responseContent?.trim())) {
+            throw new Error('Luồng A: Vui lòng chọn hướng giải quyết và nhập nội dung phản hồi.');
+        }
+        if (status === 'Rejected' && !responseContent?.trim()) {
+            throw new Error('Luồng B: Bắt buộc phải nhập lý do từ chối.');
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            // 3. Chỉ cập nhật status ở bảng Complaints
+            await client.query(
+                `UPDATE Complaints SET status = $1 WHERE complaint_id = $2`,
+                [status, complaintId]
+            );
+
+            // 4. Lưu phản hồi và action_type vào Complaint_Responses
+            if (responseContent?.trim()) {
+                await client.query(
+                    `INSERT INTO Complaint_Responses (complaint_id, responder_id, action_type, content)
+                     VALUES ($1, $2, $3, $4)`,
+                    [complaintId, adminId, actionType || null, responseContent.trim()]
+                );
+            }
+
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+
         await logAction(adminId, `UPDATE_COMPLAINT_STATUS:${status}`, 'Complaints', complaintId);
-        return result.rows[0];
+        
+        const updated = await pool.query('SELECT * FROM Complaints WHERE complaint_id = $1', [complaintId]);
+        return updated.rows[0];
     }
 
     async respondComplaint(complaintId, responderId, content) {

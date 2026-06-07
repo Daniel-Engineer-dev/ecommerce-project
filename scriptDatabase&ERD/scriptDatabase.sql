@@ -186,6 +186,7 @@ CREATE TABLE Complaint_Responses (
     response_id SERIAL PRIMARY KEY,
     complaint_id INT REFERENCES Complaints(complaint_id) ON DELETE CASCADE,
     responder_id INT REFERENCES Users(user_id), -- Admin hoặc Partner phản hồi
+    action_type VARCHAR(50),
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

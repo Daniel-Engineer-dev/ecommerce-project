@@ -26,7 +26,6 @@ router.patch('/orders/:id/status', auth, adminOnly, adminController.updateOrderS
 
 router.get('/complaints', auth, adminOnly, adminController.getComplaints);
 router.patch('/complaints/:id/status', auth, adminOnly, adminController.updateComplaintStatus);
-router.post('/complaints/:id/responses', auth, adminOnly, adminController.respondComplaint);
 
 router.get('/logs', auth, adminOnly, adminController.getSystemLogs);
 

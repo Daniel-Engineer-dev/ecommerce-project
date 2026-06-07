@@ -113,17 +113,13 @@ const getComplaints = async (req, res) => {
 
 const updateComplaintStatus = async (req, res) => {
     try {
-        const complaint = await adminService.updateComplaintStatus(req.params.id, req.body.status, req.user?.id);
-        res.json({ message: 'Complaint updated successfully', complaint });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-};
-
-const respondComplaint = async (req, res) => {
-    try {
-        const response = await adminService.respondComplaint(req.params.id, req.user?.id, req.body.content);
-        res.json({ message: 'Complaint response sent successfully', response });
+        const { status, actionType, responseContent } = req.body;
+        const complaint = await adminService.updateComplaintStatus(
+            req.params.id, 
+            { status, actionType, responseContent }, 
+            req.user?.id
+        );
+        res.json({ message: 'Cập nhật khiếu nại thành công', complaint });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -156,7 +152,6 @@ const upsertContentItem = async (req, res) => {
     }
 };
 
-// ── Dashboard stat cards ─────────────────────────────────────────────────────
 const getVoucherAndComplaintStats = async (req, res) => {
     try {
         const stats = await adminService.getVoucherAndComplaintStats();
@@ -166,8 +161,6 @@ const getVoucherAndComplaintStats = async (req, res) => {
     }
 };
 
-// ── Dashboard chart data (AreaChart + BarChart) ──────────────────────────────
-// Query param: ?unit=month | quarter | year  (default: month)
 const getDashboardChartData = async (req, res) => {
     try {
         const validUnits = ['month', 'quarter', 'year'];
@@ -194,7 +187,6 @@ module.exports = {
     updateOrderStatus,
     getComplaints,
     updateComplaintStatus,
-    respondComplaint,
     getSystemLogs,
     getContentItems,
     upsertContentItem,
