@@ -83,7 +83,9 @@ CREATE TABLE Vouchers (
     expiry_date TIMESTAMP NOT NULL, -- RB-03: Thời gian kết thúc/hết hạn
     terms_and_conditions TEXT, -- BR-CUS-04: Điều kiện áp dụng
     cancellation_policy TEXT, -- BR-CUS-04: Chính sách hoàn hủy
-    status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Disabled')), -- RB-01
+    status VARCHAR(20) DEFAULT 'Pending' CHECK (status IN ('Draft', 'Pending', 'Approved', 'Rejected', 'Suspended', 'Expired')), -- RB-01
+    approved_at TIMESTAMP,
+    rejected_reason TEXT,
     
     -- RB-02: Giá bán phải nhỏ hơn giá gốc
     CONSTRAINT chk_price CHECK (sale_price < original_price),

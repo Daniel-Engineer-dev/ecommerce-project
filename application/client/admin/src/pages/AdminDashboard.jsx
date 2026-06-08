@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import { createRealtimeSource } from '../realtime';
 
 const API_BASE = API_ADMIN_URL;
 
@@ -60,40 +61,49 @@ const AdminDashboard = () => {
   const [chartData, setChartData]     = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
 
+  const fetchStatCards = async () => {
+    try {
+      const token   = localStorage.getItem('adminToken');
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [userRes, extraRes] = await Promise.all([
+        apiFetch(`${API_BASE}/users/stats`,     { headers }),
+        apiFetch(`${API_BASE}/dashboard/stats`, { headers }),
+      ]);
+
+      if (userRes.ok) {
+        const data = await userRes.json();
+        setStats(prev => ({
+          ...prev,
+          totalUsers:       data.total_users    ?? prev.totalUsers,
+          approvedPartners: data.total_partners ?? prev.approvedPartners,
+        }));
+      }
+
+      if (extraRes.ok) {
+        const data = await extraRes.json();
+        setStats(prev => ({
+          ...prev,
+          activeVouchers: data.active_vouchers    ?? prev.activeVouchers,
+          newComplaints:  data.pending_complaints ?? prev.newComplaints,
+        }));
+      }
+    } catch (err) {
+      console.error('Lỗi tải stat cards:', err);
+    }
+  };
+
   // ── Stat cards: /users/stats  +  /dashboard/stats ──────────────────────────
   useEffect(() => {
-    const fetchStatCards = async () => {
-      try {
-        const token   = localStorage.getItem('adminToken');
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const [userRes, extraRes] = await Promise.all([
-          apiFetch(`${API_BASE}/users/stats`,     { headers }),
-          apiFetch(`${API_BASE}/dashboard/stats`, { headers }),
-        ]);
-
-        if (userRes.ok) {
-          const data = await userRes.json();
-          setStats(prev => ({
-            ...prev,
-            totalUsers:       data.total_users    ?? prev.totalUsers,
-            approvedPartners: data.total_partners ?? prev.approvedPartners,
-          }));
-        }
-
-        if (extraRes.ok) {
-          const data = await extraRes.json();
-          setStats(prev => ({
-            ...prev,
-            activeVouchers: data.active_vouchers    ?? prev.activeVouchers,
-            newComplaints:  data.pending_complaints ?? prev.newComplaints,
-          }));
-        }
-      } catch (err) {
-        console.error('Lỗi tải stat cards:', err);
-      }
-    };
     fetchStatCards();
+  }, []);
+
+  useEffect(() => {
+    const source = createRealtimeSource();
+    if (!source) return undefined;
+    source.addEventListener('voucher.status_changed', fetchStatCards);
+    source.addEventListener('voucher.updated', fetchStatCards);
+    return () => source.close();
   }, []);
 
   // ── Chart data: /dashboard/chart?unit=... (gọi lại khi timeUnit đổi) ────────

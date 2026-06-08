@@ -1,7 +1,21 @@
 const pool = require('../../../config/db');
 const { logAction } = require('../../../utils/systemLog');
+const eventBus = require('../../../utils/eventBus');
 
 class AdminVoucherService {
+    async getVoucherReviewColumns() {
+        const result = await pool.query(
+            `
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'vouchers'
+              AND column_name IN ('approved_at', 'rejected_reason')
+            `
+        );
+        return new Set(result.rows.map((row) => row.column_name));
+    }
+
     async getAdminVouchers({ status, search, page = 1, limit = 10 }) {
         const pageNumber = Number(page) || 1;
         const limitNumber = Number(limit) || 10;
@@ -63,10 +77,15 @@ class AdminVoucherService {
     }
 
     async approveVoucher(voucherId, adminId) {
+        const columns = await this.getVoucherReviewColumns();
+        const setClauses = ["status = 'Approved'"];
+        if (columns.has('approved_at')) setClauses.push('approved_at = NOW()');
+        if (columns.has('rejected_reason')) setClauses.push('rejected_reason = NULL');
+
         const result = await pool.query(
             `
                 UPDATE Vouchers
-                SET status = 'Approved', approved_at = NOW(), rejected_reason = NULL
+                SET ${setClauses.join(', ')}
                 WHERE voucher_id = $1
                 RETURNING *
             `,
@@ -75,24 +94,47 @@ class AdminVoucherService {
         if (result.rowCount === 0) throw new Error('Voucher not found');
 
         await logAction(adminId, 'APPROVE_VOUCHER', 'Vouchers', voucherId);
+        eventBus.emit('voucher.status_changed', {
+            voucherId: result.rows[0].voucher_id,
+            partnerId: result.rows[0].partner_id,
+            status: result.rows[0].status,
+            source: 'admin',
+        });
         return result.rows[0];
     }
 
     async rejectVoucher(voucherId, adminId, reason) {
         if (!reason || reason.trim() === '') throw new Error('Reject reason is required');
 
+        const columns = await this.getVoucherReviewColumns();
+        const setClauses = ["status = 'Rejected'"];
+        const values = [voucherId];
+
+        if (columns.has('approved_at')) setClauses.push('approved_at = NULL');
+        if (columns.has('rejected_reason')) {
+            values.unshift(reason.trim());
+            setClauses.push('rejected_reason = $1');
+        }
+
+        const voucherIdParam = columns.has('rejected_reason') ? '$2' : '$1';
         const result = await pool.query(
             `
                 UPDATE Vouchers
-                SET status = 'Rejected', approved_at = NULL, rejected_reason = $1
-                WHERE voucher_id = $2
+                SET ${setClauses.join(', ')}
+                WHERE voucher_id = ${voucherIdParam}
                 RETURNING *
             `,
-            [reason, voucherId]
+            values
         );
         if (result.rowCount === 0) throw new Error('Voucher not found');
 
         await logAction(adminId, 'REJECT_VOUCHER', 'Vouchers', voucherId);
+        eventBus.emit('voucher.status_changed', {
+            voucherId: result.rows[0].voucher_id,
+            partnerId: result.rows[0].partner_id,
+            status: result.rows[0].status,
+            source: 'admin',
+        });
         return result.rows[0];
     }
 
@@ -105,6 +147,12 @@ class AdminVoucherService {
         if (result.rowCount === 0) throw new Error('Voucher not found');
 
         await logAction(adminId, `TOGGLE_VOUCHER_VISIBILITY:${nextStatus}`, 'Vouchers', voucherId);
+        eventBus.emit('voucher.status_changed', {
+            voucherId: result.rows[0].voucher_id,
+            partnerId: result.rows[0].partner_id,
+            status: result.rows[0].status,
+            source: 'admin',
+        });
         return result.rows[0];
     }
 

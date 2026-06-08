@@ -121,7 +121,8 @@ const AuthPage = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: regMethod === 'email' ? formData.email : null,
-            phone: regMethod === 'phone' ? formData.phone : null
+            phone: regMethod === 'phone' ? formData.phone : null,
+            role: 'Customer',
           })
         });
 
@@ -162,7 +163,8 @@ const AuthPage = () => {
           body: JSON.stringify({
             email: isEmail ? forgotIdentifier : null,
             phone: !isEmail ? forgotIdentifier : null,
-            otp: otpCode
+            otp: otpCode,
+            role: 'Customer',
           })
         });
 

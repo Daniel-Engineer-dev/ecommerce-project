@@ -6,8 +6,55 @@ const { sendEmail } = require('../../utils/sendEmail');
 const sendSms = require('../../utils/sendSms');
 
 const registrationOtps = new Map();
+const PASSWORD_RESET_ROLES = new Set(['Customer', 'Partner']);
 
 class AuthService {
+    normalizePasswordResetRole(role) {
+        if (!role) return null;
+        const normalized = String(role).trim();
+        if (!PASSWORD_RESET_ROLES.has(normalized)) {
+            throw new Error('Vai tro khoi phuc mat khau khong hop le');
+        }
+        return normalized;
+    }
+
+    async findResetUser({ email, phone, role }) {
+        const targetRole = this.normalizePasswordResetRole(role);
+        const identifier = email || phone;
+        if (!identifier) throw new Error('Email hoặc số điện thoại là bắt buộc');
+
+        const filters = [];
+        const values = [];
+        let index = 1;
+
+        if (email) {
+            filters.push(`lower(email) = lower($${index++})`);
+            values.push(email);
+        } else {
+            filters.push(`phone = $${index++}`);
+            values.push(phone);
+        }
+
+        if (targetRole) {
+            filters.push(`role = $${index++}`);
+            values.push(targetRole);
+        }
+
+        const result = await pool.query(
+            `SELECT * FROM Users WHERE ${filters.join(' AND ')} LIMIT 1`,
+            values
+        );
+
+        const user = result.rows[0];
+        if (!user) {
+            const roleHint = targetRole === 'Customer' ? 'khach hang' : targetRole === 'Partner' ? 'doi tac' : '';
+            throw new Error(email
+                ? `Email khong ton tai${roleHint ? ` trong tai khoan ${roleHint}` : ''}`
+                : `So dien thoai khong ton tai${roleHint ? ` trong tai khoan ${roleHint}` : ''}`);
+        }
+        return user;
+    }
+
     createAccessToken(user) {
         return jwt.sign(
             { id: user.user_id, role: user.role },
@@ -21,6 +68,14 @@ class AuthService {
             { id: user.user_id, role: user.role, type: 'refresh' },
             process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt',
             { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+        );
+    }
+
+    createPasswordResetToken(user) {
+        return jwt.sign(
+            { id: user.user_id, role: user.role, type: 'password_reset' },
+            process.env.JWT_RESET_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt',
+            { expiresIn: '10m' }
         );
     }
 
@@ -306,13 +361,8 @@ class AuthService {
     }
 
     async forgotPassword(data) {
-        const { email, phone } = data;
-        const result = await pool.query(
-            email ? 'SELECT * FROM Users WHERE lower(email) = lower($1)' : 'SELECT * FROM Users WHERE phone = $1',
-            [email || phone]
-        );
-        const user = result.rows[0];
-        if (!user) throw new Error(email ? 'Email khong ton tai' : 'So dien thoai khong ton tai');
+        const { email, phone, role } = data;
+        const user = await this.findResetUser({ email, phone, role });
 
         // Always generate a 6-digit OTP code for both email and phone
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -349,6 +399,24 @@ class AuthService {
     }
 
     async resetPassword(token, password) {
+        try {
+            const decoded = jwt.verify(
+                token,
+                process.env.JWT_RESET_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt'
+            );
+            if (decoded.type !== 'password_reset') throw new Error('Invalid reset token');
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const result = await pool.query(
+                'UPDATE Users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE user_id = $2 AND role = $3 RETURNING user_id',
+                [hashedPassword, decoded.id, decoded.role]
+            );
+            if (result.rows.length === 0) throw new Error('Token khong hop le hoac da het han');
+            return;
+        } catch (err) {
+            if (err.name !== 'JsonWebTokenError' && err.name !== 'TokenExpiredError') throw err;
+        }
+
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
         const result = await pool.query(
             'SELECT * FROM Users WHERE reset_token = $1 AND reset_token_expiry > $2',
@@ -363,19 +431,19 @@ class AuthService {
         );
     }
 
-    async verifyOtp(identifier, otp) {
+    async verifyOtp(identifier, otp, role = null) {
         if (!identifier) throw new Error('Email hoặc số điện thoại là bắt buộc');
         const isEmail = identifier.includes('@');
-        const result = await pool.query(
-            isEmail ? 'SELECT * FROM Users WHERE lower(email) = lower($1)' : 'SELECT * FROM Users WHERE phone = $1',
-            [identifier]
-        );
-        if (result.rows.length === 0) throw new Error('Nguoi dung khong ton tai');
+        const user = await this.findResetUser({
+            email: isEmail ? identifier : null,
+            phone: !isEmail ? identifier : null,
+            role,
+        });
         const tokenHash = crypto.createHash('sha256').update(otp).digest('hex');
-        if (result.rows[0].reset_token !== tokenHash || new Date(result.rows[0].reset_token_expiry) < new Date()) {
+        if (user.reset_token !== tokenHash || new Date(user.reset_token_expiry) < new Date()) {
             throw new Error('OTP khong chinh xac hoac da het han');
         }
-        return otp;
+        return this.createPasswordResetToken(user);
     }
 
     async checkAvailability(data) {

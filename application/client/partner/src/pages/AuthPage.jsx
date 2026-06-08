@@ -87,6 +87,7 @@ const AuthPage = () => {
           body: JSON.stringify({
             email: forgotMethod === 'email' ? identifier : null,
             phone: forgotMethod === 'phone' ? identifier : null,
+            role: 'Partner',
           }),
         });
         const data = await response.json();
@@ -123,6 +124,7 @@ const AuthPage = () => {
             email: isEmail ? forgotIdentifier : null,
             phone: !isEmail ? forgotIdentifier : null,
             otp: otpCode,
+            role: 'Partner',
           }),
         });
         const data = await response.json();

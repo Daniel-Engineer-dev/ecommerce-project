@@ -10,6 +10,8 @@ async function migrate() {
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_phone VARCHAR(20);`,
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_email VARCHAR(100);`,
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;`,
+            `ALTER TABLE Vouchers ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;`,
+            `ALTER TABLE Vouchers ADD COLUMN IF NOT EXISTS rejected_reason TEXT;`,
             `
                 CREATE TABLE IF NOT EXISTS Content_Items (
                     content_id SERIAL PRIMARY KEY,

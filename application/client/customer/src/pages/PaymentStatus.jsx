@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../apiClient';
 import { useCart } from '../context/CartContext';
-import { CheckCircle, XCircle, Tag, Calendar, QrCode, Barcode, ShoppingCart, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Tag, Calendar, QrCode, Barcode, ShoppingCart, Home, WalletCards } from 'lucide-react';
 
 const PaymentStatus = () => {
   const [searchParams] = useSearchParams();
@@ -204,16 +204,35 @@ const PaymentStatus = () => {
               </div>
 
               {/* Nút hành động */}
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <Link to="/">
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Link to="/" style={{ textDecoration: 'none' }}>
                   <button className="btn-primary" style={{ padding: '1rem 2rem', gap: '8px', display: 'flex', alignItems: 'center' }}>
                     <Home size={18} /> Khám phá thêm Deal
                   </button>
                 </Link>
-                <Link to="/profile">
-                  <button className="btn-secondary" style={{ padding: '1rem 2rem', gap: '8px', display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #cbd5e1', color: '#475569' }}>
+                <Link to="/profile" style={{ textDecoration: 'none' }}>
+                  <motion.button
+                    whileHover={{ y: -2, boxShadow: '0 12px 24px rgba(3, 105, 161, 0.14)' }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      minHeight: '56px',
+                      padding: '0 1.5rem',
+                      gap: '10px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#eef6ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: 'var(--radius-md)',
+                      color: '#075985',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s, background-color 0.2s',
+                    }}
+                  >
+                    <WalletCards size={19} />
                     Xem ví Voucher của tôi
-                  </button>
+                  </motion.button>
                 </Link>
               </div>
 

@@ -74,8 +74,8 @@ const resetPassword = async (req, res) => {
 
 const verifyOtp = async (req, res) => {
     try {
-        const { email, phone, otp } = req.body;
-        const tempToken = await authService.verifyOtp(email || phone, otp);
+        const { email, phone, otp, role } = req.body;
+        const tempToken = await authService.verifyOtp(email || phone, otp, role);
         res.json({ message: 'OTP verified successfully', tempToken });
     } catch (err) {
         res.status(400).json({ message: err.message });

@@ -1,4 +1,5 @@
 const pool = require('../../config/db');
+const eventBus = require('../../utils/eventBus');
 
 const normalizeCode = (code) => String(code || '').trim().toUpperCase();
 
@@ -36,29 +37,59 @@ class PartnerService {
             WHERE v.partner_id = $1
         `;
 
-        const recentQuery = `
-            SELECT ev.unique_code, ev.status, ev.issued_at, ev.used_date, v.title, c.full_name
-            FROM E_Vouchers ev
-            JOIN Order_Items oi ON oi.order_item_id = ev.order_item_id
-            JOIN Vouchers v ON v.voucher_id = oi.voucher_id
-            JOIN Orders o ON o.order_id = oi.order_id
-            LEFT JOIN Customers c ON c.user_id = o.customer_id
-            WHERE v.partner_id = $1
-            ORDER BY COALESCE(ev.used_date, ev.issued_at) DESC
-            LIMIT 6
-        `;
-
         const [stats, revenue, recent] = await Promise.all([
             pool.query(statsQuery, [partnerId]),
             pool.query(revenueQuery, [partnerId]),
-            pool.query(recentQuery, [partnerId])
+            this.getRecentActivity(partnerId, 12)
         ]);
 
         return {
             ...stats.rows[0],
             ...revenue.rows[0],
-            recent_activity: recent.rows
+            recent_activity: recent.rows || recent
         };
+    }
+
+    async getRecentActivity(partnerId, limit = 50) {
+        const result = await pool.query(
+            `
+            SELECT
+                ev.evoucher_id,
+                ev.unique_code,
+                ev.status,
+                ev.issued_at,
+                ev.expiry_date,
+                ev.used_date,
+                ev.used_at_branch_id,
+                v.voucher_id,
+                v.title,
+                v.sale_price,
+                cat.category_name,
+                oi.order_item_id,
+                oi.quantity,
+                oi.price_at_purchase,
+                o.order_id,
+                o.order_date,
+                o.status AS order_status,
+                c.full_name AS customer_name,
+                u.email AS customer_email,
+                u.phone AS customer_phone,
+                used_branch.branch_name AS used_branch_name
+            FROM E_Vouchers ev
+            JOIN Order_Items oi ON oi.order_item_id = ev.order_item_id
+            JOIN Vouchers v ON v.voucher_id = oi.voucher_id
+            JOIN Categories cat ON cat.category_id = v.category_id
+            JOIN Orders o ON o.order_id = oi.order_id
+            LEFT JOIN Customers c ON c.user_id = o.customer_id
+            LEFT JOIN Users u ON u.user_id = o.customer_id
+            LEFT JOIN Branches used_branch ON used_branch.branch_id = ev.used_at_branch_id
+            WHERE v.partner_id = $1
+            ORDER BY COALESCE(ev.used_date, ev.issued_at) DESC
+            LIMIT $2
+            `,
+            [partnerId, limit]
+        );
+        return result.rows;
     }
 
     async getVouchers(partnerId) {
@@ -136,6 +167,12 @@ class PartnerService {
 
             await this.replaceVoucherBranches(client, partnerId, voucher.rows[0].voucher_id, data.branch_ids);
             await client.query('COMMIT');
+            eventBus.emit('voucher.status_changed', {
+                voucherId: voucher.rows[0].voucher_id,
+                partnerId,
+                status: voucher.rows[0].status,
+                source: 'partner',
+            });
             return voucher.rows[0];
         } catch (err) {
             await client.query('ROLLBACK');
@@ -189,6 +226,12 @@ class PartnerService {
 
             await this.replaceVoucherBranches(client, partnerId, voucherId, data.branch_ids);
             await client.query('COMMIT');
+            eventBus.emit('voucher.updated', {
+                voucherId: updated.rows[0].voucher_id,
+                partnerId,
+                status: updated.rows[0].status,
+                source: 'partner',
+            });
             return updated.rows[0];
         } catch (err) {
             await client.query('ROLLBACK');
@@ -199,11 +242,25 @@ class PartnerService {
     }
 
     async submitVoucher(partnerId, voucherId) {
+        const existing = await pool.query(
+            'SELECT status FROM Vouchers WHERE voucher_id = $1 AND partner_id = $2',
+            [voucherId, partnerId]
+        );
+        if (existing.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
+        if (existing.rows[0].status === 'Approved') {
+            throw new Error('Voucher da duoc duyet. Doi tac chi co the tam ngung voucher nay.');
+        }
+
         const result = await pool.query(
             "UPDATE Vouchers SET status = 'Pending' WHERE voucher_id = $1 AND partner_id = $2 RETURNING *",
             [voucherId, partnerId]
         );
-        if (result.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
+        eventBus.emit('voucher.status_changed', {
+            voucherId: result.rows[0].voucher_id,
+            partnerId,
+            status: result.rows[0].status,
+            source: 'partner',
+        });
         return result.rows[0];
     }
 
@@ -213,6 +270,12 @@ class PartnerService {
             [voucherId, partnerId]
         );
         if (result.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
+        eventBus.emit('voucher.status_changed', {
+            voucherId: result.rows[0].voucher_id,
+            partnerId,
+            status: result.rows[0].status,
+            source: 'partner',
+        });
         return result.rows[0];
     }
 
@@ -289,13 +352,21 @@ class PartnerService {
             [branchId, normalizeCode(code)]
         );
         if (result.rows.length === 0) throw new Error('Khong the cap nhat voucher. Ma co the da duoc su dung.');
+        eventBus.emit('voucher_code.redeemed', {
+            voucherId: checked.voucher_id,
+            partnerId,
+            code: normalizeCode(code),
+            status: 'Used',
+            source: 'partner',
+        });
         return this.checkVoucherCode(partnerId, code);
     }
 
     async getReport(partnerId) {
         const dashboard = await this.getDashboard(partnerId);
         const vouchers = await this.getVouchers(partnerId);
-        return { dashboard, vouchers };
+        const recent_activity = await this.getRecentActivity(partnerId, 100);
+        return { dashboard, vouchers, recent_activity };
     }
 
     normalizeVoucherPayload(data) {

@@ -11,6 +11,7 @@ const orderRoutes = require('./modules/customer/orderRoutes');
 const complaintRoutes = require('./modules/customer/complaintRoutes');
 const adminOrderRoutes = require('./modules/admin/Order/adminOrderRoute');
 const chatbotRoutes = require('./modules/shared/chatbotRoutes');
+const eventRoutes = require('./modules/shared/eventRoutes');
 const pool = require('./config/db');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/events', eventRoutes);
 // Health check
 app.get('/', (req, res) => res.send('API TMDT Voucher is running...'));
 app.get('/health', (req, res) => {

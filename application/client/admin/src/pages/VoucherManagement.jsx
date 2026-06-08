@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import { createRealtimeSource } from '../realtime';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -44,6 +45,15 @@ const VoucherManagement = () => {
     fetchVouchers();
   }, [activeTab, search, currentPage]);
 
+  useEffect(() => {
+    const source = createRealtimeSource();
+    if (!source) return undefined;
+    const refresh = () => fetchVouchers();
+    source.addEventListener('voucher.status_changed', refresh);
+    source.addEventListener('voucher.updated', refresh);
+    return () => source.close();
+  }, [activeTab, search, currentPage]);
+
   const fetchVouchers = async () => {
     setLoading(true);
     try {
@@ -70,6 +80,11 @@ const VoucherManagement = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const readErrorMessage = async (res, fallback) => {
+    const data = await res.json().catch(() => ({}));
+    return data.message || data.error || fallback;
+  };
+
   const handleApprove = async (id) => {
     try {
       const res = await apiFetch(`${API}/vouchers/${id}/approve`, {
@@ -80,9 +95,11 @@ const VoucherManagement = () => {
         showToast('success', 'Đã phê duyệt voucher thành công!');
         setSelectedVoucher(null);
         fetchVouchers();
+      } else {
+        showToast('error', await readErrorMessage(res, 'Thao tác phê duyệt thất bại'));
       }
     } catch (err) {
-      showToast('error', 'Thao tác phê duyệt thất bại');
+      showToast('error', err.message || 'Thao tác phê duyệt thất bại');
     }
   };
 
@@ -103,9 +120,11 @@ const VoucherManagement = () => {
         setRejectReason('');
         setShowRejectInput(false);
         fetchVouchers();
+      } else {
+        showToast('error', await readErrorMessage(res, 'Thao tác từ chối thất bại'));
       }
     } catch (err) {
-      showToast('error', 'Thao tác từ chối thất bại');
+      showToast('error', err.message || 'Thao tác từ chối thất bại');
     }
   };
 
@@ -120,9 +139,11 @@ const VoucherManagement = () => {
         showToast('success', 'Đã cập nhật trạng thái hiển thị voucher');
         setSelectedVoucher(null);
         fetchVouchers();
+      } else {
+        showToast('error', await readErrorMessage(res, 'Lỗi chuyển đổi trạng thái hiển thị'));
       }
     } catch (err) {
-      showToast('error', 'Lỗi chuyển đổi trạng thái hiển thị');
+      showToast('error', err.message || 'Lỗi chuyển đổi trạng thái hiển thị');
     }
   };
 

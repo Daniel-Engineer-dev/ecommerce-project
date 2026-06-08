@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import jsQR from 'jsqr';
 import {
   BarChart3,
   Building2,
@@ -13,6 +15,8 @@ import {
   LogOut,
   MapPin,
   Plus,
+  Printer,
+  QrCode,
   RefreshCw,
   Save,
   Search,
@@ -27,6 +31,7 @@ import Profile from './pages/Profile';
 import ChatbotWidget from './components/ChatbotWidget';
 import { API_BASE_URL } from './config';
 import { apiJson, clearSession } from './apiClient';
+import { createRealtimeSource } from './realtime';
 
 const API_URL = API_BASE_URL;
 
@@ -36,6 +41,56 @@ const money = (value) =>
 const dateOnly = (value) => {
   if (!value) return '';
   return new Date(value).toISOString().slice(0, 10);
+};
+
+const dateTime = (value) => {
+  if (!value) return 'Chưa ghi nhận';
+  return new Date(value).toLocaleString('vi-VN');
+};
+
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+const QR_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif']);
+const QR_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'];
+const QR_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+
+const decodeQrWithCanvas = async (file) => {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Không thể xử lý ảnh QR trên trình duyệt này.');
+
+    context.drawImage(bitmap, 0, 0);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const result = jsQR(imageData.data, imageData.width, imageData.height);
+    return result?.data || '';
+  } finally {
+    bitmap.close?.();
+  }
+};
+
+const decodeQrFromImageFile = async (file) => {
+  if ('BarcodeDetector' in window) {
+    const bitmap = await createImageBitmap(file);
+    try {
+      const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      const results = await detector.detect(bitmap);
+      if (results[0]?.rawValue) return results[0].rawValue;
+    } finally {
+      bitmap.close?.();
+    }
+  }
+
+  return decodeQrWithCanvas(file);
 };
 
 const apiFetch = async (path, options = {}) => {
@@ -146,46 +201,102 @@ function Dashboard() {
     load();
   }, []);
 
+  useEffect(() => {
+    const source = createRealtimeSource();
+    if (!source) return undefined;
+    const refresh = () => load();
+    source.addEventListener('voucher.status_changed', refresh);
+    source.addEventListener('voucher.updated', refresh);
+    source.addEventListener('voucher_code.redeemed', refresh);
+    return () => source.close();
+  }, []);
+
   if (!data && !error) return <LoadingBlock />;
 
+  const usedQuantity = Number(data?.used_quantity || 0);
+  const unusedQuantity = Number(data?.unused_quantity || 0);
+  const soldQuantity = Number(data?.sold_quantity || 0);
+  const approvedVouchers = Number(data?.approved_vouchers || 0);
+  const pendingVouchers = Number(data?.pending_vouchers || 0);
+  const disabledVouchers = Number(data?.disabled_vouchers || 0);
+  const usageRate = Math.round((usedQuantity / Math.max(soldQuantity, 1)) * 100);
   const stats = [
     { label: 'Doanh thu đã ghi nhận', value: money(data?.revenue), icon: BarChart3, color: 'var(--primary)' },
-    { label: 'Voucher đang bán', value: data?.approved_vouchers || 0, icon: Ticket, color: 'var(--primary)' },
-    { label: 'Voucher chờ duyệt', value: data?.pending_vouchers || 0, icon: ClipboardCheck, color: 'var(--primary)' },
-    { label: 'Mã đã sử dụng', value: data?.used_quantity || 0, icon: CheckCircle, color: 'var(--primary)' },
+    { label: 'Đã bán', value: soldQuantity, icon: Ticket, color: '#0369a1' },
+    { label: 'Tỷ lệ sử dụng', value: `${usageRate}%`, icon: CheckCircle, color: '#0f766e' },
+    { label: 'Voucher đang bán', value: approvedVouchers, icon: Ticket, color: 'var(--primary)' },
+    { label: 'Voucher chờ duyệt', value: pendingVouchers, icon: ClipboardCheck, color: 'var(--primary)' },
+    { label: 'Mã đã sử dụng', value: usedQuantity, icon: CheckCircle, color: 'var(--primary)' },
+  ];
+  const voucherStatusChart = [
+    { label: 'Đang bán', value: approvedVouchers, color: '#16a34a' },
+    { label: 'Chờ duyệt', value: pendingVouchers, color: '#d97706' },
+    { label: 'Tạm ngưng', value: disabledVouchers, color: '#dc2626' },
+  ];
+  const revenueTrend = (data?.recent_activity || [])
+    .filter((item) => item.status === 'Used')
+    .slice()
+    .reverse()
+    .reduce((points, item, index) => {
+      const previous = points[index - 1]?.value || 0;
+      points.push({
+        label: item.unique_code || `Mã ${index + 1}`,
+        value: previous + Number(item.price_at_purchase || item.sale_price || 0),
+      });
+      return points;
+    }, []);
+  const fallbackTrend = revenueTrend.length > 0 ? revenueTrend : [
+    { label: 'Bắt đầu', value: 0 },
+    { label: 'Hiện tại', value: Number(data?.revenue || 0) },
   ];
 
   return (
     <div style={shell.page}>
       <PageTitle title="Tổng quan kinh doanh" subtitle="Theo dõi nhanh doanh thu, voucher và hoạt động xác thực của đối tác." onRefresh={load} />
       <ErrorBox message={error} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '12px' }}>
         {stats.map((item) => (
-          <div key={item.label} style={{ ...shell.card, padding: '20px' }}>
-            <item.icon size={24} color={item.color} />
-            <div style={{ color: '#64748b', fontWeight: 700, marginTop: '12px', fontSize: '0.86rem' }}>{item.label}</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, marginTop: '4px' }}>{item.value}</div>
-          </div>
+          <motion.div
+            key={item.label}
+            whileHover={{ y: -4, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 360, damping: 24 }}
+            style={{ ...shell.card, padding: '16px', minHeight: '150px', cursor: 'default' }}
+          >
+            <item.icon size={22} color={item.color} />
+            <div style={{ color: '#64748b', fontWeight: 800, marginTop: '12px', fontSize: '0.78rem', lineHeight: 1.25 }}>{item.label}</div>
+            <div style={{ fontSize: 'clamp(1.35rem, 1.6vw, 1.75rem)', fontWeight: 900, marginTop: '6px', lineHeight: 1.15, wordBreak: 'break-word' }}>{item.value}</div>
+          </motion.div>
         ))}
       </div>
 
-      <div style={{ ...shell.card, padding: '22px' }}>
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '14px' }}>Hoạt động mã voucher gần đây</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {(data?.recent_activity || []).length === 0 ? (
-            <Empty text="Chưa có mã voucher nào được phát hành cho đối tác này." />
-          ) : (
-            data.recent_activity.map((item) => (
-              <div key={item.unique_code} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: '18px', padding: '12px 0', borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800 }}>{item.title}</div>
-                  <div style={{ color: '#64748b', fontSize: '0.84rem' }}>{item.unique_code} · {item.customer_name || 'Khách hàng'}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '16px' }}>
+        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px' }}>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>Xu hướng doanh thu</h2>
+          <p style={{ color: '#64748b', fontWeight: 700, fontSize: '0.82rem', marginBottom: '18px' }}>Tích lũy theo các mã đã sử dụng gần đây</p>
+          <RevenueTrendChart points={fallbackTrend} />
+        </motion.div>
+
+        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px' }}>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: '18px' }}>Trạng thái voucher</h2>
+          <div style={{ display: 'grid', gap: '14px' }}>
+            {voucherStatusChart.map((item) => {
+              const total = Math.max(approvedVouchers + pendingVouchers + disabledVouchers, 1);
+              const percent = Math.round((item.value / total) * 100);
+              return (
+                <div key={item.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px', fontWeight: 800 }}>
+                    <span>{item.label}</span>
+                    <span style={{ color: '#64748b' }}>{item.value} · {percent}%</span>
+                  </div>
+                  <div style={{ height: '12px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
+                    <div style={{ width: `${percent}%`, height: '100%', background: item.color, borderRadius: '999px' }} />
+                  </div>
                 </div>
-                <StatusPill status={item.status} />
-              </div>
-            ))
-          )}
-        </div>
+              );
+            })}
+          </div>
+        </motion.div>
       </div>
     </div>
   );
@@ -239,6 +350,16 @@ function VoucherManagement() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const source = createRealtimeSource();
+    if (!source) return undefined;
+    const refresh = () => load();
+    source.addEventListener('voucher.status_changed', refresh);
+    source.addEventListener('voucher.updated', refresh);
+    source.addEventListener('voucher_code.redeemed', refresh);
+    return () => source.close();
   }, []);
 
   const resetForm = () => {
@@ -340,7 +461,7 @@ function VoucherManagement() {
 
       {formOpen && (
         <form onSubmit={submitForm} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
-          <h2 style={{ gridColumn: '1 / -1', fontSize: '1.2rem' }}>{editing ? 'Cập nhật voucher chờ duyệt' : 'Tạo voucher mới'}</h2>
+          <h2 style={{ gridColumn: '1 / -1', fontSize: '1.2rem' }}>{editing ? 'Cập nhật thông tin voucher' : 'Tạo voucher mới'}</h2>
           <Field label="Tên voucher" value={form.title} onChange={(title) => setForm({ ...form, title })} required />
           <Select label="Danh mục" value={form.category_id} onChange={(category_id) => setForm({ ...form, category_id })} options={categories.map((c) => [c.category_id, c.category_name])} required />
           <Field label="Giá gốc" type="number" value={form.original_price} onChange={(original_price) => setForm({ ...form, original_price })} required />
@@ -365,7 +486,7 @@ function VoucherManagement() {
           </div>
           <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => setFormOpen(false)} style={{ ...shell.button, background: '#f1f5f9', color: '#475569' }}><XCircle size={18} /> Hủy</button>
-            <button type="submit" style={{ ...shell.button, background: '#16a34a', color: 'white' }}><Save size={18} /> Lưu và gửi duyệt</button>
+            <button type="submit" style={{ ...shell.button, background: '#16a34a', color: 'white' }}><Save size={18} /> {editing ? 'Lưu thay đổi' : 'Tạo và gửi duyệt'}</button>
           </div>
         </form>
       )}
@@ -403,8 +524,12 @@ function VoucherManagement() {
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}><StatusPill status={voucher.status} /></td>
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
-                      <button onClick={() => editVoucher(voucher)} disabled={voucher.status === 'Approved'} title="Sửa voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: 'var(--bg-dark)', color: 'var(--primary)', opacity: voucher.status === 'Approved' ? 0.45 : 1, whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
-                      <button onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fef3c7', color: '#92400e', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
+                      {voucher.status !== 'Approved' && (
+                        <>
+                          <button onClick={() => editVoucher(voucher)} title="Sửa thông tin voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: 'var(--bg-dark)', color: 'var(--primary)', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
+                          <button onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fef3c7', color: '#92400e', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
+                        </>
+                      )}
                       <button onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fee2e2', color: '#991b1b', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
                     </div>
                   </td>
@@ -426,6 +551,7 @@ function RedeemVoucher() {
   const [voucher, setVoucher] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [scanningImage, setScanningImage] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/partner/branches').then(setBranches).catch((err) => setError(err.message));
@@ -433,6 +559,10 @@ function RedeemVoucher() {
 
   const check = async (event) => {
     if (event) event.preventDefault();
+    if (!code.trim()) {
+      setError('Vui lòng nhập hoặc quét mã voucher');
+      return;
+    }
     try {
       setError('');
       setSuccess('');
@@ -442,6 +572,58 @@ function RedeemVoucher() {
     } catch (err) {
       setVoucher(null);
       setError(err.message);
+    }
+  };
+
+  const extractVoucherCode = (rawValue) => {
+    const value = String(rawValue || '').trim();
+    if (!value) return '';
+
+    try {
+      const url = new URL(value);
+      const codeFromQuery = url.searchParams.get('code') || url.searchParams.get('voucher') || url.searchParams.get('voucherCode');
+      if (codeFromQuery) return codeFromQuery.trim().toUpperCase();
+      const lastPath = url.pathname.split('/').filter(Boolean).pop();
+      return (lastPath || value).trim().toUpperCase();
+    } catch {
+      return value.trim().toUpperCase();
+    }
+  };
+
+  const scanQrImage = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      setError('');
+      setSuccess('');
+      setScanningImage(true);
+
+      const fileName = file.name.toLowerCase();
+      const hasValidExtension = QR_IMAGE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
+      if (!QR_IMAGE_TYPES.has(file.type) || !hasValidExtension) {
+        throw new Error('Chỉ hỗ trợ file ảnh PNG, JPG, JPEG, WEBP, BMP hoặc GIF.');
+      }
+      if (file.size > QR_IMAGE_MAX_SIZE) {
+        throw new Error('Ảnh QR tối đa 5MB. Vui lòng chọn ảnh nhỏ hơn.');
+      }
+
+      const scannedCode = extractVoucherCode(await decodeQrFromImageFile(file));
+      if (!scannedCode) {
+        throw new Error('Không tìm thấy mã QR hợp lệ trong ảnh.');
+      }
+
+      setCode(scannedCode);
+      const data = await apiFetch(`/api/partner/voucher-codes/${encodeURIComponent(scannedCode)}`);
+      setVoucher(data);
+      if (!branchId && data.branches?.length) setBranchId(String(data.branches[0].branch_id));
+      setSuccess('Đã quét QR và kiểm tra mã thành công.');
+    } catch (err) {
+      setVoucher(null);
+      setError(err.message);
+    } finally {
+      setScanningImage(false);
     }
   };
 
@@ -465,7 +647,13 @@ function RedeemVoucher() {
       <PageTitle title="Xác thực voucher code" subtitle="Nhập mã khách đưa để kiểm tra trạng thái và xác nhận sử dụng tại chi nhánh." />
       <form onSubmit={check} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
         <Field label="Mã voucher" value={code} onChange={(value) => setCode(value.toUpperCase())} placeholder="VD: DLZ-SHER-0001" required />
-        <button type="submit" style={{ ...shell.button, background: 'var(--primary)', color: 'white', height: '42px' }}><Search size={18} /> Kiểm tra</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <label style={{ ...shell.button, background: '#eef6ff', color: '#0369a1', height: '42px' }}>
+            <QrCode size={18} /> {scanningImage ? 'Đang quét...' : 'Quét QR'}
+            <input type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,image/png,image/jpeg,image/webp,image/bmp,image/gif" onChange={scanQrImage} disabled={scanningImage} style={{ display: 'none' }} />
+          </label>
+          <button type="submit" style={{ ...shell.button, background: 'var(--primary)', color: 'white', height: '42px' }}><Search size={18} /> Kiểm tra</button>
+        </div>
       </form>
       <ErrorBox message={error} />
       {success && <div style={{ padding: '12px 14px', background: '#dcfce7', color: '#166534', borderRadius: '12px', fontWeight: 800 }}>{success}</div>}
@@ -502,6 +690,8 @@ function RedeemVoucher() {
 function Reports() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [activitySearch, setActivitySearch] = useState('');
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
   const load = async () => {
     try {
@@ -516,11 +706,107 @@ function Reports() {
     load();
   }, []);
 
+  useEffect(() => {
+    const source = createRealtimeSource();
+    if (!source) return undefined;
+    const refresh = () => load();
+    source.addEventListener('voucher.status_changed', refresh);
+    source.addEventListener('voucher.updated', refresh);
+    source.addEventListener('voucher_code.redeemed', refresh);
+    return () => source.close();
+  }, []);
+
   if (!data && !error) return <div style={shell.page}><LoadingBlock /></div>;
+
+  const filteredActivity = (data?.recent_activity || []).filter((item) => {
+    const keyword = activitySearch.trim().toLowerCase();
+    if (!keyword) return true;
+    return [
+      item.title,
+      item.unique_code,
+      item.customer_name,
+      item.customer_email,
+      item.customer_phone,
+      item.status,
+      item.order_id,
+      item.used_branch_name,
+    ].filter(Boolean).some((value) => String(value).toLowerCase().includes(keyword));
+  });
+
+  const printReport = () => {
+    const rows = filteredActivity.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.unique_code || '')}</td>
+        <td>${escapeHtml(item.title || '')}</td>
+        <td>${escapeHtml(item.customer_name || 'Khách hàng')}</td>
+        <td>${escapeHtml(item.status || '')}</td>
+        <td>${escapeHtml(dateTime(item.issued_at))}</td>
+        <td>${escapeHtml(dateTime(item.used_date))}</td>
+        <td>${escapeHtml(item.used_branch_name || '')}</td>
+      </tr>
+    `).join('');
+
+    const reportWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!reportWindow) {
+      setError('Không thể mở cửa sổ in. Vui lòng cho phép popup trên trình duyệt.');
+      return;
+    }
+
+    reportWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Báo cáo hoạt động mã voucher</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #0f172a; padding: 28px; }
+            h1 { font-size: 24px; margin: 0 0 8px; }
+            p { color: #64748b; margin: 0 0 20px; }
+            .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+            .metric { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+            .metric b { display: block; font-size: 18px; margin-top: 4px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border-bottom: 1px solid #e2e8f0; padding: 9px; text-align: left; vertical-align: top; }
+            th { background: #f8fafc; color: #475569; }
+            @media print { body { padding: 16px; } }
+          </style>
+        </head>
+        <body>
+          <h1>Báo cáo hoạt động mã voucher</h1>
+          <p>Ngày in: ${dateTime(new Date())}</p>
+          <div class="metrics">
+            <div class="metric">Doanh thu<b>${money(data?.dashboard?.revenue)}</b></div>
+            <div class="metric">Đã bán<b>${data?.dashboard?.sold_quantity || 0}</b></div>
+            <div class="metric">Đã sử dụng<b>${data?.dashboard?.used_quantity || 0}</b></div>
+            <div class="metric">Tỷ lệ sử dụng<b>${Math.round(((data?.dashboard?.used_quantity || 0) / Math.max(data?.dashboard?.sold_quantity || 0, 1)) * 100)}%</b></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Voucher</th>
+                <th>Khách hàng</th>
+                <th>Trạng thái</th>
+                <th>Phát hành</th>
+                <th>Sử dụng</th>
+                <th>Chi nhánh</th>
+              </tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="7">Không có dữ liệu</td></tr>'}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    reportWindow.document.close();
+    reportWindow.focus();
+    reportWindow.print();
+  };
 
   return (
     <div style={shell.page}>
-      <PageTitle title="Báo cáo đối tác" subtitle="Hiệu quả phát hành, bán và sử dụng theo từng chương trình voucher." onRefresh={load} />
+      <PageTitle title="Báo cáo đối tác" subtitle="Hiệu quả phát hành, bán và sử dụng theo từng chương trình voucher." onRefresh={load}>
+        <button onClick={printReport} style={{ ...shell.button, background: '#eef6ff', color: '#0369a1' }}><Printer size={18} /> In PDF</button>
+      </PageTitle>
       <ErrorBox message={error} />
       <div style={{ ...shell.card, padding: '22px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '14px', marginBottom: '22px' }}>
@@ -551,6 +837,74 @@ function Reports() {
           </tbody>
         </table>
       </div>
+
+      <div style={{ ...shell.card, padding: '22px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: '1.1rem' }}>Hoạt động mã voucher gần đây</h2>
+          <div style={{ position: 'relative', width: 'min(100%, 380px)' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              value={activitySearch}
+              onChange={(event) => setActivitySearch(event.target.value)}
+              placeholder="Tìm mã, voucher, khách hàng..."
+              style={{ ...shell.input, height: '40px', paddingLeft: '38px', fontSize: '0.86rem', background: '#f8fafc' }}
+            />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {(data?.recent_activity || []).length === 0 ? (
+            <Empty text="Chưa có mã voucher nào được phát hành cho đối tác này." />
+          ) : filteredActivity.length === 0 ? (
+            <Empty text="Không tìm thấy hoạt động mã voucher phù hợp." />
+          ) : (
+            filteredActivity.map((item) => (
+              <motion.button
+                key={`${item.evoucher_id}-${item.unique_code}`}
+                type="button"
+                onClick={() => setSelectedActivity(item)}
+                whileHover={{ x: 4, backgroundColor: '#f8fafc' }}
+                whileTap={{ scale: 0.995 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: '18px', padding: '14px 0', border: 'none', borderTop: '1px solid #f1f5f9', background: 'transparent', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 900 }}>{item.title}</div>
+                  <div style={{ color: '#64748b', fontSize: '0.84rem' }}>{item.unique_code} · {item.customer_name || 'Khách hàng'} · Đơn #{item.order_id}</div>
+                </div>
+                <StatusPill status={item.status} />
+              </motion.button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {selectedActivity && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.28)', display: 'grid', placeItems: 'center', padding: '24px', zIndex: 50 }}>
+          <div style={{ ...shell.card, width: 'min(720px, 100%)', padding: '24px', boxShadow: '0 24px 70px rgba(15,23,42,0.22)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', marginBottom: '18px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.35rem', marginBottom: '6px' }}>{selectedActivity.title}</h2>
+                <div style={{ color: '#64748b', fontWeight: 800 }}>{selectedActivity.unique_code}</div>
+              </div>
+              <button onClick={() => setSelectedActivity(null)} style={{ ...shell.button, padding: '8px', background: '#f1f5f9', color: '#475569' }}><XCircle size={18} /></button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
+              <DetailBox label="Trạng thái" value={<StatusPill status={selectedActivity.status} />} />
+              <DetailBox label="Danh mục" value={selectedActivity.category_name || 'Không rõ'} />
+              <DetailBox label="Khách hàng" value={selectedActivity.customer_name || 'Chưa có thông tin'} />
+              <DetailBox label="Email khách hàng" value={selectedActivity.customer_email || 'Chưa có thông tin'} />
+              <DetailBox label="SĐT khách hàng" value={selectedActivity.customer_phone || 'Chưa có thông tin'} />
+              <DetailBox label="Mã đơn hàng" value={`#${selectedActivity.order_id}`} />
+              <DetailBox label="Trạng thái đơn" value={selectedActivity.order_status || 'Không rõ'} />
+              <DetailBox label="Giá mua" value={money(selectedActivity.price_at_purchase || selectedActivity.sale_price)} />
+              <DetailBox label="Ngày phát hành" value={dateTime(selectedActivity.issued_at)} />
+              <DetailBox label="Hạn dùng" value={dateTime(selectedActivity.expiry_date)} />
+              <DetailBox label="Ngày sử dụng" value={dateTime(selectedActivity.used_date)} />
+              <DetailBox label="Chi nhánh sử dụng" value={selectedActivity.used_branch_name || 'Chưa sử dụng'} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -681,16 +1035,80 @@ function InfoLine({ label, value }) {
   return <div style={{ marginTop: '8px', color: '#475569' }}><b>{label}:</b> {value}</div>;
 }
 
+function DetailBox({ label, value }) {
+  return (
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+      <div style={{ color: '#64748b', fontSize: '0.74rem', fontWeight: 900, marginBottom: '6px', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontWeight: 800, color: '#0f172a', wordBreak: 'break-word' }}>{value}</div>
+    </div>
+  );
+}
+
+function RevenueTrendChart({ points }) {
+  const width = 520;
+  const height = 220;
+  const padding = 24;
+  const maxValue = Math.max(...points.map((point) => Number(point.value || 0)), 1);
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const coordinates = points.map((point, index) => {
+    const x = padding + (points.length === 1 ? chartWidth : (index / (points.length - 1)) * chartWidth);
+    const y = padding + chartHeight - (Number(point.value || 0) / maxValue) * chartHeight;
+    return { ...point, x, y };
+  });
+  const linePath = coordinates.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const areaPath = `${linePath} L ${coordinates[coordinates.length - 1].x} ${height - padding} L ${coordinates[0].x} ${height - padding} Z`;
+  const latest = coordinates[coordinates.length - 1]?.value || 0;
+  const previous = coordinates[coordinates.length - 2]?.value || 0;
+  const delta = latest - previous;
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="220" role="img" aria-label="Xu hướng doanh thu">
+        <defs>
+          <linearGradient id="partnerRevenueArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0f766e" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#0f766e" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2, 3].map((line) => {
+          const y = padding + (line / 3) * chartHeight;
+          return <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="4 6" />;
+        })}
+        <path d={areaPath} fill="url(#partnerRevenueArea)" />
+        <path d={linePath} fill="none" stroke="#0f766e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {coordinates.map((point) => (
+          <circle key={`${point.label}-${point.x}`} cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#0f766e" strokeWidth="3" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+        <div>
+          <div style={{ color: '#64748b', fontWeight: 800, fontSize: '0.78rem' }}>Doanh thu tích lũy</div>
+          <div style={{ fontWeight: 900, fontSize: '1.25rem' }}>{money(latest)}</div>
+        </div>
+        <div style={{ color: delta >= 0 ? '#0f766e' : '#dc2626', background: delta >= 0 ? '#ccfbf1' : '#fee2e2', padding: '8px 10px', borderRadius: '999px', fontWeight: 900, fontSize: '0.8rem' }}>
+          {delta >= 0 ? '+' : ''}{money(delta)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Empty({ text }) {
   return <div style={{ padding: '28px', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>{text}</div>;
 }
 
 function ReportMetric({ label, value }) {
   return (
-    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
+    <motion.div
+      whileHover={{ y: -3, backgroundColor: '#eef6ff', boxShadow: '0 10px 22px rgba(15, 23, 42, 0.07)' }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 24 }}
+      style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', cursor: 'default' }}
+    >
       <div style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 800 }}>{label}</div>
       <div style={{ fontSize: '1.35rem', fontWeight: 900, marginTop: '4px' }}>{value}</div>
-    </div>
+    </motion.div>
   );
 }
 
