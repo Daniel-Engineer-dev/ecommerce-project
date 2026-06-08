@@ -10,6 +10,7 @@ const adminVoucherRoutes = require('./modules/admin/Voucher/adminVoucherRoute');
 const orderRoutes = require('./modules/customer/orderRoutes');
 const complaintRoutes = require('./modules/customer/complaintRoutes');
 const adminOrderRoutes = require('./modules/admin/Order/adminOrderRoute');
+const chatbotRoutes = require('./modules/shared/chatbotRoutes');
 const pool = require('./config/db');
 
 const app = express();
@@ -18,6 +19,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5175',
   process.env.FRONTEND_URL,           // Vercel URL hoặc bất kỳ origin nào trong .env
 ].filter(Boolean);
 
@@ -44,6 +46,7 @@ app.use('/api/admin/vouchers', adminVoucherRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 // Health check
 app.get('/', (req, res) => res.send('API TMDT Voucher is running...'));
 app.get('/health', (req, res) => {

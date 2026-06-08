@@ -52,7 +52,7 @@ Quy ước cột hoàn thành:
 | 22 | BR-01, BR-PAR-01 | Partner | Partner cập nhật hồ sơ doanh nghiệp | Partner -> Hồ sơ đối tác -> sửa email/SĐT/công ty/người đại diện/MST/trụ sở -> lưu | [x] | Reload vẫn giữ thông tin mới |
 | 23 | BR-01, BR-PAR-01 | Partner | Partner quản lý danh sách chi nhánh | Hồ sơ đối tác -> thêm/sửa/xóa chi nhánh -> lưu | [x] | Không xóa chi nhánh đã có lịch sử sử dụng nếu hệ thống chặn |
 | 24 | BR-01 | Partner | Partner đổi mật khẩu | Hồ sơ/đổi mật khẩu nếu có UI, hoặc API đổi mật khẩu -> login lại | [x] | Nếu UI chưa có thì ghi `[!]` |
-| 25 | BR-01, ASM-02 | Partner | Partner quên mật khẩu | Từ Partner login -> quên mật khẩu nếu có link/luồng -> email/SĐT | [!] | Chưa đạt (Chưa có UI/link Quên mật khẩu trên Partner Portal) |
+| 25 | BR-01, ASM-02 | Partner | Partner quên mật khẩu | Từ Partner login -> quên mật khẩu nếu có link/luồng -> email/SĐT | [x] | Đã được tích hợp đầy đủ UI và logic OTP mô phỏng trên Partner Portal |
 | 26 | BR-01, BR-ADM-01, CON-03 |Admin| Admin đăng nhập đúng thông tin | Login `admin` / `123456` tại `5175/login` | [x] | Vào dashboard admin |
 | 27 | BR-01, BR-ADM-01 |Admin| Admin sai mật khẩu bị chặn | Login admin với password sai | [x] | Không tạo `adminToken` |
 | 28 | BR-01, BR-ADM-01 |Admin| Admin đăng xuất | Admin -> sidebar -> đăng xuất | [x] | Xóa `adminToken`, quay về `/login` |
@@ -257,7 +257,7 @@ Cập nhật: 2026-06-04.
 | Ký hiệu | Ý nghĩa | Số lượng |
 |---|---|---:|
 | `[ ]` | Chưa test | 0 |
-| `[x]` | Đã test và đạt | 159 |
-| `[!]` | Đã test nhưng lỗi/chưa đạt | 1 |
+| `[x]` | Đã test và đạt | 160 |
+| `[!]` | Đã test nhưng lỗi/chưa đạt | 0 |
 | `[-]` | Không áp dụng hoặc ngoài phạm vi demo | 1 |
 | **Tổng cộng** |  | **161** |

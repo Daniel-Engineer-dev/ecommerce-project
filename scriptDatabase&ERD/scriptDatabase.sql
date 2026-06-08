@@ -312,7 +312,7 @@ FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
 
 -- 3.1. Users & Partners
 INSERT INTO Users (username, password, email, role) VALUES 
-('admin', '$2y$10$Nu35w4pteLfc7BDCIkDPkecjw8wsH8Y2GMfIewUbXLT7zzW6WOxwq', 'admin@dealzy.vn', 'Admin'),
+('admin', '$2b$10$.3J6nwpIx7NVtfrQb2oiZOm8r3jQ6fcLOj4e288y5vqYJrBsuF/iW', 'admin@dealzy.vn', 'Admin'),
 ('sheraton_partner', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'sheraton@dealzy.vn', 'Partner'),
 ('fantastic_travel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'travel@dealzy.vn', 'Partner'),
 ('glow_spa', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'glowspa@dealzy.vn', 'Partner'),

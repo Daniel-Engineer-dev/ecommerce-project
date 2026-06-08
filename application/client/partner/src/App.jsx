@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import AuthPage from './pages/AuthPage';
 import PartnerRegistration from './pages/PartnerRegistration';
+import Profile from './pages/Profile';
+import ChatbotWidget from './components/ChatbotWidget';
 import { API_BASE_URL } from './config';
 import { apiJson, clearSession } from './apiClient';
 
@@ -89,7 +91,28 @@ function StatusPill({ status }) {
     Locked: ['#f1f5f9', '#475569', 'Đã khóa'],
   };
   const [bg, color, label] = map[status] || ['#f1f5f9', '#475569', status || 'Không rõ'];
-  return <span style={{ background: bg, color, padding: '4px 9px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 900 }}>{label}</span>;
+  return (
+    <span
+      style={{
+        background: bg,
+        color,
+        minWidth: '86px',
+        minHeight: '30px',
+        padding: '6px 12px',
+        borderRadius: '999px',
+        fontSize: '0.74rem',
+        fontWeight: 900,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+        lineHeight: 1,
+      }}
+    >
+      {label}
+    </span>
+  );
 }
 
 function LoadingBlock({ text = 'Đang tải dữ liệu...' }) {
@@ -153,8 +176,8 @@ function Dashboard() {
             <Empty text="Chưa có mã voucher nào được phát hành cho đối tác này." />
           ) : (
             data.recent_activity.map((item) => (
-              <div key={item.unique_code} style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', padding: '12px 0', borderTop: '1px solid #f1f5f9' }}>
-                <div>
+              <div key={item.unique_code} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: '18px', padding: '12px 0', borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 800 }}>{item.title}</div>
                   <div style={{ color: '#64748b', fontSize: '0.84rem' }}>{item.unique_code} · {item.customer_name || 'Khách hàng'}</div>
                 </div>
@@ -278,6 +301,19 @@ function VoucherManagement() {
     }));
   };
 
+  const voucherStats = useMemo(() => {
+    const approved = vouchers.filter((voucher) => voucher.status === 'Approved').length;
+    const pending = vouchers.filter((voucher) => voucher.status === 'Pending').length;
+    const sold = vouchers.reduce((sum, voucher) => sum + Number(voucher.sold_quantity || 0), 0);
+    const used = vouchers.reduce((sum, voucher) => sum + Number(voucher.used_quantity || 0), 0);
+    return [
+      { label: 'Tổng voucher', value: vouchers.length, icon: Ticket },
+      { label: 'Đã duyệt', value: approved, icon: CheckCircle },
+      { label: 'Chờ duyệt', value: pending, icon: ClipboardCheck },
+      { label: 'Đã dùng', value: `${used}/${Math.max(sold, 1)}`, icon: BarChart3 },
+    ];
+  }, [vouchers]);
+
   return (
     <div style={shell.page}>
       <PageTitle title="Quản lý voucher" subtitle="Tạo chương trình mới, gửi duyệt và theo dõi hiệu quả từng voucher." onRefresh={load}>
@@ -285,6 +321,22 @@ function VoucherManagement() {
       </PageTitle>
       <ErrorBox message={error} />
       {success && <div style={{ padding: '12px 14px', background: '#dcfce7', color: '#166534', borderRadius: '12px', fontWeight: 800 }}>{success}</div>}
+
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+          {voucherStats.map((item) => (
+            <div key={item.label} style={{ ...shell.card, padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: '#eef6ff', color: '#0369a1', display: 'grid', placeItems: 'center' }}>
+                <item.icon size={19} />
+              </div>
+              <div>
+                <div style={{ color: '#64748b', fontSize: '0.78rem', fontWeight: 800 }}>{item.label}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, lineHeight: 1.2 }}>{item.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {formOpen && (
         <form onSubmit={submitForm} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
@@ -320,31 +372,40 @@ function VoucherManagement() {
 
       {loading ? <LoadingBlock /> : (
         <div style={{ ...shell.card, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '34%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '24%' }} />
+            </colgroup>
             <thead style={{ background: '#f8fafc' }}>
               <tr>
                 {['Voucher', 'Giá bán', 'Tồn kho', 'Đã bán', 'Đã dùng', 'Trạng thái', 'Thao tác'].map((h) => (
-                  <th key={h} style={{ textAlign: 'left', padding: '14px', color: '#475569', fontSize: '0.78rem' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '14px 16px', color: '#475569', fontSize: '0.78rem', verticalAlign: 'middle' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {vouchers.map((voucher) => (
                 <tr key={voucher.voucher_id} style={{ borderTop: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '14px' }}>
+                  <td style={{ padding: '16px' }}>
                     <div style={{ fontWeight: 900 }}>{voucher.title}</div>
                     <div style={{ color: '#64748b', fontSize: '0.82rem' }}>{voucher.category_name} · {voucher.branch_names || 'Tất cả chi nhánh'}</div>
                   </td>
-                  <td style={{ padding: '14px', fontWeight: 800 }}>{money(voucher.sale_price)}</td>
-                  <td style={{ padding: '14px' }}>{voucher.quantity_stock}/{voucher.total_quantity}</td>
-                  <td style={{ padding: '14px' }}>{voucher.sold_quantity}</td>
-                  <td style={{ padding: '14px' }}>{voucher.used_quantity}</td>
-                  <td style={{ padding: '14px' }}><StatusPill status={voucher.status} /></td>
-                  <td style={{ padding: '14px' }}>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <button onClick={() => editVoucher(voucher)} disabled={voucher.status === 'Approved'} style={{ ...shell.button, padding: '8px 10px', background: 'var(--bg-dark)', color: 'var(--primary)', opacity: voucher.status === 'Approved' ? 0.45 : 1 }}><Edit3 size={15} /> Sửa</button>
-                      <button onClick={() => action(voucher.voucher_id, 'submit')} style={{ ...shell.button, padding: '8px 10px', background: '#fef3c7', color: '#92400e' }}><ClipboardCheck size={15} /> Gửi duyệt</button>
-                      <button onClick={() => action(voucher.voucher_id, 'disable')} style={{ ...shell.button, padding: '8px 10px', background: '#fee2e2', color: '#991b1b' }}><XCircle size={15} /> Ngưng</button>
+                  <td style={{ padding: '16px', fontWeight: 800, whiteSpace: 'nowrap' }}>{money(voucher.sale_price)}</td>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>{voucher.quantity_stock}/{voucher.total_quantity}</td>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>{voucher.sold_quantity}</td>
+                  <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>{voucher.used_quantity}</td>
+                  <td style={{ padding: '16px', verticalAlign: 'middle' }}><StatusPill status={voucher.status} /></td>
+                  <td style={{ padding: '16px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                      <button onClick={() => editVoucher(voucher)} disabled={voucher.status === 'Approved'} title="Sửa voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: 'var(--bg-dark)', color: 'var(--primary)', opacity: voucher.status === 'Approved' ? 0.45 : 1, whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
+                      <button onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fef3c7', color: '#92400e', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
+                      <button onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fee2e2', color: '#991b1b', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
                     </div>
                   </td>
                 </tr>
@@ -651,23 +712,23 @@ function Sidebar() {
   };
 
   return (
-    <aside style={{ width: '270px', background: '#0f172a', color: '#cbd5e1', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'white', fontWeight: 900, fontSize: '1.2rem' }}>
-        <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: '#1e293b', display: 'grid', placeItems: 'center' }}><Building2 size={22} /></div>
+    <aside style={{ width: '270px', background: '#ffffff', color: '#475569', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border-color)', boxShadow: '8px 0 24px rgba(15, 23, 42, 0.03)' }}>
+      <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: '#0f172a', fontWeight: 900, fontSize: '1.2rem' }}>
+        <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: '#eef6ff', color: '#0369a1', display: 'grid', placeItems: 'center' }}><Building2 size={22} /></div>
         PartnerHub
       </div>
       <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 14px', flex: 1 }}>
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: 'var(--radius-md)', color: active ? 'white' : '#cbd5e1', background: active ? '#1e293b' : 'transparent', textDecoration: 'none', fontWeight: 600 }}>
+            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: 'var(--radius-md)', color: active ? '#075985' : '#475569', background: active ? '#e0f2fe' : 'transparent', textDecoration: 'none', fontWeight: 700 }}>
               <item.icon size={20} /> {item.label}
             </Link>
           );
         })}
       </nav>
       <div style={{ padding: '16px' }}>
-        <button onClick={logout} style={{ ...shell.button, width: '100%', background: 'rgba(255,255,255,0.08)', color: '#fecaca' }}><LogOut size={18} /> Đăng xuất</button>
+        <button onClick={logout} style={{ ...shell.button, width: '100%', background: '#fff1f2', color: '#be123c' }}><LogOut size={18} /> Đăng xuất</button>
       </div>
     </aside>
   );
@@ -687,7 +748,7 @@ function PartnerShell() {
           <Route path="/vouchers" element={<VoucherManagement />} />
           <Route path="/redeem" element={<RedeemVoucher />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings" element={<Profile />} />
         </Routes>
       </main>
     </div>
@@ -711,6 +772,7 @@ function App() {
   return (
     <Router>
       <PartnerShell />
+      <ChatbotWidget />
     </Router>
   );
 }

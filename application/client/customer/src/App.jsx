@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
+import ChatbotWidget from './components/ChatbotWidget';
 import Home from './pages/Home';
 
 import AuthPage from './pages/AuthPage';
@@ -141,6 +142,7 @@ function App() {
         <Router>
           <ScrollToTop />
           <AnimatedRoutes />
+          <ChatbotWidget />
         </Router>
       </CartProvider>
     </AppErrorBoundary>

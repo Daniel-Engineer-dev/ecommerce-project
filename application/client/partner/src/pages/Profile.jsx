@@ -143,18 +143,16 @@ const Profile = () => {
     }
 
     return (
-        <div style={{ paddingTop: '120px', paddingBottom: '80px', minHeight: '100vh', background: '#f8fafc' }}>
-            <div className="container" style={{ position: 'relative' }}>
-                {/* Sidebar Tabs - Positioned absolute to stay on the left without shifting center content */}
+        <div style={{ padding: '28px', minHeight: 'calc(100vh - 68px)', background: '#f8fafc' }}>
+            <div style={{ position: 'relative', maxWidth: '1180px', margin: '0 auto', display: 'grid', gridTemplateColumns: '250px minmax(0, 1fr)', gap: '36px', alignItems: 'start' }}>
+                {/* Sidebar Tabs */}
                 <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
                     width: '250px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.5rem',
-                    marginTop: '3rem'
+                    position: 'sticky',
+                    top: '96px'
                 }}>
                     <div style={{ padding: '0 1rem 1rem' }}>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Cài đặt</h2>
@@ -229,10 +227,10 @@ const Profile = () => {
 
                 </div>
 
-                {/* Main Content Area - Centered to match Navbar menu items */}
+                {/* Main Content Area */}
                 <div style={{
-                    maxWidth: '600px',
-                    margin: '0 auto',
+                    maxWidth: '720px',
+                    width: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '1.5rem'
@@ -241,9 +239,9 @@ const Profile = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        style={{ textAlign: 'center' }}
+                        style={{ textAlign: 'left' }}
                     >
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Hồ sơ của bạn</h1>
+                        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>Hồ sơ của bạn</h1>
                         <p style={{ color: 'var(--text-muted)' }}>Quản lý thông tin cá nhân và cài đặt bảo mật</p>
                     </motion.div>
 

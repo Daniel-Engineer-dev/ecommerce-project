@@ -6,13 +6,19 @@
 **/build/
 **/.next/
 **/out/
+**/.vite/
+**/.turbo/
+**/.cache/
+**/coverage/
 
 # Environment variables
 **/.env
+**/.env.*
 **/.env.local
 **/.env.development.local
 **/.env.test.local
 **/.env.production.local
+!**/.env.example
 
 # IDE / Editor
 **/.vscode/
@@ -23,6 +29,7 @@
 **/*.sublime-workspace
 
 # Logs
+**/*.log
 **/npm-debug.log*
 **/yarn-debug.log*
 **/yarn-error.log*
@@ -31,6 +38,14 @@
 # OS Files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Local CLI / deployment state
+**/.vercel/
+**/.render/
+**/.railway/
 
 # Agent-local context
+.agents/
+scratch/
 AGENT_README_APP_OVERVIEW.md
