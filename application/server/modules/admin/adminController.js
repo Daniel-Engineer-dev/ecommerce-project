@@ -173,6 +173,17 @@ const getDashboardChartData = async (req, res) => {
     }
 };
 
+const getContentByKey = async (req, res) => {
+    try {
+        const { key } = req.params;
+        const result = await adminService.getContentByKey(key);
+        res.status(200).json(result);
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getPendingPartners,
     approvePartner,
@@ -192,4 +203,5 @@ module.exports = {
     upsertContentItem,
     getVoucherAndComplaintStats,
     getDashboardChartData,
+    getContentByKey
 };

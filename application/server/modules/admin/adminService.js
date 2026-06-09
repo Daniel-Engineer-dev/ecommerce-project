@@ -439,7 +439,11 @@ class AdminService {
                         'name', v.title,
                         'code', COALESCE(ev.unique_code, 'Không có mã'),
                         'usage_status', COALESCE(ev.status, 'Chưa xác định'),
-                        'expiry_date', ev.expiry_date
+                        'expiry_date', ev.expiry_date,
+                        'quantity_stock', v.quantity_stock,
+                        'sale_price', v.sale_price,
+                        'voucher_expiry', v.expiry_date,
+                        'evoucher_status', ev.status
                     )
                     FROM Complaint_Vouchers cv
                     JOIN Vouchers v ON cv.voucher_id = v.voucher_id
@@ -819,6 +823,23 @@ class AdminService {
         }));
 
         return chartData;
+    }
+
+    async getContentByKey(key) {
+        const result = await pool.query(
+            `SELECT title, type, body, updated_at              
+             FROM Content_Items              
+             WHERE content_key = $1 AND is_active = TRUE`,
+            [key]
+        );
+
+        if (result.rowCount === 0) {
+            const error = new Error('Nội dung không tồn tại hoặc đã bị ẩn');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        return result.rows[0];
     }
 }
 

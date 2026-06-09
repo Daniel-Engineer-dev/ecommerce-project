@@ -21,6 +21,121 @@ const actionOptions = [
   { value: 'Other', label: 'Hỗ trợ khác (Ghi chú thủ công)' },
 ];
 
+// ─── Sub-component: tư vấn cấp lại voucher ────────────────────────────────
+const VoucherReissueAdvisor = ({ voucher, order }) => {
+  if (!voucher) return null;
+
+  const stock       = voucher.quantity_stock ?? null;
+  const evStatus    = voucher.evoucher_status; // 'Unused' | 'Used' | 'Expired' | 'Locked' | null
+  const voucherExp  = voucher.voucher_expiry ? new Date(voucher.voucher_expiry) : null;
+  const orderStatus = order?.payment_status;
+  const salePrice   = voucher.sale_price;
+
+  const isExpired      = voucherExp && voucherExp < new Date();
+  const isOutOfStock   = stock !== null && stock === 0;
+  const isEvUsed       = evStatus === 'Used';
+  const isEvLocked     = evStatus === 'Locked';
+  const isOrderCancelled = orderStatus === 'Cancelled';
+
+  // Tính toán khuyến nghị
+  let recommendation = null; // 'reissue' | 'refund' | 'warn'
+  const reasons = [];
+
+  if (isEvUsed) {
+    recommendation = 'refund';
+    reasons.push({ icon: '⚠️', text: 'Mã e-voucher đã được sử dụng — không thể cấp lại mã đã dùng.' });
+  }
+  if (isOrderCancelled) {
+    recommendation = 'refund';
+    reasons.push({ icon: '🚫', text: 'Đơn hàng đã bị hủy — cấp lại voucher không khả thi.' });
+  }
+  if (isOutOfStock) {
+    recommendation = recommendation === 'refund' ? 'refund' : 'refund';
+    reasons.push({ icon: '📦', text: `Voucher này đã hết hàng (tồn kho: 0) — không thể phát sinh mã mới.` });
+  }
+  if (isExpired) {
+    recommendation = recommendation || 'warn';
+    reasons.push({ icon: '⏰', text: `Voucher gốc đã hết hạn (${voucherExp.toLocaleDateString('vi-VN')}) — mã cấp lại sẽ được gia hạn thêm 30 ngày.` });
+  }
+  if (isEvLocked) {
+    recommendation = recommendation || 'warn';
+    reasons.push({ icon: '🔒', text: 'Mã e-voucher hiện đang bị khóa (Locked).' });
+  }
+
+  if (!recommendation) {
+    recommendation = 'reissue';
+    reasons.push({ icon: '✅', text: `Còn ${stock} mã trong kho — đủ điều kiện cấp lại.` });
+    if (evStatus === 'Unused') {
+      reasons.push({ icon: '🎫', text: 'Mã e-voucher gốc chưa sử dụng — sẽ bị khóa và thay bằng mã mới.' });
+    }
+  }
+
+  const styles = {
+    reissue: {
+      wrap:   'bg-emerald-50 border-emerald-200',
+      header: 'text-emerald-700',
+      badge:  'bg-emerald-100 text-emerald-700',
+      label:  '✅ Nên cấp lại voucher',
+    },
+    refund: {
+      wrap:   'bg-red-50 border-red-200',
+      header: 'text-red-700',
+      badge:  'bg-red-100 text-red-600',
+      label:  '💸 Nên hoàn tiền cho khách',
+    },
+    warn: {
+      wrap:   'bg-amber-50 border-amber-200',
+      header: 'text-amber-700',
+      badge:  'bg-amber-100 text-amber-700',
+      label:  '⚠️ Cần xem xét thêm',
+    },
+  };
+
+  const s = styles[recommendation];
+
+  return (
+    <div className={`rounded-xl border p-3 space-y-2 ${s.wrap}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`text-[10px] font-bold uppercase tracking-widest ${s.header}`}>Đánh giá khả năng cấp lại</p>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${s.badge}`}>{s.label}</span>
+      </div>
+
+      {/* Thông tin tồn kho + giá */}
+      <div className="flex gap-3 text-[11px]">
+        <div className="flex-1 bg-white/70 rounded-lg px-2.5 py-1.5 border border-white">
+          <p className="text-slate-400 font-semibold mb-0.5">Tồn kho</p>
+          <p className={`font-bold text-sm ${stock === 0 ? 'text-red-600' : 'text-slate-700'}`}>
+            {stock !== null ? `${stock} mã` : '—'}
+          </p>
+        </div>
+        <div className="flex-1 bg-white/70 rounded-lg px-2.5 py-1.5 border border-white">
+          <p className="text-slate-400 font-semibold mb-0.5">Giá bán</p>
+          <p className="font-bold text-sm text-slate-700">
+            {salePrice ? Number(salePrice).toLocaleString('vi-VN') + '₫' : '—'}
+          </p>
+        </div>
+      </div>
+
+      {/* Danh sách lý do */}
+      <ul className="space-y-1">
+        {reasons.map((r, i) => (
+          <li key={i} className={`text-[11px] leading-snug ${s.header}`}>
+            {r.icon} {r.text}
+          </li>
+        ))}
+      </ul>
+
+      {/* Hạn voucher gốc */}
+      {voucherExp && (
+        <p className="text-[10px] text-slate-400">
+          Hạn voucher gốc: {voucherExp.toLocaleDateString('vi-VN')}
+          {isExpired ? ' (đã hết hạn)' : ''}
+        </p>
+      )}
+    </div>
+  );
+};
+
 // Màu badge theo trạng thái
 const statusBadge = {
   Pending:    'bg-amber-50 text-amber-600 border border-amber-200',
@@ -107,7 +222,7 @@ const DetailPanel = ({ item }) => (
       <div className="sm:col-span-2 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-medium">
         <AlertTriangle size={13} className="shrink-0 mt-0.5" />
         <span>
-          Cảnh báo: {!item.voucher && !item.order ? 'Không tìm thấy đơn hàng và voucher' : !item.voucher ? 'Không tìm thấy voucher' : 'Không tìm thấy đơn hàng'} liên kết với khiếu nại này. Dữ liệu có thể không nhất quán — bạn vẫn có thể ghi phản hồi thủ công.
+          Cảnh báo: {!item.voucher && !item.order ? 'Không tìm thấy đơn hàng và voucher' : !item.voucher ? 'Không tìm thấy voucher' : 'Không tìm thấy đơn hàng'} liên kết với khiếu nại này. 
         </span>
       </div>
     )}
@@ -204,6 +319,11 @@ const ActionPanel = ({ item, form, onChange, onMarkProcessing, onSubmit, submitt
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+
+              {/* Advisor: hiện khi chọn cấp lại voucher */}
+              {form.actionType === 'NewCode' && (
+                <VoucherReissueAdvisor voucher={item.voucher} order={item.order} />
+              )}
 
               {/* E3: Cảnh báo hoàn tiền khi đơn đã hủy */}
               {refundBlocked && (

@@ -2001,6 +2001,7 @@ const Profile = () => {
                       <option value="High">High</option>
                       <option value="Urgent">Urgent</option>
                     </select>
+                    {/* 1. Sửa thẻ Select Đơn hàng: Thêm logic reset voucherIds về rỗng khi đổi đơn khác */}
                     <select
                       className="auth-input"
                       value={complaintForm.orderId}
@@ -2008,6 +2009,7 @@ const Profile = () => {
                         setComplaintForm({
                           ...complaintForm,
                           orderId: e.target.value,
+                          voucherIds: [], // Reset lại danh sách voucher đã tick khi đổi đơn hàng
                         })
                       }
                     >
@@ -2019,6 +2021,8 @@ const Profile = () => {
                         </option>
                       ))}
                     </select>
+
+                    {/* 2. Sửa danh sách Voucher: Thêm hàm .filter() để lọc đúng voucher của đơn hàng */}
                     {evouchers.length > 0 && (
                       <div
                         style={{
@@ -2048,7 +2052,13 @@ const Profile = () => {
                         >
                           {Array.from(
                             new Map(
-                              evouchers.map((item) => [item.voucher_id, item]),
+                              evouchers
+                                // LOGIC BỘ LỌC Ở ĐÂY:
+                                .filter((item) => 
+                                  !complaintForm.orderId || 
+                                  item.order_id?.toString() === complaintForm.orderId.toString()
+                                )
+                                .map((item) => [item.voucher_id, item]),
                             ).values(),
                           ).map((item) => {
                             const isChecked = complaintForm.voucherIds.includes(
@@ -2085,7 +2095,15 @@ const Profile = () => {
                             );
                           })}
                         </div>
-                      </div>
+                        
+                        {/* 3. Thêm thông báo nếu đơn hàng vừa chọn không có voucher nào */}
+                        {complaintForm.orderId && 
+                         evouchers.filter(item => item.order_id?.toString() === complaintForm.orderId.toString()).length === 0 && (
+                           <div style={{fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.5rem'}}>
+                             Không tìm thấy E-Voucher nào thuộc đơn hàng này.
+                           </div>
+                        )}
+                      </div>  
                     )}
                     <textarea
                       value={complaintForm.content}

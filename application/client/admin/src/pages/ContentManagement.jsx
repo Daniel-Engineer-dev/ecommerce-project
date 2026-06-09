@@ -115,10 +115,9 @@ const ContentManagement = () => {
             <div>
               <label className="text-[11px] font-semibold text-slate-400 mb-1.5 block uppercase tracking-wider">Loại nội dung</label>
               <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-slate-100 bg-[#f5f7fa] focus:bg-white text-sm font-semibold text-slate-700 outline-none focus:border-[#1a3a5c] transition-colors">
-                <option value="banner">Banner quảng cáo</option>
-                <option value="article">Bài viết tin tức</option>
-                <option value="popup">Popup thông báo</option>
                 <option value="policy">Chính sách & Điều khoản</option>
+                <option value="page">Trang tĩnh</option>
+                <option value="guide">Hướng dẫn</option>
               </select>
             </div>
 

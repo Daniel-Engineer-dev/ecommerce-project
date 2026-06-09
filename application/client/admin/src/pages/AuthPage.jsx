@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { KeyRound, Lock, ShieldAlert, User, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { KeyRound, Lock, ShieldAlert, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage('');
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
@@ -17,6 +20,7 @@ const AuthPage = () => {
         body: JSON.stringify(formData),
       });
       const data = await response.json();
+      
       if (response.ok && data.user.role === 'Admin') {
         localStorage.setItem('adminToken', data.accessToken || data.token);
         if (data.refreshToken) localStorage.setItem('adminRefreshToken', data.refreshToken);
@@ -26,10 +30,15 @@ const AuthPage = () => {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminRefreshToken');
         localStorage.removeItem('adminUser');
-        alert(response.ok ? 'Tài khoản này không thể đăng nhập ở trang quản trị.' : (data.message || 'Truy cập bị từ chối. Chỉ dành cho quản trị viên.'));
+        
+        setErrorMessage(
+          response.ok 
+            ? 'Tài khoản này không thể đăng nhập ở trang quản trị.' 
+            : (data.message || 'Sai thông tin đăng nhập. Vui lòng kiểm tra lại.')
+        );
       }
     } catch {
-      alert('Lỗi kết nối server');
+      setErrorMessage('Lỗi kết nối máy chủ. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -37,7 +46,6 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Ornaments đồng bộ Brand Color */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#1a3a5c]/5 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#6ec6a0]/10 rounded-full blur-[120px]" />
@@ -57,6 +65,22 @@ const AuthPage = () => {
           <p className="text-slate-400 font-medium text-sm mt-1.5">Hệ thống quản trị Dealzy</p>
         </div>
 
+        <AnimatePresence>
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-2.5 text-rose-600 text-sm font-semibold">
+                <AlertCircle size={18} className="shrink-0" />
+                <p className="leading-tight">{errorMessage}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Tài khoản</label>
@@ -68,7 +92,10 @@ const AuthPage = () => {
                 className="w-full bg-[#f5f7fa] border border-slate-100 p-3.5 pl-11 rounded-xl text-slate-800 focus:bg-white focus:border-[#1a3a5c] outline-none transition-all text-sm font-semibold placeholder:text-slate-400 placeholder:font-medium"
                 placeholder="Nhập ID Quản trị"
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, username: e.target.value });
+                  if (errorMessage) setErrorMessage('');
+                }}
               />
             </div>
           </div>
@@ -83,7 +110,10 @@ const AuthPage = () => {
                 className="w-full bg-[#f5f7fa] border border-slate-100 p-3.5 pl-11 rounded-xl text-slate-800 focus:bg-white focus:border-[#1a3a5c] outline-none transition-all text-sm font-bold placeholder:text-slate-400 placeholder:font-medium"
                 placeholder="••••••••"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, password: e.target.value });
+                  if (errorMessage) setErrorMessage('');
+                }}
               />
             </div>
           </div>
@@ -111,5 +141,3 @@ const AuthPage = () => {
 };
 
 export default AuthPage;
-
-

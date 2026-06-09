@@ -38,4 +38,5 @@ router.get('/dashboard/stats', auth, adminOnly, adminController.getVoucherAndCom
 // GET /admin/dashboard/chart?unit=month|quarter|year  → dữ liệu biểu đồ
 router.get('/dashboard/chart', auth, adminOnly, adminController.getDashboardChartData);
 
+router.get('/public/content/:key', adminController.getContentByKey);
 module.exports = router;
