@@ -1,30 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { Users, TrendingUp, Megaphone } from "lucide-react";
+import { motion as Motion } from "framer-motion";
+import {
+  ArrowUpRight,
+  BadgeCheck,
+  Megaphone,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 const logoModules = import.meta.glob("../assets/logos/*.{png,jpg,jpeg,svg}", {
   eager: true,
 });
-const partnerLogos = Object.values(logoModules).map((m) => m.default);
+const partnerLogos = Object.values(logoModules).map((module) => module.default);
 
 const useCountUp = (end, duration = 1500) => {
   const [value, setValue] = useState(0);
+
   useEffect(() => {
     let start = null;
+    let frame;
     const step = (timestamp) => {
       if (!start) start = timestamp;
       const progress = Math.min((timestamp - start) / duration, 1);
       setValue(Math.round(progress * end));
-      if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) frame = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
   }, [end, duration]);
+
   return value;
 };
 
 const HeroStat = ({ end, suffix = "", label }) => {
   const value = useCountUp(end, 1400);
   const display = end >= 1000 ? value.toLocaleString("vi-VN") : value;
+
   return (
     <div className="hero-stat">
       <h4>
@@ -36,299 +48,268 @@ const HeroStat = ({ end, suffix = "", label }) => {
   );
 };
 
+const benefits = [
+  {
+    title: "Tiếp cận đúng khách hàng",
+    desc: "Đưa ưu đãi đến hơn 500.000 người dùng đang chủ động tìm kiếm trải nghiệm mới.",
+    Icon: Users,
+    number: "01",
+  },
+  {
+    title: "Tăng doanh thu rõ rệt",
+    desc: "Nhiều đối tác ghi nhận mức tăng trưởng 30-70% chỉ sau ba tháng đầu.",
+    Icon: TrendingUp,
+    number: "02",
+  },
+  {
+    title: "Marketing không tốn phí",
+    desc: "Xuất hiện trên app, website và các chiến dịch quảng bá được Dealzy tuyển chọn.",
+    Icon: Megaphone,
+    number: "03",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "Dealzy giúp chúng tôi lấp đầy bàn trống ngay trong tuần đầu tiên. Khách hàng đến đông và doanh số bật tăng.",
+    name: "Huỳnh Thu Hà",
+    role: "Giám đốc điều hành LuxStay",
+    initials: "HH",
+  },
+  {
+    quote:
+      "Chúng tôi tiết kiệm hơn 30% chi phí marketing, nhưng lượng đặt chỗ lại tăng rõ rệt. Đội ngũ hỗ trợ rất nhanh.",
+    name: "Trần Việt Dũng",
+    role: "Founder Saigon Eats",
+    initials: "TD",
+  },
+  {
+    quote:
+      "Mỗi chương trình khuyến mãi đều được quảng bá đến đúng khách hàng, tỷ lệ quay lại tăng đáng kể sau tháng đầu tiên.",
+    name: "Nguyễn Lan Anh",
+    role: "Quản lý thương hiệu BeautyBloom",
+    initials: "LA",
+  },
+];
+
 const Partners = () => {
   const sliderRef = useRef(null);
+
   useEffect(() => {
-    // add auto-scroll class after mount so CSS animation applies
-    const el = sliderRef.current;
-    if (el) {
-      // small timeout to ensure layout computed
-      setTimeout(() => el.classList.add("auto-scroll"), 50);
-    }
+    const slider = sliderRef.current;
+    const timer = setTimeout(() => slider?.classList.add("auto-scroll"), 50);
     return () => {
-      if (el) el.classList.remove("auto-scroll");
+      clearTimeout(timer);
+      slider?.classList.remove("auto-scroll");
     };
   }, []);
 
+  const pauseThenResumeSlider = () => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    slider.classList.remove("auto-scroll");
+    setTimeout(() => slider.classList.add("auto-scroll"), 4000);
+  };
+
+  const moveSlider = (direction) => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    slider.scrollBy({
+      left: direction * Math.floor(slider.clientWidth / 2),
+      behavior: "smooth",
+    });
+    pauseThenResumeSlider();
+  };
+
   return (
-    <div style={{ paddingTop: "180px", paddingBottom: "80px" }}>
-      <div className="container">
-        {/* HERO */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: "center", marginBottom: "4rem" }}
-        >
-          <div className="partners-hero">
-            <h1>
-              Hơn <span className="gradient-text">1200+ đối tác</span> đang tăng
-              trưởng cùng Dealzy
-            </h1>
-
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: "1.2rem",
-                maxWidth: "720px",
-                margin: "0 auto",
-              }}
-            >
-              Từ nhà hàng, spa đến khách sạn — tất cả đều đang tận dụng Dealzy
-              để tăng doanh thu mỗi ngày.
-            </p>
-
-            <div className="hero-stats">
-              <HeroStat end={500000} suffix="+" label="Người dùng/ tháng" />
-              <HeroStat end={65} suffix="%" label="Tăng doanh thu (case)" />
-              <HeroStat end={1200} suffix="+" label="Đối tác" />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* LOGO STRIP - SLIDING */}
-        <div
-          style={{
-            overflow: "hidden",
-            padding: "2rem 0",
-            marginBottom: "5rem",
-            position: "relative",
-          }}
-          onMouseEnter={() => {
-            if (sliderRef.current)
-              sliderRef.current.classList.remove("auto-scroll");
-          }}
-          onMouseLeave={() => {
-            if (sliderRef.current)
-              sliderRef.current.classList.add("auto-scroll");
-          }}
-        >
-          {/* Gradient masks for smooth edges */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              bottom: 0,
-              width: "150px",
-              background:
-                "linear-gradient(to right, var(--bg-dark), transparent)",
-              zIndex: 2,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: "150px",
-              background:
-                "linear-gradient(to left, var(--bg-dark), transparent)",
-              zIndex: 2,
-            }}
-          />
-
-          <div
-            ref={sliderRef}
-            className="logo-slider"
-            aria-label="Logo partners carousel"
+    <main className="partners-page">
+      <section className="partners-hero">
+        <div className="partners-orb partners-orb--mint" />
+        <div className="partners-orb partners-orb--sun" />
+        <div className="container partners-hero__inner">
+          <Motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            className="partners-hero__copy"
           >
-            {[...partnerLogos, ...partnerLogos].map((logo, i) => (
-              <div
-                key={i}
-                className="logo-item"
-                style={{
-                  background: "white",
-                  padding: "1rem 2.5rem",
-                  borderRadius: "16px",
-                  boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  height: "80px",
-                  minWidth: "180px",
-                }}
+            <span className="partners-kicker">
+              <BadgeCheck size={17} />
+              Nền tảng tăng trưởng cho doanh nghiệp địa phương
+            </span>
+            <h1>
+              Biến mỗi ưu đãi thành một{" "}
+              <span>lý do để khách hàng quay lại.</span>
+            </h1>
+            <p>
+              Hơn 1.200 nhà hàng, spa, khách sạn và thương hiệu đang dùng
+              Dealzy để tiếp cận khách mới và tăng doanh thu mỗi ngày.
+            </p>
+            <div className="partners-hero__actions">
+              <Link to="/register-partner" className="partners-primary-link">
+                Trở thành đối tác <ArrowUpRight size={18} />
+              </Link>
+              <a href="#partner-stories" className="partners-text-link">
+                Xem câu chuyện tăng trưởng
+              </a>
+            </div>
+          </Motion.div>
+
+          <Motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.12 }}
+            className="partners-hero__proof"
+          >
+            <div className="partners-proof__top">
+              <span>Hiệu quả được ghi nhận</span>
+              <BadgeCheck size={22} />
+            </div>
+            <strong>+65%</strong>
+            <p>doanh thu trung bình trong case study nổi bật</p>
+            <div className="partners-proof__bars" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="partners-proof__note">
+              <span>Chỉ sau</span>
+              <b>02 tháng</b>
+            </div>
+          </Motion.div>
+        </div>
+
+        <div className="container hero-stats">
+          <HeroStat end={500000} suffix="+" label="Người dùng mỗi tháng" />
+          <HeroStat end={65} suffix="%" label="Tăng doanh thu nổi bật" />
+          <HeroStat end={1200} suffix="+" label="Đối tác tin tưởng" />
+        </div>
+      </section>
+
+      <section className="partners-logo-section" aria-label="Đối tác tiêu biểu">
+        <div className="container">
+          <div className="partners-section-intro partners-section-intro--inline">
+            <span>Được tin chọn bởi</span>
+            <p>Từ thương hiệu địa phương đến chuỗi doanh nghiệp toàn quốc.</p>
+          </div>
+          <div
+            className="partners-logo-window"
+            onMouseEnter={() => sliderRef.current?.classList.remove("auto-scroll")}
+            onMouseLeave={() => sliderRef.current?.classList.add("auto-scroll")}
+          >
+            <div ref={sliderRef} className="logo-slider">
+              {[...partnerLogos, ...partnerLogos].map((logo, index) => (
+                <div key={`${logo}-${index}`} className="logo-item">
+                  <img src={logo} alt="Logo đối tác Dealzy" />
+                </div>
+              ))}
+            </div>
+            <button
+              className="slider-control left"
+              aria-label="Logo trước"
+              onClick={() => moveSlider(-1)}
+            >
+              ‹
+            </button>
+            <button
+              className="slider-control right"
+              aria-label="Logo tiếp theo"
+              onClick={() => moveSlider(1)}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="partners-benefits">
+        <div className="container">
+          <div className="partners-section-intro">
+            <span>Lợi ích thiết thực</span>
+            <h2>Một kênh bán hàng mới, không thêm gánh nặng vận hành.</h2>
+          </div>
+          <div className="partners-benefit-grid">
+            {benefits.map((item, index) => (
+              <Motion.article
+                key={item.title}
+                whileHover={{ y: -8 }}
+                className={`feature-card feature-card--${index + 1}`}
               >
-                <img
-                  src={logo}
-                  alt="partner"
-                  style={{
-                    height: "40px",
-                    width: "auto",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
+                <div className="feature-card__head">
+                  <div className="feature-icon">
+                    <item.Icon size={26} />
+                  </div>
+                  <span>{item.number}</span>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
+              </Motion.article>
             ))}
           </div>
-          <button
-            className="slider-control left"
-            aria-label="Previous logos"
-            onClick={() => {
-              const el = sliderRef.current;
-              if (!el) return;
-              const step = Math.floor(el.clientWidth / 2);
-              el.scrollBy({ left: -step, behavior: "smooth" });
-              el.classList.remove("auto-scroll");
-              setTimeout(() => el.classList.add("auto-scroll"), 4000);
-            }}
-          >
-            {"‹"}
-          </button>
-          <button
-            className="slider-control right"
-            aria-label="Next logos"
-            onClick={() => {
-              const el = sliderRef.current;
-              if (!el) return;
-              const step = Math.floor(el.clientWidth / 2);
-              el.scrollBy({ left: step, behavior: "smooth" });
-              el.classList.remove("auto-scroll");
-              setTimeout(() => el.classList.add("auto-scroll"), 4000);
-            }}
-          >
-            {"›"}
-          </button>
         </div>
+      </section>
 
-        {/* BENEFITS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "2rem",
-            marginBottom: "5rem",
-          }}
-        >
-          {[
-            {
-              title: "Tiếp cận khách hàng lớn",
-              desc: "500.000+ người dùng hoạt động mỗi tháng.",
-              Icon: Users,
-            },
-            {
-              title: "Tăng doanh thu nhanh",
-              desc: "Nhiều đối tác tăng 30-70% doanh thu trong 3 tháng.",
-              Icon: TrendingUp,
-            },
-            {
-              title: "Marketing miễn phí",
-              desc: "Xuất hiện trên app, web và chiến dịch quảng bá.",
-              Icon: Megaphone,
-            },
-          ].map((item, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ y: -8 }}
-              className="feature-card"
-            >
-              <div className="feature-icon">
-                <item.Icon size={28} />
-              </div>
-              <h3 style={{ marginBottom: "1rem" }}>{item.title}</h3>
-              <p style={{ color: "var(--text-muted)" }}>{item.desc}</p>
-            </motion.div>
-          ))}
+      <section className="container case-study">
+        <div className="case-study__metric">
+          <span>Case study</span>
+          <strong>65%</strong>
+          <p>Tăng trưởng doanh thu</p>
         </div>
+        <div className="case-study__copy">
+          <span>Chuỗi nhà hàng tại TP.HCM</span>
+          <h2>“Dealzy giúp giờ thấp điểm trở thành khung giờ có doanh thu.”</h2>
+          <p>
+            Một chiến dịch voucher đúng thời điểm đã mở rộng tệp khách hàng và
+            tạo thói quen quay lại chỉ sau hai tháng.
+          </p>
+        </div>
+      </section>
 
-        {/* CASE STUDY */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="case-study"
-          style={{ marginBottom: "4rem" }}
-        >
-          <div
-            className="inner"
-            style={{
-              padding: "3rem",
-              background: "var(--primary)",
-              color: "white",
-              textAlign: "center",
-              borderRadius: "var(--radius-lg)",
-            }}
-          >
-            <h2>“Doanh thu tăng 65% chỉ sau 2 tháng”</h2>
-            <p>Một chuỗi nhà hàng đã mở rộng tệp khách hàng nhờ Dealzy.</p>
+      <section id="partner-stories" className="testimonial-section">
+        <div className="container">
+          <div className="partners-section-intro">
+            <span>Đối tác nói gì</span>
+            <h2>Những kết quả thật từ các thương hiệu đang vận hành mỗi ngày.</h2>
           </div>
-        </motion.div>
-
-        {/* TESTIMONIALS */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="testimonial-section"
-          style={{ marginBottom: "5rem" }}
-        >
-          <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-            <p className="eyebrow">Phản hồi đối tác</p>
-            <h2>
-              Các đối tác lớn đánh giá Dealzy là công cụ thay đổi cuộc chơi
-            </h2>
-          </div>
-
           <div className="testimonial-grid">
-            {[
-              {
-                quote:
-                  "Dealzy giúp chúng tôi lấp đầy bàn trống ngay trong tuần đầu tiên. Khách hàng đến đông và đã có doanh số bật tăng.",
-                name: "Huỳnh Thu Hà",
-                role: "Giám đốc điều hành LuxStay",
-                initials: "HH",
-              },
-              {
-                quote:
-                  "Chúng tôi tiết kiệm hơn 30% chi phí marketing, nhưng lượng đặt chỗ lại tăng rõ rệt. Giao diện đơn giản, đối tác hỗ trợ nhanh.",
-                name: "Trần Việt Dũng",
-                role: "Founder Saigon Eats",
-                initials: "TD",
-              },
-              {
-                quote:
-                  "Mỗi chương trình khuyến mãi đều được quảng bá đến đúng khách hàng, và tỷ lệ quay lại tăng đáng kể sau tháng đầu tiên.",
-                name: "Nguyễn Lan Anh",
-                role: "Quản lý thương hiệu BeautyBloom",
-                initials: "LA",
-              },
-            ].map((item, index) => (
-              <motion.article
-                key={index}
-                whileHover={{ y: -10 }}
+            {testimonials.map((item) => (
+              <Motion.article
+                key={item.name}
+                whileHover={{ y: -6 }}
                 className="testimonial-card"
               >
-                <div className="testimonial-avatar" aria-hidden="true">
-                  {item.initials}
-                </div>
-                <p className="testimonial-quote">“{item.quote}”</p>
+                <span className="testimonial-card__quote-mark">“</span>
+                <p className="testimonial-quote">{item.quote}</p>
                 <div className="testimonial-meta">
-                  <strong>{item.name}</strong>
-                  <span>{item.role}</span>
+                  <div className="testimonial-avatar" aria-hidden="true">
+                    {item.initials}
+                  </div>
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>{item.role}</small>
+                  </span>
                 </div>
-              </motion.article>
+              </Motion.article>
             ))}
           </div>
-        </motion.section>
+        </div>
+      </section>
 
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          style={{ textAlign: "center" }}
-        >
-          <div className="partners-cta">
-            <button className="btn-primary">Trở thành đối tác ngay 🚀</button>
-            <div className="subtext">
-              Không phí setup • Hỗ trợ 24/7 • Bắt đầu trong 24h
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </div>
+      <section className="container partners-cta">
+        <div>
+          <span>Bắt đầu trong 24 giờ</span>
+          <h2>Sẵn sàng biến ưu đãi thành tăng trưởng?</h2>
+          <p>Không phí thiết lập. Đội ngũ Dealzy đồng hành từ bước đầu tiên.</p>
+        </div>
+        <Link to="/register-partner" className="partners-primary-link">
+          Đăng ký hợp tác <ArrowUpRight size={18} />
+        </Link>
+      </section>
+    </main>
   );
 };
 

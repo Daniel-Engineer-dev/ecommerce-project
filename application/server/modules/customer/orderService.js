@@ -135,6 +135,16 @@ class OrderService {
                     `,
                     [orderId, item.voucher_id, item.quantity, voucherRes.rows[0].sale_price]
                 );
+
+                // Giảm số lượng tồn kho của voucher
+                await client.query(
+                    `
+                        UPDATE Vouchers
+                        SET quantity_stock = GREATEST(0, quantity_stock - $1)
+                        WHERE voucher_id = $2
+                    `,
+                    [item.quantity, item.voucher_id]
+                );
             }
 
             await client.query('COMMIT');

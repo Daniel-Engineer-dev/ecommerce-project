@@ -1,4 +1,5 @@
 const pool = require('../../../config/db');
+const orderService = require('../../customer/orderService');
 
 class AdminOrderService {
     async getAllOrders({ status, search, page = 1, limit = 10 }) {
@@ -73,22 +74,14 @@ class AdminOrderService {
     }
 
     async confirmPayment(orderId, adminId) {
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
-            const updateOrder = `UPDATE Orders SET status = 'Paid' WHERE order_id = $1 AND status = 'Pending' RETURNING *`;
-            const result = await client.query(updateOrder, [orderId]);
-            if (result.rowCount === 0) throw new Error("Đơn hàng không tồn tại hoặc đã xử lý");
+        await orderService.completeOrder(orderId, `ADMIN_CONFIRM_${Date.now()}`);
+        await pool.query(
+            `INSERT INTO System_Logs (user_id, action, table_name, record_id) VALUES ($1, $2, $3, $4)`,
+            [adminId, 'CONFIRM ORDER PAYMENT', 'Orders', orderId]
+        );
 
-            await client.query(`INSERT INTO System_Logs (user_id, action, table_name, record_id) VALUES ($1, $2, $3, $4)`, [adminId, 'CONFIRM ORDER PAYMENT', 'Orders', orderId]);
-            await client.query('COMMIT');
-            return result.rows[0];
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
-        }
+        const result = await pool.query('SELECT * FROM Orders WHERE order_id = $1', [orderId]);
+        return result.rows[0];
     }
 
     async refundAndCancelOrder(orderId, adminId, reason) {
@@ -101,26 +94,27 @@ class AdminOrderService {
             if (orderRes.rowCount === 0) throw new Error("Không tìm thấy đơn hàng");
             
             const order = orderRes.rows[0];
-            if (order.status === 'Cancelled' || order.status === 'Refunded') {
+            if (order.status === 'Cancelled' || order.status === 'Refunded' || order.status === 'Failed' || order.status === 'Expired') {
                 throw new Error("Đơn hàng này đã bị đóng từ trước");
             }
+            if (order.status !== 'Paid') {
+                throw new Error("Chỉ đơn hàng đã thanh toán mới có thể hoàn tiền");
+            }
 
-            // 1. Chỉ cập nhật trạng thái cột status thành 'Refunded'
+            // 1. Cập nhật trạng thái cột status thành 'Refunded'
             await client.query(
                 `UPDATE Orders SET status = 'Refunded' WHERE order_id = $1`, 
                 [orderId]
             );
 
-            // 2. Nếu đơn đã thanh toán thì khóa các mã E-Voucher lại
-            if (order.status === 'Paid') {
-                await client.query(
-                    `UPDATE E_Vouchers SET status = 'Locked' WHERE order_item_id IN (SELECT order_item_id FROM Order_Items WHERE order_id = $1)`, 
-                    [orderId]
-                );
-                
-                // LƯU Ý: Đã gỡ bỏ phần UPDATE Wallets vì Database chưa có bảng này.
-                // Nếu sau này bạn thêm bảng Wallets, bạn có thể viết lại logic cộng tiền ở đây.
-            }
+            // 2. Khóa các mã E-Voucher lại.
+            await client.query(
+                `UPDATE E_Vouchers
+                 SET status = 'Locked'
+                 WHERE order_item_id IN (SELECT order_item_id FROM Order_Items WHERE order_id = $1)
+                    AND status <> 'Locked'`, 
+                [orderId]
+            );
 
             // 3. Ghi log hệ thống
             await client.query(

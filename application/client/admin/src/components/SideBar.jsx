@@ -73,11 +73,11 @@ const Sidebar = () => {
                     <>
                       <motion.div
                         layoutId="sidebarActiveIndicator"
-                        className="absolute right-3 w-1.5 h-1.5 bg-[#6ec6a0] rounded-full"
+                        className="absolute right-3 top-[calc(50%-0.1875rem)] w-1.5 h-1.5 bg-[#6ec6a0] rounded-full"
                       />
                       <motion.div
                         layoutId="sidebarActiveBorder"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#6ec6a0] rounded-r-full"
+                        className="absolute left-0 top-[calc(50%-0.75rem)] w-1 h-6 bg-[#6ec6a0] rounded-r-full"
                       />
                     </>
                   )}

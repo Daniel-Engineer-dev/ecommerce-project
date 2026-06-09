@@ -1130,12 +1130,13 @@ function Sidebar() {
   };
 
   return (
-    <aside style={{ width: '270px', background: '#ffffff', color: '#475569', minHeight: '100vh', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border-color)', boxShadow: '8px 0 24px rgba(15, 23, 42, 0.03)' }}>
-      <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: '#0f172a', fontWeight: 900, fontSize: '1.2rem' }}>
+    <aside style={{ width: '270px', height: '100dvh', maxHeight: '100dvh', background: '#ffffff', color: '#475569', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid var(--border-color)', boxShadow: '8px 0 24px rgba(15, 23, 42, 0.03)' }}>
+      <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, color: '#0f172a', fontWeight: 900, fontSize: '1.2rem' }}>
         <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', background: '#eef6ff', color: '#0369a1', display: 'grid', placeItems: 'center' }}><Building2 size={22} /></div>
         PartnerHub
       </div>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 14px', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 14px 14px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <div className="sidebar-group-title">Phân hệ chức năng</div>
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
           return (
@@ -1145,7 +1146,7 @@ function Sidebar() {
           );
         })}
       </nav>
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '16px', flexShrink: 0, borderTop: '1px solid var(--border-color)', background: '#ffffff' }}>
         <button onClick={logout} style={{ ...shell.button, width: '100%', background: '#fff1f2', color: '#be123c' }}><LogOut size={18} /> Đăng xuất</button>
       </div>
     </aside>

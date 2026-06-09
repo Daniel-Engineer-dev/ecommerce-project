@@ -14,6 +14,7 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { API_BASE_URL } from "../config";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 const CustomerRegistration = () => {
   const navigate = useNavigate();
@@ -140,9 +141,13 @@ const CustomerRegistration = () => {
         });
         const data = await res.json();
         if (!res.ok || !data.available) {
-          setError(
-            `Thông tin đã tồn tại: ${(data.conflicts || []).join(", ")}`,
-          );
+          const conflictMap = {
+            username: "Tên đăng nhập",
+            email: "Email",
+            phone: "Số điện thoại"
+          };
+          const conflictNames = (data.conflicts || []).map(c => conflictMap[c] || c);
+          setError(`Thông tin đã tồn tại: ${conflictNames.join(", ")}`);
           return;
         }
       } catch (err) {
@@ -568,14 +573,19 @@ const CustomerRegistration = () => {
                   }}
                 >
                   <div className="input-group">
-                    <Calendar size={18} className="input-icon" />
-                    <input
-                      name="dob"
-                      type="date"
+                    <Calendar size={18} className="input-icon" style={{ pointerEvents: 'none', zIndex: 10 }} />
+                    <CustomDatePicker
                       value={formData.dob}
-                      onChange={handleChange}
-                      className="auth-input"
-                      style={{ paddingLeft: "44px" }}
+                      onChange={(val) => handleChange({ target: { name: 'dob', value: val } })}
+                      showIcon={false}
+                      buttonStyle={{
+                        paddingLeft: '44px',
+                        height: '48px',
+                        borderRadius: 'var(--radius-md, 8px)',
+                        border: '1px solid var(--border-color, #cbd5e1)',
+                        fontSize: '0.95rem',
+                        fontWeight: 500,
+                      }}
                     />
                   </div>
                   <div className="input-group">
@@ -617,7 +627,7 @@ const CustomerRegistration = () => {
                     Vì quy định của các nhà mạng Việt Nam yêu cầu đăng ký Brandname nghiêm ngặt để gửi tin nhắn SMS, chúng tôi hiển thị mã OTP mô phỏng để bạn kiểm thử luồng này. Mã OTP của bạn là:{" "}
                     <strong
                       style={{
-                        fontFamily: "monospace",
+                        fontFamily: "inherit",
                         fontSize: "1.1rem",
                         letterSpacing: "0.08em",
                       }}
@@ -857,7 +867,7 @@ const NotificationModal = ({ isOpen, onClose, title, message, otp }) => {
               >
                 <span
                   style={{
-                    fontFamily: "monospace",
+                    fontFamily: "inherit",
                     fontSize: "1.8rem",
                     fontWeight: 800,
                     color: "#1d4ed8",

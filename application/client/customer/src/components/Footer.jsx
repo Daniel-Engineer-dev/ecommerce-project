@@ -9,6 +9,7 @@ import {
   Heart,
   Mail,
   Phone,
+  ScrollText,
   ShieldCheck,
   Sparkles,
   TicketPercent,
@@ -57,7 +58,7 @@ const Footer = () => {
             <img src={logo} alt="" />
             <span>
               <strong>Dealzy</strong>
-              <small>Premium voucher marketplace</small>
+              <small>Săn voucher xịn, tận hưởng nhiều hơn</small>
             </span>
           </Link>
           <p>
@@ -79,7 +80,7 @@ const Footer = () => {
           <Link to="/support"><CircleHelp size={15} /> Trung tâm hỗ trợ</Link>
           <Link to="/guide"><FileText size={15} /> Hướng dẫn sử dụng</Link>
           <Link to="/refund-policy"><CreditCard size={15} /> Hoàn tiền</Link>
-          <Link to="/terms">Điều khoản</Link>
+          <Link to="/terms"><ScrollText size={15} /> Điều khoản</Link>
         </nav>
 
         <div className="lux-footer__column">

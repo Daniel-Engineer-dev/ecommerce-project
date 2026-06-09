@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, User, Bot } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, User, Bot, Headphones } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 
@@ -10,6 +10,8 @@ import { API_BASE_URL } from '../config';
 
 const ChatbotWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isDismissed, setIsDismissed] = useState(false);
+    const [isBubbleHovered, setIsBubbleHovered] = useState(false);
     const [messages, setMessages] = useState(() => {
         const saved = sessionStorage.getItem('dealzy_chat_history');
         return saved ? JSON.parse(saved) : [
@@ -105,6 +107,14 @@ const ChatbotWidget = () => {
         handleSend(inputValue);
     };
 
+    const dismissChatbot = (event) => {
+        event.stopPropagation();
+        setIsOpen(false);
+        setIsDismissed(true);
+    };
+
+    if (isDismissed) return null;
+
     return (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000, fontFamily: 'inherit' }}>
             {/* Khung chat bọc bởi AnimatePresence */}
@@ -162,10 +172,10 @@ const ChatbotWidget = () => {
                                         display: 'grid',
                                         placeItems: 'center'
                                     }}>
-                                        <Sparkles size={16} strokeWidth={1.5} className="text-amber-300" />
+                                        <Headphones size={16} strokeWidth={1.5} className="text-amber-300" />
                                     </div>
                                     <div>
-                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>Dealzy AI Assistant</div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>Hỗ trợ khách hàng Dealzy</div>
                                         <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             <span style={{
                                                 width: '6px',
@@ -204,7 +214,7 @@ const ChatbotWidget = () => {
                                         >
                                             {isBot && (
                                                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e2e8f0', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                                                    <Bot size={14} strokeWidth={1.5} className="text-slate-600" />
+                                                    <User size={14} strokeWidth={1.5} className="text-slate-600" />
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '75%', alignItems: isBot ? 'flex-start' : 'flex-end' }}>
@@ -240,7 +250,7 @@ const ChatbotWidget = () => {
                                         style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
                                     >
                                         <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e2e8f0', display: 'grid', placeItems: 'center' }}>
-                                            <Bot size={14} strokeWidth={1.5} className="text-slate-600" />
+                                            <User size={14} strokeWidth={1.5} className="text-slate-600" />
                                         </div>
                                         <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(15, 23, 42, 0.04)', display: 'flex', gap: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                                             <span className="dot-anim" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#94a3b8', animation: 'dotDelay1 1.2s infinite' }}></span>
@@ -363,52 +373,93 @@ const ChatbotWidget = () => {
             </AnimatePresence>
 
             {/* Floating Bubble Button với Framer Motion */}
-            <motion.button
-                onClick={() => setIsOpen(!isOpen)}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.94 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '50%',
-                    background: '#0f172a',
-                    color: 'white',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.2)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    float: 'right',
-                    outline: 'none'
-                }}
+            <div
+                onMouseEnter={() => setIsBubbleHovered(true)}
+                onMouseLeave={() => setIsBubbleHovered(false)}
+                style={{ position: 'relative', float: 'right', width: '54px', height: '54px' }}
             >
-                <AnimatePresence mode="wait">
-                    {isOpen ? (
-                        <motion.div
-                            key="close"
-                            initial={{ rotate: -90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: 90, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ display: 'flex' }}
+                <AnimatePresence>
+                    {!isOpen && isBubbleHovered && (
+                        <motion.button
+                            key="dismiss"
+                            initial={{ opacity: 0, scale: 0.72, y: 4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.72, y: 4 }}
+                            transition={{ duration: 0.16 }}
+                            onClick={dismissChatbot}
+                            title="Tắt chatbot"
+                            aria-label="Tắt chatbot"
+                            style={{
+                                position: 'absolute',
+                                top: '-4px',
+                                right: '-4px',
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(15, 23, 42, 0.08)',
+                                background: '#ffffff',
+                                color: '#334155',
+                                cursor: 'pointer',
+                                display: 'grid',
+                                placeItems: 'center',
+                                boxShadow: '0 6px 14px rgba(15, 23, 42, 0.14)',
+                                zIndex: 2,
+                                outline: 'none'
+                            }}
                         >
-                            <X size={22} strokeWidth={1.5} />
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="chat"
-                            initial={{ rotate: 90, opacity: 0 }}
-                            animate={{ rotate: 0, opacity: 1 }}
-                            exit={{ rotate: -90, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            style={{ display: 'flex' }}
-                        >
-                            <MessageSquare size={22} strokeWidth={1.5} />
-                        </motion.div>
+                            <X size={13} strokeWidth={2} />
+                        </motion.button>
                     )}
                 </AnimatePresence>
-            </motion.button>
+                <motion.button
+                    onClick={() => setIsOpen(!isOpen)}
+                    whileHover={{ scale: 1.07 }}
+                    whileTap={{ scale: 0.94 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                    style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: '#0f172a',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0 8px 22px rgba(15, 23, 42, 0.2)',
+                        display: 'grid',
+                        placeItems: 'center',
+                        position: 'absolute',
+                        right: 0,
+                        bottom: 0,
+                        outline: 'none'
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        {isOpen ? (
+                            <motion.div
+                                key="close"
+                                initial={{ rotate: -90, opacity: 0 }}
+                                animate={{ rotate: 0, opacity: 1 }}
+                                exit={{ rotate: 90, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                style={{ display: 'flex' }}
+                            >
+                                <X size={19} strokeWidth={1.6} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="chat"
+                                initial={{ rotate: 90, opacity: 0 }}
+                                animate={{ rotate: 0, opacity: 1 }}
+                                exit={{ rotate: -90, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                style={{ display: 'flex' }}
+                            >
+                                <Headphones size={19} strokeWidth={1.6} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.button>
+            </div>
 
             {/* Custom Animations Styles */}
             <style>{`

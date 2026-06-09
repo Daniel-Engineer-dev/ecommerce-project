@@ -444,7 +444,7 @@ const AuthPage = () => {
                           }}
                         >
                           Vì quy định của các nhà mạng Việt Nam yêu cầu đăng ký Brandname nghiêm ngặt để gửi tin nhắn SMS, chúng tôi hiển thị mã OTP mô phỏng để bạn kiểm thử luồng này. Mã OTP của bạn là:{" "}
-                          <strong style={{ fontSize: '1rem', fontFamily: 'monospace', letterSpacing: '2px' }}>{receivedOtp}</strong>
+                          <strong style={{ fontSize: '1rem', fontFamily: 'inherit', letterSpacing: '2px' }}>{receivedOtp}</strong>
                         </div>
                       )}
                       <div className="input-group" style={{ margin: 0 }}>
@@ -685,7 +685,7 @@ const NotificationModal = ({ isOpen, onClose, title, message, otp }) => {
               >
                 <span
                   style={{
-                    fontFamily: "monospace",
+                    fontFamily: "inherit",
                     fontSize: "1.8rem",
                     fontWeight: 800,
                     color: "#1d4ed8",

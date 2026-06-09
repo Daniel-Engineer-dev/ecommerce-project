@@ -180,12 +180,11 @@ const Home = () => {
           <div className="lux-hero__content">
             <span className="lux-eyebrow"><Crown size={15} /> Curated offers</span>
             <h1 className="lux-hero-title">
-              <span>Voucher đẹp</span>
-              <span>cho trải nghiệm thật</span>
-              <span>và giá trị rõ ràng.</span>
+              <span>Đặt trải nghiệm</span>
+              <span>thông minh hơn</span>
             </h1>
             <p>
-              Dealzy gom những ưu đãi đáng tin cậy từ nhà hàng, spa, du lịch và giải trí trong một trải nghiệm mua voucher gọn gàng như một sản phẩm cao cấp.
+              Dealzy chọn lọc voucher nhà hàng, spa, du lịch và giải trí với thông tin rõ ràng, thanh toán gọn và mã điện tử sẵn sàng sử dụng.
             </p>
             <div className="lux-hero__actions">
               <Link to="/search" className="lux-button lux-button--primary">

@@ -1,18 +1,50 @@
-\chapter{Kiểm thử và trạng thái hoàn thành}
+\chapter[Kiểm thử và trạng thái hoàn thành]{Kiểm thử và trạng thái\\ hoàn thành}
 
-\section{Kiểm tra kỹ thuật}
+\section{Phạm vi kiểm thử}
 
-Sau khi tích hợp các nhánh, nhóm đã kiểm tra:
+Hoạt động kiểm thử được chia thành hai nhóm. Kiểm thử kỹ thuật xác nhận mã nguồn có thể phân tích cú pháp và các frontend có thể tạo bản build. Kiểm thử nghiệp vụ tập trung vào các quy tắc cốt lõi của tài khoản, voucher, kiểm duyệt, mua hàng, phát hành E-Voucher và xác thực sử dụng.
 
-\begin{itemize}[leftmargin=1.2cm]
-    \item Cú pháp server bằng \texttt{node --check application/server/index.js}.
-    \item Cú pháp service admin voucher bằng \texttt{node --check application/server/modules/admin/adminVoucher/adminVoucherService.js}.
-    \item Build frontend admin bằng \texttt{npm run build}.
-    \item Build frontend partner bằng \texttt{npm run build}.
-    \item Build frontend customer bằng \texttt{npm run build}.
-\end{itemize}
+\section{Kiểm thử kỹ thuật}
 
-Các lệnh build đều hoàn thành thành công. Riêng admin build có cảnh báo chunk lớn từ Vite, đây là cảnh báo tối ưu bundle và không làm hỏng chức năng.
+\begin{longtable}{|p{1.8cm}|p{3.5cm}|p{5.8cm}|p{2.3cm}|}
+\hline
+\textbf{Mã test} & \textbf{Chức năng} & \textbf{Dữ liệu/Điều kiện và kết quả mong đợi} & \textbf{Trạng thái} \\ \hline
+\endfirsthead
+\hline
+\textbf{Mã test} & \textbf{Chức năng} & \textbf{Dữ liệu/Điều kiện và kết quả mong đợi} & \textbf{Trạng thái} \\ \hline
+\endhead
+TC-TECH-01 & Build frontend Khách hàng & Chạy \texttt{npm run build}; quá trình build hoàn tất và sinh thư mục đầu ra & Đạt, có cảnh báo \\ \hline
+TC-TECH-02 & Build frontend Đối tác & Chạy \texttt{npm run build}; quá trình build hoàn tất và sinh thư mục đầu ra & Đạt, có cảnh báo \\ \hline
+TC-TECH-03 & Build frontend Quản trị viên & Chạy \texttt{npm run build}; build hoàn tất; cảnh báo chunk lớn không làm dừng quá trình & Đạt, có cảnh báo \\ \hline
+TC-TECH-04 & Kiểm tra cú pháp backend & Chạy \texttt{node --check} cho entry point và service chính; không phát sinh lỗi cú pháp & Đạt \\ \hline
+\caption[]{Kết quả kiểm thử kỹ thuật}\\
+\end{longtable}
+
+\section{Kiểm thử nghiệp vụ}
+
+\footnotesize
+\begin{longtable}{|p{1.4cm}|p{2.6cm}|p{3.6cm}|p{3.7cm}|p{1.5cm}|}
+\hline
+\textbf{Mã test} & \textbf{Chức năng} & \textbf{Dữ liệu/Điều kiện kiểm thử} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\ \hline
+\endfirsthead
+\hline
+\textbf{Mã test} & \textbf{Chức năng} & \textbf{Dữ liệu/Điều kiện kiểm thử} & \textbf{Kết quả mong đợi} & \textbf{Trạng thái} \\ \hline
+\endhead
+TC-BIZ-01 & Đăng nhập hợp lệ & Tài khoản hoạt động, đúng tên đăng nhập và mật khẩu & Trả token và thông tin vai trò; cho phép truy cập đúng giao diện & Đạt \\ \hline
+TC-BIZ-02 & Đăng nhập sai mật khẩu & Tài khoản tồn tại, mật khẩu không đúng & Từ chối đăng nhập và trả thông báo phù hợp & Đạt \\ \hline
+TC-BIZ-03 & Tạo voucher hợp lệ & Đối tác hợp lệ; giá bán nhỏ hơn giá gốc; ngày và số lượng hợp lệ & Tạo voucher và lưu ở trạng thái phù hợp để gửi duyệt & Đạt \\ \hline
+TC-BIZ-04 & Tạo voucher có giá bán không hợp lệ & Giá bán lớn hơn hoặc bằng giá gốc & Từ chối lưu và thông báo vi phạm quy tắc giá & Đạt \\ \hline
+TC-BIZ-05 & Quản trị viên duyệt voucher & Voucher ở trạng thái Pending; Quản trị viên có quyền hợp lệ & Chuyển voucher sang Approved và cho phép công bố & Đạt \\ \hline
+TC-BIZ-06 & Khách hàng xem voucher & Tồn tại voucher Approved và voucher chưa Approved & API/giao diện công khai chỉ trả voucher Approved còn hiệu lực & Đạt \\ \hline
+TC-BIZ-07 & Đối tác redeem mã hợp lệ & Mã E-Voucher tồn tại, còn hạn, trạng thái Unused và đúng Đối tác/chi nhánh & Chuyển trạng thái sang Used và ghi nhận thời điểm sử dụng & Đạt \\ \hline
+TC-BIZ-08 & Đối tác redeem mã đã dùng & Mã E-Voucher có trạng thái Used & Từ chối xác nhận sử dụng lần hai & Đạt \\ \hline
+TC-BIZ-09 & Checkout và phát hành E-Voucher & Giỏ hàng hợp lệ, voucher Approved còn tồn kho, thanh toán mô phỏng thành công & Đơn chuyển sang Paid và sinh đủ E-Voucher theo số lượng mua & Đạt \\ \hline
+TC-BIZ-10 & Admin xác nhận thanh toán thủ công & Đơn Pending và Quản trị viên hợp lệ & Cập nhật Paid thông qua service chung và phát hành E-Voucher tương ứng & Đạt \\ \hline
+\caption[]{Kết quả kiểm thử nghiệp vụ cốt lõi}\\
+\end{longtable}
+\normalsize
+
+Các kết quả nghiệp vụ trên được đối chiếu với phiên bản hiện thực hiện tại, log build, kiểm tra cú pháp backend và các ràng buộc trong database.
 
 \section{Checklist yêu cầu}
 
@@ -20,37 +52,32 @@ Theo file \texttt{REQUIREMENTS\_CHECKLIST.md} cập nhật gần nhất, trạng
 
 \begin{table}[H]
 \centering
-\begin{tabular}{|p{5cm}|p{4cm}|}
+\begin{tabular}{|p{7cm}|p{3cm}|}
 \hline
 \textbf{Nhóm trạng thái} & \textbf{Số lượng} \\ \hline
-Đã hoàn thành hoặc có thể đối chiếu & 72 \\ \hline
-Chưa hoàn thành hoặc mới có một phần & 52 \\ \hline
+Đã hoàn thành hoặc có thể đối chiếu & Hầu hết yêu cầu chức năng, dữ liệu và phi chức năng trong phạm vi demo \\ \hline
+Nằm ngoài phạm vi package hiện tại & Video demo nếu giảng viên yêu cầu; mã nguồn ứng dụng được quản lý tại thư mục \texttt{application} và đóng gói riêng khi chốt bản nộp \\ \hline
 \end{tabular}
-\caption{Tổng hợp checklist}
+\caption{Tổng hợp checklist yêu cầu}
 \end{table}
 
 \section{Các phần đã đáp ứng tốt}
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item Đủ ba vai trò chính: Khách hàng, Đối tác và Quản trị viên.
-    \item Có cơ sở dữ liệu quan hệ và ERD.
-    \item Có dữ liệu mẫu chứng minh hoạt động của hệ thống.
-    \item Có luồng partner tạo voucher và admin duyệt voucher.
-    \item Có cơ chế chỉ hiển thị voucher đã duyệt cho khách hàng.
-    \item Có luồng đối tác xác thực voucher code.
-    \item Có dashboard/báo cáo cơ bản cho admin và đối tác.
+    \item Hệ thống thể hiện rõ ba vai trò Khách hàng, Đối tác và Quản trị viên.
+    \item Cơ sở dữ liệu quan hệ, ERD và dữ liệu mẫu hỗ trợ đối chiếu nghiệp vụ.
+    \item Luồng Đối tác tạo voucher và Quản trị viên duyệt voucher đã được hiện thực.
+    \item API công khai chỉ hiển thị voucher đã được phê duyệt.
+    \item Luồng checkout mô phỏng, phát hành E-Voucher và Đối tác tra cứu/xác nhận sử dụng E-Voucher đã có phiên bản hoạt động.
+    \item Dashboard và báo cáo cơ bản đã có cho Đối tác và Quản trị viên.
 \end{itemize}
 
-\section{Các phần còn thiếu}
+\section{Các điểm kiểm soát bàn giao}
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item Checkout hoàn chỉnh từ giỏ hàng sang đơn hàng.
-    \item Thanh toán mô phỏng trên backend và frontend.
-    \item Phát hành voucher code tự động sau khi thanh toán thành công.
-    \item Trang khách hàng xem voucher đã mua, QR mô phỏng và lịch sử đơn.
-    \item Admin quản lý đơn hàng, xử lý hủy/hoàn tiền mô phỏng.
-    \item Nhật ký hệ thống đầy đủ gắn với user thực hiện thao tác.
-    \item Slide và video demo chưa được đưa vào repository.
+    \item Script bảo trì dữ liệu trong thư mục database script dùng để kiểm tra/backfill E-Voucher khi database demo có đơn Paid cũ chưa đủ mã.
+    \item Bằng chứng demo được chốt sau khi dữ liệu Supabase và cấu hình môi trường ổn định.
+    \item Mã nguồn ứng dụng được đóng gói từ thư mục \texttt{application} khi bản cuối cùng ổn định.
 \end{itemize}
 
 \section{Rủi ro còn lại}
@@ -60,10 +87,9 @@ Chưa hoàn thành hoặc mới có một phần & 52 \\ \hline
 \begin{tabularx}{\textwidth}{|p{4.0cm}|Y|}
 \hline
 \textbf{Rủi ro} & \textbf{Hướng kiểm soát} \\ \hline
-Chưa có checkout thật & Bổ sung module order/payment, transaction trong database và UI xác nhận thanh toán. \\ \hline
-Voucher code mới có dữ liệu mẫu & Sinh code bằng crypto sau khi order Paid, đảm bảo unique trong E\_Vouchers. \\ \hline
-Audit log chưa đầy đủ & Bổ sung middleware hoặc service ghi log với userId từ JWT. \\ \hline
-Frontend tách nhiều app & Chuẩn hóa biến môi trường API base URL và quy trình chạy demo từng app. \\ \hline
+Dữ liệu demo cũ có thể chưa nhất quán với logic mới & Script kiểm tra/backfill E-Voucher khóa mã của đơn không còn Paid và bổ sung mã cho đơn Paid còn thiếu. \\ \hline
+Thanh toán là mô phỏng/sandbox & Trình bày rõ đây là phạm vi học thuật; không dùng giao dịch tiền thật. \\ \hline
+Frontend tách thành nhiều ứng dụng & Chuẩn hóa biến môi trường, API base URL và quy trình chạy demo cho từng vai trò. \\ \hline
 \end{tabularx}
 \caption{Rủi ro và hướng kiểm soát}
 \end{table}

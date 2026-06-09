@@ -391,8 +391,9 @@ const Home = () => {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>
-            Đang tải voucher...
+          <div className="loading-screen">
+            <div className="loader"></div>
+            <p>Đang tải voucher...</p>
           </div>
         ) : (
           <div style={{

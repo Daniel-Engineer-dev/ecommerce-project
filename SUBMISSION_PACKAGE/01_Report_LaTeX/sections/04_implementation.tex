@@ -1,6 +1,8 @@
 \chapter{Hiện thực hệ thống}
 
-\section{Các chức năng đã hoàn thành}
+\section{Trạng thái hiện thực}
+
+Bảng dưới đây tổng hợp mức độ hiện thực của các nhóm chức năng chính tại thời điểm lập báo cáo. Trạng thái ``Đã có'' được sử dụng cho chức năng đã có thể đối chiếu trên mã nguồn và chạy độc lập trong phạm vi demo học thuật.
 
 \begin{longtable}{|p{3.5cm}|p{7.0cm}|p{3.2cm}|}
 \hline
@@ -9,32 +11,32 @@
 \hline
 \textbf{Nhóm chức năng} & \textbf{Mô tả} & \textbf{Trạng thái} \\ \hline
 \endhead
-Tài khoản & Đăng ký, đăng nhập, JWT, hồ sơ, đổi mật khẩu, quên mật khẩu qua email/SMS mô phỏng & Đã có \\ \hline
+Tài khoản & Đăng ký, đăng nhập, JWT, hồ sơ, đổi mật khẩu và khôi phục mật khẩu qua email/SMS mô phỏng & Đã có \\ \hline
 Voucher công khai & Danh sách voucher Approved, chi tiết voucher, tìm kiếm và lọc & Đã có \\ \hline
-Giỏ hàng & Thêm, xóa, cập nhật số lượng, tính tạm tính ở frontend khách hàng & Đã có \\ \hline
-Partner dashboard & Thống kê tổng voucher, approved/pending, doanh thu, số lượng đã bán/đã dùng & Đã có \\ \hline
-Partner voucher & Tạo, cập nhật, gửi duyệt, tạm ngưng, gắn chi nhánh áp dụng & Đã có \\ \hline
-Partner redeem & Tra cứu code, kiểm tra điều kiện, xác nhận sử dụng tại chi nhánh & Đã có \\ \hline
-Admin partner approval & Xem đối tác pending, duyệt hoặc từ chối & Đã có \\ \hline
-Admin user management & Danh sách, tìm kiếm, phân trang, khóa/mở khóa, đổi role & Đã có \\ \hline
-Admin voucher management & Lọc theo trạng thái, tìm kiếm, duyệt, từ chối, tạm ẩn voucher & Đã có \\ \hline
-Order/Payment & Tạo đơn từ giỏ hàng, thanh toán mô phỏng, phát hành code sau thanh toán & Chưa hoàn tất \\ \hline
+Giỏ hàng & Thêm, xóa, cập nhật số lượng và tính tạm tính ở frontend Khách hàng & Đã có \\ \hline
+Dashboard Đối tác & Thống kê tổng voucher, trạng thái duyệt và các chỉ số kinh doanh cơ bản & Đã có \\ \hline
+Quản lý voucher Đối tác & Tạo, cập nhật, gửi duyệt, tạm ngưng và gắn chi nhánh áp dụng & Đã có \\ \hline
+Xác thực E-Voucher & Tra cứu mã, kiểm tra điều kiện và xác nhận sử dụng tại chi nhánh & Đã có \\ \hline
+Duyệt Đối tác & Quản trị viên xem hồ sơ chờ duyệt, phê duyệt hoặc từ chối & Đã có \\ \hline
+Quản lý người dùng & Danh sách, tìm kiếm, phân trang, khóa/mở khóa và đổi vai trò & Đã có \\ \hline
+Duyệt voucher & Lọc theo trạng thái, tìm kiếm, duyệt, từ chối và tạm ẩn voucher & Đã có \\ \hline
+Order/Payment & Validate giỏ hàng, tạo đơn trong transaction, thanh toán mô phỏng/sandbox, callback/confirm thanh toán và phát hành E-Voucher sau khi đơn Paid & Đã có \\ \hline
 \caption[]{Trạng thái hiện thực theo nhóm chức năng}\\
 \end{longtable}
 
 \section{Frontend}
 
-Các frontend đều dùng React + Vite, tổ chức theo trang và component. Một số trang quan trọng:
+Ba frontend được xây dựng bằng React và Vite, tổ chức theo trang và component để tách biệt trải nghiệm của từng vai trò:
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item Customer: \texttt{Home.jsx}, \texttt{SearchVouchers.jsx}, \texttt{VoucherDetail.jsx}, \texttt{Cart.jsx}, \texttt{Profile.jsx}.
-    \item Partner: \texttt{App.jsx} chứa trải nghiệm quản lý chính cho đối tác, gồm dashboard, voucher, chi nhánh, xác thực code và báo cáo.
-    \item Admin: \texttt{AdminDashboard.jsx}, \texttt{PartnerApproval.jsx}, \texttt{UserManagement.jsx}, \texttt{VoucherManagement.jsx}.
+    \item Khách hàng: các trang hỗ trợ khám phá, tìm kiếm, xem chi tiết voucher, quản lý giỏ hàng và hồ sơ cá nhân.
+    \item Đối tác: \texttt{App.jsx} và các trang nghiệp vụ phục vụ dashboard, voucher, chi nhánh, xác thực mã và báo cáo.
+    \item Quản trị viên: \texttt{AdminDashboard.jsx}, \texttt{PartnerApproval.jsx}, \texttt{UserManagement.jsx}, \texttt{VoucherManagement.jsx}.
 \end{itemize}
 
 \section{Backend}
 
-Server Express mount các nhóm route chính:
+Server Express được chia theo module nghiệp vụ và mount các nhóm route chính:
 
 \begin{lstlisting}[language=JavaScript]
 app.use('/api/vouchers', voucherRoutes);
@@ -42,18 +44,86 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/partner', partnerRoutes);
 app.use('/api/admin/vouchers', adminVoucherRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/admin/orders', adminOrderRoutes);
 \end{lstlisting}
 
-Các service sử dụng PostgreSQL thông qua \texttt{pg}. Mật khẩu được hash bằng bcryptjs, token đăng nhập dùng JWT. Email/SMS được đóng gói trong \texttt{utils/sendEmail.js} và \texttt{utils/sendSms.js}.
+Các service truy cập PostgreSQL thông qua \texttt{pg}. Mật khẩu được hash bằng bcryptjs, token đăng nhập dùng JWT và các tiện ích email/SMS được đóng gói riêng. Module Order/Payment tạo đơn trong transaction, khóa dòng voucher khi kiểm tra tồn kho, hoàn tồn kho khi đơn Pending bị hủy/thất bại và sinh E-Voucher duy nhất khi đơn chuyển sang Paid.
+
+\section{Một số giao diện chính}
+
+Các hình dưới đây minh họa các giao diện chính của hệ thống theo từng vai trò. Ảnh chụp được lưu trong thư mục \texttt{images/ui} và được nhúng trực tiếp vào bản PDF khi biên dịch báo cáo.
+
+\subsection{Giao diện Khách hàng}
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-customer-home.png}{Trang chủ Khách hàng}
+\caption{Trang chủ dành cho Khách hàng}
+\end{figure}
+Trang chủ giới thiệu các voucher nổi bật, danh mục và công cụ điều hướng chính. Giao diện giúp Khách hàng tiếp cận nhanh các chương trình ưu đãi đang được công bố.
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-customer-search-filter.png}{Trang tìm kiếm và lọc voucher}
+\caption{Giao diện tìm kiếm và lọc voucher}
+\end{figure}
+Trang tìm kiếm hỗ trợ truy vấn theo từ khóa và lọc theo các tiêu chí nghiệp vụ. Kết quả chỉ hiển thị các voucher đã được Quản trị viên phê duyệt và còn hiệu lực.
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-customer-voucher-detail.png}{Trang chi tiết voucher}
+\caption{Giao diện xem chi tiết voucher}
+\end{figure}
+Trang chi tiết trình bày giá, mức giảm, thời hạn, điều kiện áp dụng, chi nhánh và thông tin Đối tác. Đây là cơ sở để Khách hàng cân nhắc trước khi thêm voucher vào giỏ hàng.
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-customer-cart-checkout.png}{Giỏ hàng hoặc màn hình checkout}
+\caption{Giao diện giỏ hàng và checkout}
+\end{figure}
+Giỏ hàng cho phép cập nhật số lượng và xem giá trị tạm tính. Phần checkout kết nối với API tạo đơn, thanh toán mô phỏng/sandbox và trang trạng thái thanh toán để hiển thị E-Voucher sau khi đơn được xác nhận Paid.
+
+\subsection{Giao diện Đối tác}
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-partner-dashboard.png}{Dashboard Đối tác}
+\caption{Dashboard theo dõi hoạt động của Đối tác}
+\end{figure}
+Dashboard tổng hợp trạng thái voucher và các chỉ số hoạt động cơ bản. Giao diện hỗ trợ Đối tác theo dõi hiệu quả chương trình và truy cập nhanh các nghiệp vụ quản lý.
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-partner-voucher-management.png}{Trang tạo và quản lý voucher của Đối tác}
+\caption{Giao diện tạo và quản lý voucher của Đối tác}
+\end{figure}
+Đối tác có thể khai báo thông tin voucher, chi nhánh áp dụng và gửi yêu cầu duyệt. Danh sách quản lý thể hiện trạng thái để Đối tác theo dõi và cập nhật trong phạm vi cho phép.
+
+\subsection{Giao diện Quản trị viên}
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-admin-voucher-approval.png}{Trang duyệt voucher của Quản trị viên}
+\caption{Giao diện phê duyệt voucher của Quản trị viên}
+\end{figure}
+Giao diện hỗ trợ Quản trị viên xem voucher chờ duyệt, kiểm tra thông tin và thực hiện phê duyệt hoặc từ chối. Quy trình này bảo đảm voucher chỉ được công bố sau khi qua kiểm duyệt.
+
+\begin{figure}[H]
+\centering
+\interfaceimage{ui-admin-user-management.png}{Trang quản lý người dùng của Quản trị viên}
+\caption{Giao diện quản lý người dùng của Quản trị viên}
+\end{figure}
+Trang quản lý người dùng hỗ trợ tìm kiếm, phân trang và cập nhật trạng thái tài khoản. Các thao tác quản trị được giới hạn theo cơ chế phân quyền của hệ thống.
 
 \section{Những điểm đã xử lý khi tích hợp nhánh}
 
-Trong quá trình gom các nhánh role vào nhánh \texttt{partner}, nhóm đã:
+Trong quá trình tích hợp mã nguồn, nhóm đã thực hiện các công việc chính:
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item Merge chức năng admin từ nhánh \texttt{admin} vào nhánh \texttt{partner}.
-    \item Giữ cả route partner và route admin voucher trong \texttt{application/server/index.js}.
-    \item Giữ seed user có email/password hash để tương thích luồng auth mới.
-    \item Sửa tên cột \texttt{reject\_reason} thành \texttt{rejected\_reason} để khớp schema database.
-    \item Loại file tạm Office khỏi merge cuối.
+    \item Tích hợp các chức năng Quản trị viên và Đối tác vào nhánh tổng hợp.
+    \item Giữ các route nghiệp vụ cần thiết trong \texttt{application/server/index.js}.
+    \item Đồng bộ seed user với luồng xác thực hiện tại.
+    \item Sửa tên cột \texttt{reject\_reason} thành \texttt{rejected\_reason} để khớp schema.
+    \item Loại bỏ tệp tạm và kiểm tra lại khả năng build của các frontend.
 \end{itemize}

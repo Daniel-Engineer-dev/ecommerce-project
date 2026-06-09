@@ -43,7 +43,7 @@ class AppErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: '2rem', color: '#1e293b', fontFamily: 'Be Vietnam Pro, sans-serif' }}>
+        <div style={{ padding: '2rem', color: '#1e293b', fontFamily: 'inherit' }}>
           <h1 style={{ marginBottom: '1rem' }}>Ứng dụng gặp lỗi khi hiển thị</h1>
           <pre style={{ whiteSpace: 'pre-wrap', background: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>
             {this.state.error.message}

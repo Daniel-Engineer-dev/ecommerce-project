@@ -6,16 +6,16 @@ Hệ thống được tổ chức theo mô hình monorepo tách biệt client v�
 
 \begin{figure}[H]
 \centering
-\IfFileExists{images/architecture.png}{\includegraphics[width=0.85\textwidth]{images/architecture.png}}{\fbox{Architecture image not found}}
+\diagramimage{images/diagrams/architecture-overview.drawio.png}
 \caption{Kiến trúc tổng quan hệ thống}
 \end{figure}
 
 \section{Cấu trúc frontend}
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item \texttt{application/client/customer}: giao diện khách hàng, gồm trang chủ, tìm kiếm voucher, chi tiết voucher, giỏ hàng, đăng ký khách hàng/đối tác, hồ sơ và khôi phục mật khẩu.
-    \item \texttt{application/client/partner}: cổng đối tác, mở rộng từ giao diện chung và bổ sung dashboard, quản lý voucher, chi nhánh, báo cáo và xác thực voucher code.
-    \item \texttt{application/client/admin}: cổng quản trị, gồm dashboard, duyệt đối tác, quản lý người dùng và quản lý voucher.
+    \item \texttt{application/client/customer}: giao diện khách hàng, gồm trang chủ, tìm kiếm/lọc voucher, xem chi tiết, giỏ hàng, checkout, trạng thái thanh toán, hồ sơ cá nhân, ví E-Voucher/QR, lịch sử đơn hàng, đánh giá voucher, gửi khiếu nại, đăng ký khách hàng/đối tác, trang hỗ trợ/chính sách và chatbot.
+    \item \texttt{application/client/partner}: cổng đối tác, gồm đăng nhập/đăng ký đối tác, dashboard kinh doanh, quản lý hồ sơ và chi nhánh, tạo/cập nhật/gửi duyệt/tạm ngưng voucher, báo cáo, tra cứu và xác thực voucher code bằng mã hoặc QR, chatbot và cập nhật realtime.
+    \item \texttt{application/client/admin}: cổng quản trị, gồm dashboard, duyệt đối tác, quản lý người dùng, quản lý voucher, quản lý đơn hàng, xử lý khiếu nại, quản lý nội dung, nhật ký hệ thống và các chỉ số thống kê.
 \end{itemize}
 
 \section{Cấu trúc backend}
@@ -24,14 +24,20 @@ Backend được chia thành các module:
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\textwidth}{|p{3.8cm}|Y|}
+\small
+\begin{tabularx}{\textwidth}{|p{3.6cm}|Y|}
 \hline
 \textbf{Module} & \textbf{Chức năng} \\ \hline
 \texttt{auth} & Đăng ký, đăng nhập, JWT, hồ sơ, đổi mật khẩu, quên mật khẩu, OTP/email mô phỏng. \\ \hline
-\texttt{shared} & API voucher dùng chung: danh sách voucher đã duyệt, danh mục, đối tác, tìm kiếm và chi tiết voucher. \\ \hline
-\texttt{partner} & Dashboard đối tác, chi nhánh, CRUD voucher, gửi duyệt, tạm ngưng, kiểm tra và redeem voucher code. \\ \hline
-\texttt{admin} & Duyệt đối tác, quản lý người dùng, thống kê user. \\ \hline
-\texttt{admin/adminVoucher} & Danh sách voucher theo trạng thái, duyệt, từ chối, tạm ẩn voucher. \\ \hline
+\texttt{shared/voucher} & API voucher công khai: danh sách voucher đã duyệt, danh mục, đối tác, tìm kiếm/lọc và xem chi tiết voucher. \\ \hline
+\texttt{shared/chatbot} & API chatbot hỗ trợ người dùng trên các giao diện customer/partner. \\ \hline
+\texttt{shared/event} & Kênh realtime bằng Server-Sent Events cho giao diện Quản trị viên và Đối tác để cập nhật trạng thái voucher, đơn hàng hoặc mã voucher. \\ \hline
+\texttt{customer/order} & Kiểm tra giỏ hàng, checkout, cổng thanh toán mô phỏng/sandbox, trạng thái đơn, phát hành E-Voucher, lịch sử đơn, ví E-Voucher và đánh giá sau mua. \\ \hline
+\texttt{customer/complaint} & Gửi khiếu nại, xem danh sách và chi tiết khiếu nại của khách hàng. \\ \hline
+\texttt{partner} & Dashboard đối tác, quản lý chi nhánh, CRUD voucher, gửi duyệt/tạm ngưng voucher, báo cáo, kiểm tra và redeem voucher code theo phạm vi đối tác. \\ \hline
+\texttt{admin} & Duyệt/từ chối đối tác, quản lý người dùng, quản lý đơn hàng tổng quát, xử lý khiếu nại, quản lý nội dung, nhật ký hệ thống và dữ liệu dashboard. \\ \hline
+\texttt{admin/Voucher} & Danh sách voucher theo trạng thái, duyệt, từ chối, tạm ẩn/hiện voucher và thống kê voucher theo đối tác. \\ \hline
+\texttt{admin/Order} & Danh sách đơn hàng, chi tiết đơn, xác nhận thanh toán và hoàn tiền mô phỏng. \\ \hline
 \end{tabularx}
 \caption{Module backend}
 \end{table}
@@ -46,13 +52,172 @@ Mỗi module backend tuân theo mô hình ba lớp:
     \item Service: chứa logic nghiệp vụ và truy vấn database.
 \end{enumerate}
 
-Ví dụ, nhóm route quản trị voucher được mount ở \texttt{/api/admin/vouchers}; nhóm route đối tác được mount ở \texttt{/api/partner}; nhóm API chung được mount ở \texttt{/api/vouchers}.
+Ví dụ, nhóm route quản trị voucher được mount ở \texttt{/api/admin/vouchers}; nhóm route đối tác được mount ở \texttt{/api/partner}; nhóm API chung được mount ở \texttt{/api/vouchers}; nhóm mua hàng được mount ở \texttt{/api/orders}; nhóm khiếu nại được mount ở \texttt{/api/complaints}; nhóm realtime được mount ở \texttt{/api/events}.
+
+\section{Các sơ đồ đặc tả phần mềm}
+
+Các sơ đồ dưới đây được dùng để đặc tả hệ thống ở nhiều góc nhìn: phạm vi chức năng, luồng nghiệp vụ, tương tác giữa thành phần, triển khai và mô hình dữ liệu nghiệp vụ. Nhóm ưu tiên các sơ đồ phản ánh đúng hiện trạng mã nguồn hiện tại thay vì mô tả các chức năng chưa có.
+
+\subsection{System context diagram}
+
+\subsubsection{Ranh giới và tác nhân ngoài hệ thống}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/system-context.drawio.png}
+\caption{System context diagram xác định ranh giới và tác nhân ngoài hệ thống}
+\end{figure}
+
+\subsection{Use case diagram}
+
+\subsubsection{Use case tổng quan hệ thống Dealzy}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/use-case-overview.drawio.png}
+\caption{Use case tổng quan hệ thống Dealzy}
+\end{figure}
+
+\subsection{Activity diagram}
+
+\subsubsection{Luồng mua và phát hành E-Voucher}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/activity-purchase.drawio.png}
+\caption{Activity diagram cho quá trình mua và phát hành E-Voucher}
+\end{figure}
+
+Sơ đồ mô tả luồng từ khi Khách hàng chọn voucher, hệ thống kiểm tra điều kiện và tồn kho, tạo đơn hàng, tiếp nhận kết quả thanh toán đến khi phát hành E-Voucher. Trong phiên bản hiện tại, luồng này được hiện thực bằng API Order, transaction PostgreSQL và các cổng thanh toán mô phỏng/sandbox để phục vụ demo học thuật.
+
+\subsubsection{Luồng tiếp nhận và xử lý khiếu nại}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/activity-complaint-processing.drawio.png}
+\caption{Activity diagram cho tiếp nhận, xử lý và theo dõi khiếu nại}
+\end{figure}
+
+\subsection{Sequence diagram}
+
+\subsubsection{Luồng mua và sử dụng voucher}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/sequence-purchase.drawio.png}
+\caption{Sequence diagram cho mua, phát hành và xác thực E-Voucher}
+\end{figure}
+
+Trình tự tương tác thể hiện vai trò của giao diện Khách hàng, Order API, cổng thanh toán, PostgreSQL và giao diện Đối tác. Order API là thành phần điều phối việc kiểm tra dữ liệu, ghi nhận đơn hàng, cập nhật trạng thái và sinh E-Voucher sau khi thanh toán thành công để Đối tác tra cứu và xác nhận sử dụng.
+
+\subsubsection{Xác thực và khôi phục tài khoản}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/sequence-auth-recovery.drawio.png}
+\caption{Sequence diagram cho đăng ký, đăng nhập, JWT và khôi phục mật khẩu}
+\end{figure}
+
+\subsubsection{Tạo và duyệt voucher}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/sequence-voucher-approval.drawio.png}
+\caption{Sequence diagram cho vòng đời tạo, gửi duyệt và phê duyệt voucher}
+\end{figure}
+
+\subsubsection{Kiểm tra và sử dụng E-Voucher}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/sequence-evoucher-redem.drawio.png}
+\caption{Sequence diagram cho tra cứu và xác nhận sử dụng E-Voucher}
+\end{figure}
+
+\subsubsection{Cập nhật realtime}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/sequence-realtime-sse.drawio.png}
+\caption{Sequence diagram cho kênh cập nhật realtime bằng Server-Sent Events}
+\end{figure}
+
+\subsection{State diagram}
+
+\subsubsection{Vòng đời voucher và E-Voucher}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/state-voucher-lifcycle.drawio.png}
+\caption{State diagram vòng đời voucher và E-Voucher}
+\end{figure}
+
+\subsubsection{Vòng đời đơn hàng}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/state-order-lifecyle.drawio.png}
+\caption{State diagram vòng đời đơn hàng và các nhánh hoàn tồn kho}
+\end{figure}
+
+Đơn hàng bắt đầu ở trạng thái \texttt{Pending}. Khi nhận được xác nhận thanh toán hợp lệ, đơn chuyển sang \texttt{Paid}; nếu bị hủy, thanh toán thất bại hoặc quá hạn, đơn lần lượt chuyển sang \texttt{Cancelled}, \texttt{Failed} hoặc \texttt{Expired}. Trạng thái \texttt{Refunded} biểu diễn trường hợp hoàn tiền sau thanh toán. Các nhánh thất bại cần đi kèm cơ chế hoàn tồn kho để duy trì tính nhất quán dữ liệu.
+
+\subsubsection{Vòng đời khiếu nại}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/state-complaint-lifecyle.drawio.png}
+\caption{State diagram vòng đời khiếu nại}
+\end{figure}
+
+\subsection{Component diagram}
+
+\subsubsection{Các thành phần của hệ thống}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/component-diagram.drawio.png}
+\caption{Component diagram của hệ thống}
+\end{figure}
+
+\subsection{Deployment diagram}
+
+\subsubsection{Mô hình triển khai demo}
+
+\begin{figure}[H]
+\centering
+\diagramimage{images/diagrams/deployment-diagram.drawio.png}
+\caption{Deployment diagram mức triển khai demo}
+\end{figure}
+
+\subsection{Ma trận bao phủ sơ đồ và phân hệ}
+
+Để bảo đảm bộ sơ đồ phản ánh đầy đủ hệ thống hiện tại, bảng dưới đây ánh xạ từng phân hệ đang có trong mã nguồn đến sơ đồ đặc tả tương ứng. Một phân hệ chỉ được xem là đã bao phủ khi thể hiện được ít nhất một trong ba góc nhìn: chức năng, tương tác hoặc trạng thái dữ liệu.
+
+\begin{longtable}{|p{3.2cm}|p{4.0cm}|p{6.2cm}|}
+\hline
+\textbf{Phân hệ hiện tại} & \textbf{Thành phần hiện thực} & \textbf{Sơ đồ thể hiện} \\ \hline
+\endfirsthead
+\hline
+\textbf{Phân hệ hiện tại} & \textbf{Thành phần hiện thực} & \textbf{Sơ đồ thể hiện} \\ \hline
+\endhead
+Xác thực và hồ sơ & \texttt{auth}, đăng ký Khách hàng/Đối tác, hồ sơ & Use case tổng quan; sequence xác thực và khôi phục tài khoản \\ \hline
+Khám phá voucher & \texttt{shared/voucher}, tìm kiếm và xem chi tiết voucher & Use case tổng quan; component diagram \\ \hline
+Mua hàng và thanh toán & \texttt{customer/order}, MoMo, PayPal, VietQR & Activity mua E-Voucher; sequence mua/sử dụng; state diagram đơn hàng \\ \hline
+Ví E-Voucher và đánh giá & \texttt{customer/order}, \texttt{E\_Vouchers}, \texttt{Reviews} & Sequence mua/sử dụng; state voucher \\ \hline
+Khiếu nại & \texttt{customer/complaint}, API xử lý khiếu nại của Quản trị viên & Activity xử lý khiếu nại; state diagram khiếu nại \\ \hline
+Vận hành đối tác & \texttt{partner}, dashboard, report, branch, redeem & Use case tổng quan; sequence tạo/duyệt voucher; sequence redeem \\ \hline
+Quản trị hệ thống & \texttt{admin}, \texttt{admin/Voucher}, \texttt{admin/Order} & Use case tổng quan; sequence duyệt voucher; state đơn hàng \\ \hline
+Realtime, chatbot và tiện ích ngoài & \texttt{shared/event}, \texttt{shared/chatbot}, email/SMS & Component; deployment; sequence realtime; context diagram \\ \hline
+Nội dung và nhật ký & \texttt{Content\_Items}, \texttt{System\_Logs} & Use case tổng quan \\ \hline
+\caption[]{Ma trận truy vết giữa phân hệ hiện tại và sơ đồ đặc tả}\\
+\end{longtable}
 
 \section{Luồng xử lý chính}
 
 \subsection{Tạo và duyệt voucher}
 
-Đối tác tạo voucher ở trạng thái Pending. Admin xem danh sách voucher Pending, kiểm tra thông tin, sau đó duyệt sang Approved, từ chối sang Rejected kèm lý do hoặc chuyển sang Suspended để tạm ẩn.
+Đối tác tạo voucher ở trạng thái Pending. Quản trị viên xem danh sách voucher Pending, kiểm tra thông tin, sau đó duyệt sang Approved, từ chối sang Rejected kèm lý do hoặc chuyển sang Suspended để tạm ẩn.
 
 \subsection{Tìm kiếm và xem voucher}
 
@@ -67,7 +232,9 @@ Khách hàng chỉ nhìn thấy voucher có trạng thái Approved và còn hi�
 Backend sử dụng JWT. Middleware \texttt{authMiddleware} đọc token từ header Authorization. Các route admin và partner bổ sung kiểm tra role trước khi cho phép thao tác. Thiết kế này giúp tách rõ quyền truy cập:
 
 \begin{itemize}[leftmargin=1.2cm]
-    \item Admin chỉ truy cập endpoint quản trị.
-    \item Partner chỉ truy cập endpoint đối tác.
+    \item Quản trị viên chỉ truy cập endpoint quản trị.
+    \item Đối tác chỉ truy cập endpoint đối tác.
     \item API voucher công khai chỉ trả voucher đã được duyệt.
 \end{itemize}
+
+\input{sections/05_database}

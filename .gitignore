@@ -35,6 +35,21 @@
 **/yarn-error.log*
 **/.pnpm-debug.log*
 
+# LaTeX generated files
+**/*.aux
+**/*.bbl
+**/*.bcf
+**/*.blg
+**/*.fdb_latexmk
+**/*.fls
+**/*.lof
+**/*.lot
+**/*.out
+**/*.run.xml
+**/*.synctex.gz
+**/*.toc
+**/*.xdv
+
 # OS Files
 .DS_Store
 Thumbs.db

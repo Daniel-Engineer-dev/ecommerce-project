@@ -27,6 +27,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { API_BASE_URL } from "../config";
 import { apiFetch } from "../apiClient";
+import CustomSelect from "../components/CustomSelect";
+import CustomDatePicker from "../components/CustomDatePicker";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -230,6 +232,53 @@ const Profile = () => {
         return "Đã dùng";
       default:
         return status;
+    }
+  };
+
+  const getOrderStatusText = (status) => {
+    switch (status) {
+      case "Paid":
+        return "Đã thanh toán";
+      case "Pending":
+        return "Chờ thanh toán";
+      case "Cancelled":
+        return "Đã hủy";
+      case "Failed":
+        return "Thất bại";
+      case "Expired":
+        return "Hết hạn";
+      default:
+        return status;
+    }
+  };
+
+  const getComplaintStatusText = (status) => {
+    switch (status) {
+      case "Pending":
+        return "Đang chờ";
+      case "Processing":
+        return "Đang xử lý";
+      case "Resolved":
+        return "Đã giải quyết";
+      case "Rejected":
+        return "Từ chối";
+      default:
+        return status;
+    }
+  };
+
+  const getComplaintPriorityText = (priority) => {
+    switch (priority) {
+      case "Low":
+        return "Thấp";
+      case "Normal":
+        return "Trung bình";
+      case "High":
+        return "Cao";
+      case "Urgent":
+        return "Khẩn cấp";
+      default:
+        return priority;
     }
   };
 
@@ -880,16 +929,23 @@ const Profile = () => {
                             Ngày sinh
                           </label>
                           <div className="input-group">
-                            <Calendar size={18} className="input-icon" />
-                            <input
-                              type="date"
+                            <Calendar size={18} className="input-icon" style={{ pointerEvents: 'none', zIndex: 10 }} />
+                            <CustomDatePicker
                               value={
                                 profile.dob ? profile.dob.split("T")[0] : ""
                               }
-                              onChange={(e) =>
-                                setProfile({ ...profile, dob: e.target.value })
+                              onChange={(dateStr) =>
+                                setProfile({ ...profile, dob: dateStr })
                               }
-                              className="auth-input"
+                              showIcon={false}
+                              buttonStyle={{
+                                paddingLeft: '48px',
+                                height: '48px',
+                                borderRadius: 'var(--radius-md, 8px)',
+                                border: '1px solid var(--border-color, #cbd5e1)',
+                                fontSize: '0.95rem',
+                                fontWeight: 500,
+                              }}
                             />
                           </div>
                         </div>
@@ -1706,7 +1762,7 @@ const Profile = () => {
                                   padding: "0.35rem 0.5rem",
                                   flexGrow: 1,
                                   justifyContent: "space-between",
-                                  fontFamily: "monospace",
+                                  fontFamily: "inherit",
                                   fontSize: "0.8rem",
                                   fontWeight: 700,
                                   color: "#0f172a",
@@ -1904,7 +1960,7 @@ const Profile = () => {
                                       : "#64748b",
                               }}
                             >
-                              {order.status}
+                              {getOrderStatusText(order.status)}
                             </span>
                           </div>
                           <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
@@ -1986,43 +2042,54 @@ const Profile = () => {
                       }
                       placeholder="Tiêu đề"
                     />
-                    <select
-                      className="auth-input"
+                    <CustomSelect
                       value={complaintForm.priority}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setComplaintForm({
                           ...complaintForm,
-                          priority: e.target.value,
+                          priority: val,
                         })
                       }
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Normal">Normal</option>
-                      <option value="High">High</option>
-                      <option value="Urgent">Urgent</option>
-                    </select>
-                    {/* 1. Sửa thẻ Select Đơn hàng: Thêm logic reset voucherIds về rỗng khi đổi đơn khác */}
-                    <select
-                      className="auth-input"
+                      options={[
+                        { value: "Low", label: "Thấp (Low)" },
+                        { value: "Normal", label: "Trung bình (Normal)" },
+                        { value: "High", label: "Cao (High)" },
+                        { value: "Urgent", label: "Khẩn cấp (Urgent)" },
+                      ]}
+                      buttonStyle={{
+                        borderRadius: "var(--radius-md, 8px)",
+                        border: "1px solid var(--border-color, #cbd5e1)",
+                        height: "48px",
+                        fontSize: "0.95rem",
+                        fontWeight: 500,
+                        padding: "12px 16px",
+                      }}
+                    />
+                    <CustomSelect
                       value={complaintForm.orderId}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setComplaintForm({
                           ...complaintForm,
-                          orderId: e.target.value,
-                          voucherIds: [], // Reset lại danh sách voucher đã tick khi đổi đơn hàng
+                          orderId: val,
                         })
                       }
-                    >
-                      <option value="">Không gắn đơn hàng</option>
-                      {orders.map((order) => (
-                        <option key={order.order_id} value={order.order_id}>
-                          Đơn #{order.order_id} - {order.status} -{" "}
-                          {Number(order.total_amount).toLocaleString("vi-VN")}đ
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* 2. Sửa danh sách Voucher: Thêm hàm .filter() để lọc đúng voucher của đơn hàng */}
+                      placeholder="Không gắn đơn hàng"
+                      options={[
+                        { value: "", label: "Không gắn đơn hàng" },
+                        ...orders.map((order) => ({
+                          value: String(order.order_id),
+                          label: `Đơn #${order.order_id} - ${getOrderStatusText(order.status)} - ${Number(order.total_amount).toLocaleString("vi-VN")}đ`,
+                        })),
+                      ]}
+                      buttonStyle={{
+                        borderRadius: "var(--radius-md, 8px)",
+                        border: "1px solid var(--border-color, #cbd5e1)",
+                        height: "48px",
+                        fontSize: "0.95rem",
+                        fontWeight: 500,
+                        padding: "12px 16px",
+                      }}
+                    />
                     {evouchers.length > 0 && (
                       <div
                         style={{
@@ -2182,7 +2249,7 @@ const Profile = () => {
                               `Khiếu nại #${complaint.complaint_id}`}
                           </b>
                           <span style={{ fontWeight: 800 }}>
-                            {complaint.status}
+                            {getComplaintStatusText(complaint.status)}
                           </span>
                         </div>
                         <p style={{ color: "#64748b", marginTop: "0.5rem" }}>
@@ -2190,7 +2257,7 @@ const Profile = () => {
                         </p>
                         <small>
                           {complaint.order_id ? `Đơn #${complaint.order_id} - ` : ""}
-                          {complaint.priority} - {complaint.response_count || 0}{" "}
+                          {getComplaintPriorityText(complaint.priority)} - {complaint.response_count || 0}{" "}
                           phản hồi
                         </small>
                         {complaint.vouchers?.length > 0 && (
@@ -2276,7 +2343,7 @@ const Profile = () => {
                       `Khiếu nại #${selectedComplaint.complaint_id}`}
                   </h3>
                   <p style={{ margin: "0.35rem 0 0", color: "#64748b" }}>
-                    {selectedComplaint.status} - {selectedComplaint.priority}
+                    {getComplaintStatusText(selectedComplaint.status)} - {getComplaintPriorityText(selectedComplaint.priority)}
                     {selectedComplaint.order_id
                       ? ` - Đơn #${selectedComplaint.order_id}`
                       : ""}
@@ -2549,7 +2616,7 @@ const Profile = () => {
                   <div
                     style={{
                       marginTop: "0.85rem",
-                      fontFamily: "monospace",
+                      fontFamily: "inherit",
                       fontSize: "1.35rem",
                       fontWeight: 900,
                       letterSpacing: "0.08em",
@@ -2787,7 +2854,7 @@ const Profile = () => {
                     >
                       Mã:{" "}
                       <span
-                        style={{ fontFamily: "monospace", fontWeight: 700 }}
+                        style={{ fontFamily: "inherit", fontWeight: 700 }}
                       >
                         {selectedVoucherForReview.unique_code}
                       </span>
