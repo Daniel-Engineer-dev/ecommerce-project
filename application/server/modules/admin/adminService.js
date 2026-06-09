@@ -310,14 +310,28 @@ class AdminService {
                 u.username AS customer_username,
                 u.email AS customer_email,
                 c.full_name AS customer_name,
-                COUNT(DISTINCT oi.order_item_id)::int AS item_count,
-                COALESCE(SUM(oi.quantity), 0)::int AS voucher_quantity,
-                COUNT(ev.evoucher_id)::int AS evoucher_count
+                COALESCE(oi_stats.item_count, 0)::int AS item_count,
+                COALESCE(oi_stats.voucher_quantity, 0)::int AS voucher_quantity,
+                COALESCE(ev_stats.evoucher_count, 0)::int AS evoucher_count
             FROM Orders o
             LEFT JOIN Users u ON o.customer_id = u.user_id
             LEFT JOIN Customers c ON o.customer_id = c.user_id
-            LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
-            LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+            LEFT JOIN (
+                SELECT
+                    order_id,
+                    COUNT(*)::int AS item_count,
+                    SUM(quantity)::int AS voucher_quantity
+                FROM Order_Items
+                GROUP BY order_id
+            ) oi_stats ON oi_stats.order_id = o.order_id
+            LEFT JOIN (
+                SELECT
+                    oi.order_id,
+                    COUNT(ev.evoucher_id)::int AS evoucher_count
+                FROM Order_Items oi
+                JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                GROUP BY oi.order_id
+            ) ev_stats ON ev_stats.order_id = o.order_id
             WHERE 1=1
         `;
 
@@ -340,7 +354,8 @@ class AdminService {
         }
 
         const groupBy = `
-            GROUP BY o.order_id, u.username, u.email, c.full_name
+            GROUP BY o.order_id, u.username, u.email, c.full_name,
+                oi_stats.item_count, oi_stats.voucher_quantity, ev_stats.evoucher_count
         `;
 
         const countResult = await pool.query(

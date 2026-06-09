@@ -20,47 +20,49 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
-// 1. Kích hoạt bảo mật HTTP Headers với Helmet
 app.use(helmet());
 
-// 2. Giới hạn tần suất yêu cầu (Rate Limiting) để tránh DDoS & Brute force
+const parseOrigins = (value) => (
+  value
+    ? value.split(',').map((origin) => origin.trim()).filter(Boolean)
+    : []
+);
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  ...parseOrigins(process.env.ALLOWED_ORIGINS),
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
+    if (allowedOrigins.includes(origin) || (allowVercelPreviews && origin.endsWith('.vercel.app'))) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
+
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 300, // Tối đa 300 requests từ mỗi IP trong 15 phút
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  skip: (req) => req.originalUrl.startsWith('/api/events'),
   message: {
-    message: 'Tần suất gửi yêu cầu quá lớn. Vui lòng thử lại sau 15 phút.',
+    message: 'Tan suat gui yeu cau qua lon. Vui long thu lai sau 15 phut.',
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Chỉ áp dụng Rate Limit lên các endpoint API
 app.use('/api', apiLimiter);
-
-// Cho phép request từ frontend (localhost dev + Vercel production)
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  process.env.FRONTEND_URL,           // Vercel URL hoặc bất kỳ origin nào trong .env
-].filter(Boolean);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Cho phép request không có origin (Postman, curl, server-to-server)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
-    callback(new Error(`CORS: Origin ${origin} not allowed`));
-  },
-  credentials: true,
-}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-
-// Routes
 app.use('/api/vouchers', voucherRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -72,8 +74,9 @@ app.use('/api/admin/orders', adminOrderRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/content', contentRoutes);
-// Health check
+
 app.get('/', (req, res) => res.send('API TMDT Voucher is running...'));
+
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -81,6 +84,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
 app.get('/health/db', async (req, res) => {
   const timeoutMs = Number(process.env.DB_HEALTH_TIMEOUT_MS) || 5000;
   const timeout = new Promise((_, reject) => {

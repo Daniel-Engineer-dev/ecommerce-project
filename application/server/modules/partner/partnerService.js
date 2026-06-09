@@ -26,14 +26,32 @@ class PartnerService {
 
         const revenueQuery = `
             SELECT
-                COALESCE(SUM(oi.quantity), 0)::int AS sold_quantity,
-                COALESCE(SUM(oi.price_at_purchase * oi.quantity), 0)::numeric AS revenue,
-                COALESCE(COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Used'), 0)::int AS used_quantity,
-                COALESCE(COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Unused'), 0)::int AS unused_quantity
+                COALESCE(SUM(sales.sold_quantity), 0)::int AS sold_quantity,
+                COALESCE(SUM(sales.revenue), 0)::numeric AS revenue,
+                COALESCE(SUM(ev_stats.used_quantity), 0)::int AS used_quantity,
+                COALESCE(SUM(ev_stats.unused_quantity), 0)::int AS unused_quantity
             FROM Vouchers v
-            LEFT JOIN Order_Items oi ON oi.voucher_id = v.voucher_id
-            LEFT JOIN Orders o ON o.order_id = oi.order_id AND o.status IN ('Paid', 'Completed')
-            LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+            LEFT JOIN (
+                SELECT
+                    oi.voucher_id,
+                    SUM(oi.quantity)::int AS sold_quantity,
+                    SUM(oi.price_at_purchase * oi.quantity)::numeric AS revenue
+                FROM Order_Items oi
+                JOIN Orders o ON o.order_id = oi.order_id
+                WHERE o.status IN ('Paid', 'Completed')
+                GROUP BY oi.voucher_id
+            ) sales ON sales.voucher_id = v.voucher_id
+            LEFT JOIN (
+                SELECT
+                    oi.voucher_id,
+                    COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Used')::int AS used_quantity,
+                    COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Unused')::int AS unused_quantity
+                FROM Order_Items oi
+                JOIN Orders o ON o.order_id = oi.order_id
+                JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                WHERE o.status IN ('Paid', 'Completed')
+                GROUP BY oi.voucher_id
+            ) ev_stats ON ev_stats.voucher_id = v.voucher_id
             WHERE v.partner_id = $1
         `;
 
@@ -97,18 +115,35 @@ class PartnerService {
             SELECT
                 v.*,
                 c.category_name,
-                COALESCE(SUM(oi.quantity), 0)::int AS sold_quantity,
-                COALESCE(COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Used'), 0)::int AS used_quantity,
+                COALESCE(sales.sold_quantity, 0)::int AS sold_quantity,
+                COALESCE(ev_stats.used_quantity, 0)::int AS used_quantity,
                 COALESCE(array_remove(array_agg(DISTINCT vb.branch_id), NULL), '{}') AS branch_ids,
                 COALESCE(string_agg(DISTINCT b.branch_name, ', '), '') AS branch_names
             FROM Vouchers v
             JOIN Categories c ON c.category_id = v.category_id
-            LEFT JOIN Order_Items oi ON oi.voucher_id = v.voucher_id
-            LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+            LEFT JOIN (
+                SELECT
+                    oi.voucher_id,
+                    SUM(oi.quantity)::int AS sold_quantity
+                FROM Order_Items oi
+                JOIN Orders o ON o.order_id = oi.order_id
+                WHERE o.status IN ('Paid', 'Completed')
+                GROUP BY oi.voucher_id
+            ) sales ON sales.voucher_id = v.voucher_id
+            LEFT JOIN (
+                SELECT
+                    oi.voucher_id,
+                    COUNT(ev.evoucher_id) FILTER (WHERE ev.status = 'Used')::int AS used_quantity
+                FROM Order_Items oi
+                JOIN Orders o ON o.order_id = oi.order_id
+                JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                WHERE o.status IN ('Paid', 'Completed')
+                GROUP BY oi.voucher_id
+            ) ev_stats ON ev_stats.voucher_id = v.voucher_id
             LEFT JOIN Voucher_Branches vb ON vb.voucher_id = v.voucher_id
             LEFT JOIN Branches b ON b.branch_id = vb.branch_id
             WHERE v.partner_id = $1
-            GROUP BY v.voucher_id, c.category_name
+            GROUP BY v.voucher_id, c.category_name, sales.sold_quantity, ev_stats.used_quantity
             ORDER BY v.voucher_id DESC
         `;
         const result = await pool.query(query, [partnerId]);

@@ -527,14 +527,27 @@ class OrderService {
                 SELECT o.order_id, o.order_date, o.total_amount, o.status, o.payment_method,
                     o.transaction_reference, o.shipping_name, o.shipping_phone, o.shipping_email,
                     o.is_gift, o.gift_recipient_name, o.gift_recipient_phone, o.gift_recipient_email,
-                    COUNT(DISTINCT oi.order_item_id)::int AS item_count,
-                    COALESCE(SUM(oi.quantity), 0)::int AS voucher_quantity,
-                    COUNT(ev.evoucher_id)::int AS evoucher_count
+                    COALESCE(oi_stats.item_count, 0)::int AS item_count,
+                    COALESCE(oi_stats.voucher_quantity, 0)::int AS voucher_quantity,
+                    COALESCE(ev_stats.evoucher_count, 0)::int AS evoucher_count
                 FROM Orders o
-                LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
-                LEFT JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                LEFT JOIN (
+                    SELECT
+                        order_id,
+                        COUNT(*)::int AS item_count,
+                        SUM(quantity)::int AS voucher_quantity
+                    FROM Order_Items
+                    GROUP BY order_id
+                ) oi_stats ON oi_stats.order_id = o.order_id
+                LEFT JOIN (
+                    SELECT
+                        oi.order_id,
+                        COUNT(ev.evoucher_id)::int AS evoucher_count
+                    FROM Order_Items oi
+                    JOIN E_Vouchers ev ON ev.order_item_id = oi.order_item_id
+                    GROUP BY oi.order_id
+                ) ev_stats ON ev_stats.order_id = o.order_id
                 WHERE o.customer_id = $1
-                GROUP BY o.order_id
                 ORDER BY o.order_date DESC, o.order_id DESC
             `,
             [customerId]

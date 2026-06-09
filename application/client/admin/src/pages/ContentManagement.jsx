@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BadgeCheck,
+  ChevronDown,
   CheckCircle,
   CircleHelp,
   CreditCard,
@@ -40,6 +41,12 @@ const iconMap = {
   Sparkles,
   Zap,
 };
+
+const statusOptions = [
+  { value: 'published', label: 'Xuất bản', hint: 'Customer đang thấy nội dung này' },
+  { value: 'draft', label: 'Bản nháp', hint: 'Chỉ lưu trong admin' },
+  { value: 'archived', label: 'Lưu trữ', hint: 'Customer thấy thông báo tạm ẩn' },
+];
 
 const emptyTextSection = { title: 'Tiêu đề mới', body: 'Nội dung mới' };
 const emptyCard = { icon: 'CircleHelp', title: 'Mục mới', text: 'Nội dung mô tả' };
@@ -101,6 +108,55 @@ const ListActions = ({ onAdd }) => (
   </button>
 );
 
+const StatusDropdown = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const selected = statusOptions.find((option) => option.value === value) || statusOptions[0];
+
+  return (
+    <div className="relative min-w-[220px]">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        className="flex h-11 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3.5 text-left shadow-sm transition hover:border-[#6ec6a0] hover:bg-emerald-50/40 focus:border-[#6ec6a0] focus:outline-none focus:ring-4 focus:ring-emerald-100"
+      >
+        <span>
+          <span className="block text-sm font-black text-slate-800">{selected.label}</span>
+          <span className="block text-[10px] font-semibold text-slate-400">{selected.hint}</span>
+        </span>
+        <ChevronDown size={16} className={`text-slate-500 transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-full overflow-hidden rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+          {statusOptions.map((option) => {
+            const active = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
+                  active ? 'bg-[#1a3a5c] text-white' : 'text-slate-700 hover:bg-emerald-50 hover:text-[#1a3a5c]'
+                }`}
+              >
+                <span className="block text-sm font-black">{option.label}</span>
+                <span className={`block text-[10px] font-semibold ${active ? 'text-white/70' : 'text-slate-400'}`}>
+                  {option.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PreviewFrame = ({ item, status, setStatus, saving, loading, onReset, onSave, children }) => (
   <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
     <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -114,15 +170,7 @@ const PreviewFrame = ({ item, status, setStatus, saving, loading, onReset, onSav
 
       <div className="flex items-center gap-2">
         {loading && <RefreshCw size={15} className="animate-spin text-[#6ec6a0]" />}
-        <select
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-          className="h-10 rounded-xl border border-slate-100 bg-slate-50 px-3 text-xs font-bold text-slate-700 outline-none"
-        >
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
-        </select>
+        <StatusDropdown value={status} onChange={setStatus} />
       </div>
     </div>
 
@@ -524,7 +572,7 @@ const HomeBannerPreview = ({ data, setData }) => {
             <Editable
               value={hero.primaryCtaText}
               onChange={(value) => setData(setNested(data, ['hero', 'primaryCtaText'], value))}
-              className="bg-white font-black text-[#102a43]"
+              className="bg-white/95 font-black text-slate-950 placeholder:text-slate-500"
             />
             <Editable
               value={hero.secondaryCtaText}
