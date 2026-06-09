@@ -25,7 +25,7 @@ Order\_Items & Chi tiết đơn hàng, voucher, số lượng, giá tại thời
 E\_Vouchers & Mã voucher điện tử, trạng thái sử dụng, ngày phát hành, ngày hết hạn, chi nhánh sử dụng. \\ \hline
 Reviews & Đánh giá voucher của khách hàng. \\ \hline
 Complaints & Khiếu nại/phản hồi của người dùng. \\ \hline
-System\_Logs & Bảng dự kiến lưu vết hành động quan trọng. \\ \hline
+System\_Logs & Lưu vết các hành động quan trọng phục vụ kiểm tra và vận hành. \\ \hline
 \caption[]{Các bảng dữ liệu chính}\\
 \end{longtable}
 
@@ -45,6 +45,8 @@ ERD được tổ chức thành các nhóm dữ liệu chính:
     \item Nhóm phản hồi gồm Reviews, Complaints, Complaint\_Vouchers và Complaint\_Responses, lưu đánh giá sau giao dịch và hỗ trợ xử lý khiếu nại.
 \end{itemize}
 
+Các quan hệ chính trong ERD thể hiện mối liên kết giữa tài khoản, đối tác, voucher và giao dịch. Một \texttt{Users} có thể gắn với hồ sơ \texttt{Customers} hoặc \texttt{Partners}; một \texttt{Partners} quản lý nhiều \texttt{Branches} và nhiều \texttt{Vouchers}; một \texttt{Vouchers} có thể áp dụng tại nhiều chi nhánh thông qua bảng nối \texttt{Voucher\_Branches}. Ở nhóm giao dịch, một \texttt{Orders} có nhiều \texttt{Order\_Items}, mỗi \texttt{Order\_Items} có thể sinh nhiều \texttt{E\_Vouchers} tương ứng với số lượng mua. Nhóm phản hồi liên kết \texttt{Customers}, \texttt{Orders}, \texttt{Vouchers} và \texttt{Complaints} để truy vết đánh giá hoặc khiếu nại sau mua.
+
 \subsection{Ràng buộc nghiệp vụ trong database}
 
 Một số quy tắc được hiện thực trực tiếp trong schema hoặc trigger:
@@ -56,6 +58,31 @@ Một số quy tắc được hiện thực trực tiếp trong schema hoặc tr
     \item \texttt{trg\_validate\_order\_item}: kiểm tra voucher đã duyệt, còn hạn và còn tồn khi thêm order item.
     \item \texttt{trg\_validate\_voucher\_usage}: kiểm tra chi nhánh xác thực thuộc đúng đối tác của voucher.
     \item \texttt{trg\_validate\_review}: chỉ cho phép đánh giá khi khách hàng có đơn liên quan đến voucher.
+\end{itemize}
+
+\subsection{Ràng buộc toàn vẹn dữ liệu}
+
+Các ràng buộc toàn vẹn dưới đây được diễn giải theo ngôn ngữ nghiệp vụ để làm rõ dữ liệu nào được phép tồn tại trong hệ thống và dữ liệu nào phải bị từ chối:
+
+\begin{itemize}[leftmargin=1.2cm]
+    \item Mỗi tài khoản trong bảng \texttt{Users} có một \texttt{user\_id} duy nhất. Không có hai người dùng khác nhau được dùng chung cùng một định danh tài khoản.
+    \item Mỗi \texttt{username} chỉ được tạo một lần trong toàn hệ thống. Khi đăng ký, backend kiểm tra trùng username trước khi tạo tài khoản mới.
+    \item Một email chỉ có thể gắn với tối đa một tài khoản. Nếu email đã tồn tại, người dùng khác không thể tiếp tục đăng ký bằng email đó; chỉ mục \texttt{idx\_users\_email\_unique\_not\_null} hỗ trợ kiểm tra duy nhất theo dạng không phân biệt chữ hoa/thường.
+    \item Một số điện thoại chỉ có thể gắn với tối đa một tài khoản khi người dùng có khai báo số điện thoại. Các tài khoản chưa có số điện thoại vẫn được phép tồn tại, nhưng khi đã nhập số điện thoại thì giá trị này phải duy nhất.
+    \item Một tài khoản chỉ được thuộc một vai trò hợp lệ trong tập \texttt{Customer}, \texttt{Partner}, \texttt{Admin}. Vai trò quyết định hồ sơ liên quan và quyền truy cập API.
+    \item Một tài khoản \texttt{Customer} phải có hồ sơ tương ứng trong bảng \texttt{Customers}; một tài khoản \texttt{Partner} phải có hồ sơ tương ứng trong bảng \texttt{Partners}. Các hồ sơ này tham chiếu ngược về \texttt{Users} để tránh dữ liệu mồ côi.
+    \item Một đối tác có thể có nhiều chi nhánh, nhưng mỗi chi nhánh phải thuộc về một đối tác đã tồn tại. Hệ thống không cho phép tạo chi nhánh không có \texttt{partner\_id} hợp lệ.
+    \item Một voucher phải thuộc về một đối tác và một danh mục hợp lệ. Voucher không thể tồn tại độc lập nếu không xác định được đơn vị phát hành hoặc nhóm danh mục.
+    \item Một voucher chỉ được bán khi ở trạng thái \texttt{Approved}, đã đến thời gian bán, chưa hết hạn và còn tồn kho. Voucher ở trạng thái \texttt{Draft}, \texttt{Pending}, \texttt{Rejected}, \texttt{Suspended} hoặc \texttt{Expired} không được xuất hiện trong luồng mua của Khách hàng.
+    \item Giá bán của voucher phải nhỏ hơn giá gốc. Quy tắc này giúp bảo đảm voucher thật sự biểu diễn một ưu đãi giảm giá.
+    \item Số lượng tồn kho của voucher không được âm và không được vượt quá tổng số lượng phát hành. Khi tạo đơn, hệ thống kiểm tra tồn kho trước khi ghi nhận chi tiết đơn hàng.
+    \item Một đơn hàng phải thuộc về một Khách hàng hợp lệ. Mỗi dòng \texttt{Order\_Items} phải thuộc về một đơn hàng hợp lệ và tham chiếu đến một voucher hợp lệ.
+    \item E-Voucher chỉ được phát hành sau khi đơn hàng chuyển sang \texttt{Paid}. Đơn ở trạng thái \texttt{Pending}, \texttt{Cancelled}, \texttt{Failed} hoặc \texttt{Expired} không được sinh mã sử dụng.
+    \item Mỗi mã E-Voucher là duy nhất. Hai khách hàng hoặc hai dòng đơn hàng khác nhau không được sở hữu cùng một \texttt{unique\_code}.
+    \item Một E-Voucher chỉ được sử dụng một lần. Khi mã đã chuyển sang \texttt{Used}, hệ thống từ chối mọi yêu cầu xác thực lại mã đó.
+    \item Đối tác chỉ được xác thực E-Voucher thuộc voucher do chính đối tác phát hành và tại chi nhánh hợp lệ. Điều này ngăn một đối tác sử dụng mã của đối tác khác.
+    \item Khách hàng chỉ được đánh giá voucher khi đã có giao dịch liên quan đến voucher đó. Trigger kiểm tra review giúp tránh đánh giá ảo từ người chưa mua.
+    \item Khiếu nại phải gắn với người gửi hợp lệ và có trạng thái xử lý rõ ràng. Các phản hồi khiếu nại của Quản trị viên phải tham chiếu đến khiếu nại đang tồn tại.
 \end{itemize}
 
 \subsection{Chỉ mục dữ liệu}

@@ -62,6 +62,24 @@ npm install
 npm run dev
 \end{lstlisting}
 
+\subsection{Biên dịch báo cáo LaTeX}
+
+Báo cáo được viết bằng LaTeX trong thư mục \texttt{SUBMISSION\_PACKAGE/01\_Report\_LaTeX}. Trên Windows có thể biên dịch nhanh bằng file batch đã chuẩn bị:
+
+\begin{lstlisting}
+cd SUBMISSION_PACKAGE/01_Report_LaTeX
+build_report.bat
+\end{lstlisting}
+
+File batch chạy \texttt{xelatex} hai lần để cập nhật mục lục, số trang và liên kết nội bộ. Nếu \texttt{main.pdf} đang được mở và bị khóa bởi trình xem PDF, file batch sẽ tạo bản thay thế \texttt{main\_updated.pdf}. Nếu không dùng file batch, có thể chạy thủ công:
+
+\begin{lstlisting}
+xelatex -interaction=nonstopmode -halt-on-error main.tex
+xelatex -interaction=nonstopmode -halt-on-error main.tex
+\end{lstlisting}
+
+Kết quả đầu ra là file \texttt{main.pdf}. Cách này không phụ thuộc vào \texttt{latexmk}, phù hợp với môi trường Windows chưa cài Perl.
+
 \section{Kiểm soát trước khi bàn giao}
 
 \subsection{Chốt dữ liệu demo}
@@ -92,6 +110,23 @@ Phần phát triển tiếp theo tập trung vào bằng chứng kiểm thử gi
 \subsection{Mở rộng vận hành và kiểm thử}
 
 Tiếp tục hoàn thiện test tự động, nhật ký hệ thống chi tiết hơn và quy trình deploy ổn định cho từng frontend.
+
+\section{Tài liệu tham khảo}
+
+\begin{enumerate}[leftmargin=1.2cm]
+    \item React Documentation. \url{https://react.dev/}
+    \item Vite Documentation. \url{https://vite.dev/}
+    \item Express.js Documentation. \url{https://expressjs.com/}
+    \item PostgreSQL Documentation. \url{https://www.postgresql.org/docs/}
+    \item JSON Web Token Introduction. \url{https://jwt.io/introduction}
+    \item jsonwebtoken package documentation. \url{https://www.npmjs.com/package/jsonwebtoken}
+    \item bcryptjs package documentation. \url{https://www.npmjs.com/package/bcryptjs}
+    \item Node-postgres documentation. \url{https://node-postgres.com/}
+    \item Mermaid Documentation. \url{https://mermaid.js.org/}
+    \item Vercel Documentation. \url{https://vercel.com/docs}
+    \item Render Documentation. \url{https://render.com/docs}
+    \item Tài liệu đề bài môn Thương mại điện tử, Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM.
+\end{enumerate}
 
 \section{Kết luận}
 

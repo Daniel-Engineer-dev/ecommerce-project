@@ -80,6 +80,116 @@ Các sơ đồ dưới đây được dùng để đặc tả hệ thống ở n
 
 \subsection{Activity diagram}
 
+\subsubsection{Luồng đăng ký tài khoản đối tác}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.35cm and 1.35cm,
+    flowstep/.style={rectangle, rounded corners, draw=dealzyblue, fill=softgray, align=center, minimum width=3.0cm, minimum height=0.9cm},
+    decision/.style={diamond, aspect=2.0, draw=dealzyblue, fill=softgray, align=center, inner sep=1.5pt},
+    arrow/.style={-{Latex[length=2.2mm]}, thick, color=dealzyblue}
+]
+\node[flowstep] (start) {Khách truy cập\\đăng ký đối tác};
+\node[flowstep, right=of start] (form) {Nhập tài khoản,\\doanh nghiệp, chi nhánh};
+\node[decision, right=of form] (valid) {Dữ liệu\\hợp lệ?};
+\node[flowstep, below=of valid] (reject) {Thông báo lỗi\\và yêu cầu sửa};
+\node[flowstep, right=of valid] (pending) {Tạo User/Partner\\trạng thái Pending};
+\node[flowstep, right=of pending] (admin) {Admin kiểm tra\\hồ sơ};
+\node[decision, right=of admin] (approve) {Duyệt?};
+\node[flowstep, above right=0.9cm and 1.0cm of approve] (approved) {Approved\\cho phép đăng nhập};
+\node[flowstep, below right=0.9cm and 1.0cm of approve] (rejected) {Rejected\\từ chối đăng nhập};
+
+\draw[arrow] (start) -- (form);
+\draw[arrow] (form) -- (valid);
+\draw[arrow] (valid) -- node[right]{Không} (reject);
+\draw[arrow] (reject.west) -| (form.south);
+\draw[arrow] (valid) -- node[above]{Có} (pending);
+\draw[arrow] (pending) -- (admin);
+\draw[arrow] (admin) -- (approve);
+\draw[arrow] (approve) -- node[above left]{Có} (approved);
+\draw[arrow] (approve) -- node[below left]{Không} (rejected);
+\end{tikzpicture}%
+}
+\caption{Activity diagram cho luồng đăng ký và duyệt tài khoản đối tác}
+\end{figure}
+
+Luồng này tách đăng ký đối tác khỏi đăng ký khách hàng vì hồ sơ đối tác cần thêm thông tin pháp lý, trụ sở và chi nhánh. Tài khoản đối tác sau khi tạo không được truy cập cổng Partner ngay mà phải chờ Quản trị viên duyệt sang trạng thái \texttt{Approved}.
+
+\subsubsection{Luồng tạo và gửi duyệt voucher}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.25cm and 1.25cm,
+    flowstep/.style={rectangle, rounded corners, draw=dealzyblue, fill=softgray, align=center, minimum width=3.0cm, minimum height=0.9cm},
+    decision/.style={diamond, aspect=2.0, draw=dealzyblue, fill=softgray, align=center, inner sep=1.5pt},
+    arrow/.style={-{Latex[length=2.2mm]}, thick, color=dealzyblue}
+]
+\node[flowstep] (login) {Partner đăng nhập};
+\node[flowstep, right=of login] (create) {Nhập thông tin\\voucher};
+\node[decision, right=of create] (valid) {Giá, ngày,\\số lượng hợp lệ?};
+\node[flowstep, below=of valid] (fix) {Báo lỗi\\và chỉnh sửa};
+\node[flowstep, right=of valid] (pending) {Lưu voucher\\Pending};
+\node[flowstep, right=of pending] (review) {Admin kiểm duyệt\\nội dung};
+\node[decision, right=of review] (result) {Phù hợp?};
+\node[flowstep, above right=0.9cm and 0.9cm of result] (approved) {Approved\\hiển thị cho khách};
+\node[flowstep, below right=0.9cm and 0.9cm of result] (rejected) {Rejected/Suspended\\kèm lý do};
+
+\draw[arrow] (login) -- (create);
+\draw[arrow] (create) -- (valid);
+\draw[arrow] (valid) -- node[right]{Không} (fix);
+\draw[arrow] (fix.west) -| (create.south);
+\draw[arrow] (valid) -- node[above]{Có} (pending);
+\draw[arrow] (pending) -- (review);
+\draw[arrow] (review) -- (result);
+\draw[arrow] (result) -- node[above left]{Có} (approved);
+\draw[arrow] (result) -- node[below left]{Không} (rejected);
+\end{tikzpicture}%
+}
+\caption{Activity diagram cho luồng tạo, gửi duyệt và công bố voucher}
+\end{figure}
+
+Sơ đồ nhấn mạnh vai trò kiểm duyệt của Quản trị viên trước khi voucher xuất hiện ở giao diện khách hàng. Các ràng buộc về giá, thời gian, số lượng và trạng thái được kiểm soát ở cả frontend, backend và database.
+
+\subsubsection{Luồng quản lý người dùng của Quản trị viên}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.35cm and 1.35cm,
+    flowstep/.style={rectangle, rounded corners, draw=dealzyblue, fill=softgray, align=center, minimum width=3.0cm, minimum height=0.9cm},
+    decision/.style={diamond, aspect=2.0, draw=dealzyblue, fill=softgray, align=center, inner sep=1.5pt},
+    arrow/.style={-{Latex[length=2.2mm]}, thick, color=dealzyblue}
+]
+\node[flowstep] (login) {Admin đăng nhập};
+\node[flowstep, right=of login] (list) {Xem danh sách\\người dùng};
+\node[flowstep, right=of list] (filter) {Tìm kiếm, lọc\\và phân trang};
+\node[decision, right=of filter] (action) {Chọn\\thao tác};
+\node[flowstep, above right=0.8cm and 1.0cm of action] (lock) {Khóa/mở khóa\\tài khoản};
+\node[flowstep, right=of action] (role) {Đổi vai trò\\nếu hợp lệ};
+\node[flowstep, below right=0.8cm and 1.0cm of action] (view) {Xem chi tiết\\hồ sơ};
+\node[flowstep, right=of role] (log) {Cập nhật dữ liệu\\và ghi log};
+
+\draw[arrow] (login) -- (list);
+\draw[arrow] (list) -- (filter);
+\draw[arrow] (filter) -- (action);
+\draw[arrow] (action) -- (lock);
+\draw[arrow] (action) -- (role);
+\draw[arrow] (action) -- (view);
+\draw[arrow] (lock.east) -| (log.north);
+\draw[arrow] (role) -- (log);
+\draw[arrow] (view.east) -| (log.south);
+\end{tikzpicture}%
+}
+\caption{Activity diagram cho luồng quản lý người dùng của Quản trị viên}
+\end{figure}
+
+Luồng quản lý người dùng giúp Quản trị viên kiểm soát tài khoản Customer và Partner sau khi hệ thống vận hành. Các thao tác nhạy cảm như khóa tài khoản hoặc đổi vai trò phải đi qua middleware phân quyền Admin và được phản ánh lại trong trạng thái đăng nhập của người dùng.
+
 \subsubsection{Luồng mua và phát hành E-Voucher}
 
 \begin{figure}[H]
@@ -125,6 +235,105 @@ Trình tự tương tác thể hiện vai trò của giao diện Khách hàng, O
 \diagramimage{images/diagrams/sequence-voucher-approval.drawio.png}
 \caption{Sequence diagram cho vòng đời tạo, gửi duyệt và phê duyệt voucher}
 \end{figure}
+
+\subsubsection{Đăng ký và duyệt tài khoản đối tác}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
+    lifeline/.style={dashed, color=gray},
+    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
+    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
+]
+\node[participant] (ui) at (0,0) {Partner\\Registration UI};
+\node[participant] (auth) at (3.7,0) {Auth API};
+\node[participant] (db) at (7.2,0) {PostgreSQL};
+\node[participant] (adminui) at (10.8,0) {Admin UI};
+\node[participant] (adminapi) at (14.3,0) {Admin API};
+\foreach \x in {ui,auth,db,adminui,adminapi} \draw[lifeline] (\x.south) -- ++(0,-7.0);
+
+\draw[msg] (0,-1.0) -- node[above]{Gửi hồ sơ đăng ký} (3.7,-1.0);
+\draw[msg] (3.7,-1.8) -- node[above]{Kiểm tra trùng username/email/phone} (7.2,-1.8);
+\draw[returnmsg] (7.2,-2.6) -- node[above]{Hợp lệ/không hợp lệ} (3.7,-2.6);
+\draw[msg] (3.7,-3.4) -- node[above]{Tạo Users, Partners, Branches} (7.2,-3.4);
+\draw[returnmsg] (3.7,-4.2) -- node[above]{Trả trạng thái Pending} (0,-4.2);
+\draw[msg] (10.8,-5.0) -- node[above]{Xem hồ sơ Pending} (14.3,-5.0);
+\draw[msg] (14.3,-5.8) -- node[above]{Cập nhật Approved/Rejected} (7.2,-5.8);
+\draw[returnmsg] (14.3,-6.6) -- node[above]{Kết quả duyệt} (10.8,-6.6);
+\end{tikzpicture}%
+}
+\caption{Sequence diagram cho đăng ký và duyệt tài khoản đối tác}
+\end{figure}
+
+Sơ đồ này bổ sung góc nhìn tương tác cho luồng đối tác mới: hồ sơ được tạo qua Auth API ở trạng thái \texttt{Pending}, sau đó chỉ Admin API mới có quyền chuyển trạng thái duyệt. Cách tách này phù hợp với hiện thực đăng ký Partner và cơ chế kiểm soát đăng nhập của đối tác.
+
+\subsubsection{Admin xác nhận thanh toán thủ công}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
+    lifeline/.style={dashed, color=gray},
+    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
+    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
+]
+\node[participant] (adminui) at (0,0) {Admin UI};
+\node[participant] (adminapi) at (3.7,0) {Admin Order API};
+\node[participant] (order) at (7.4,0) {Order Service};
+\node[participant] (db) at (11.0,0) {PostgreSQL};
+\node[participant] (mail) at (14.6,0) {Email/EVoucher};
+\foreach \x in {adminui,adminapi,order,db,mail} \draw[lifeline] (\x.south) -- ++(0,-7.0);
+
+\draw[msg] (0,-1.0) -- node[above]{Chọn đơn Pending và xác nhận Paid} (3.7,-1.0);
+\draw[msg] (3.7,-1.8) -- node[above]{Kiểm tra quyền Admin} (7.4,-1.8);
+\draw[msg] (7.4,-2.6) -- node[above]{Khóa đơn hàng, kiểm tra trạng thái} (11.0,-2.6);
+\draw[returnmsg] (11.0,-3.4) -- node[above]{Đơn hợp lệ} (7.4,-3.4);
+\draw[msg] (7.4,-4.2) -- node[above]{Cập nhật Paid, sinh E-Voucher} (11.0,-4.2);
+\draw[msg] (7.4,-5.0) -- node[above]{Gửi thông báo/mã nếu có} (14.6,-5.0);
+\draw[returnmsg] (7.4,-5.8) -- node[above]{Kết quả cập nhật} (3.7,-5.8);
+\draw[returnmsg] (3.7,-6.6) -- node[above]{Hiển thị đơn đã Paid} (0,-6.6);
+\end{tikzpicture}%
+}
+\caption{Sequence diagram cho Admin xác nhận thanh toán thủ công}
+\end{figure}
+
+Luồng này phản ánh nghiệp vụ quản trị đơn hàng trong demo học thuật. Khi Admin xác nhận một đơn \texttt{Pending} là đã thanh toán, hệ thống dùng service xử lý đơn hàng để chuyển trạng thái sang \texttt{Paid} và phát hành E-Voucher theo cùng quy tắc với các callback thanh toán mô phỏng/sandbox.
+
+\subsubsection{Khách hàng gửi khiếu nại và Admin phản hồi}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
+    lifeline/.style={dashed, color=gray},
+    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
+    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
+]
+\node[participant] (cus) at (0,0) {Customer UI};
+\node[participant] (complaint) at (3.8,0) {Complaint API};
+\node[participant] (db) at (7.4,0) {PostgreSQL};
+\node[participant] (adminui) at (11.0,0) {Admin UI};
+\node[participant] (adminapi) at (14.6,0) {Admin API};
+\foreach \x in {cus,complaint,db,adminui,adminapi} \draw[lifeline] (\x.south) -- ++(0,-7.0);
+
+\draw[msg] (0,-1.0) -- node[above]{Gửi nội dung khiếu nại} (3.8,-1.0);
+\draw[msg] (3.8,-1.8) -- node[above]{Lưu complaint Pending} (7.4,-1.8);
+\draw[returnmsg] (3.8,-2.6) -- node[above]{Mã khiếu nại/trạng thái} (0,-2.6);
+\draw[msg] (11.0,-3.4) -- node[above]{Xem danh sách khiếu nại} (14.6,-3.4);
+\draw[msg] (14.6,-4.2) -- node[above]{Truy vấn/filter complaint} (7.4,-4.2);
+\draw[returnmsg] (7.4,-5.0) -- node[above]{Chi tiết khiếu nại} (14.6,-5.0);
+\draw[msg] (14.6,-5.8) -- node[above]{Lưu phản hồi, đổi trạng thái} (7.4,-5.8);
+\draw[returnmsg] (14.6,-6.6) -- node[above]{Resolved/Rejected/Processing} (11.0,-6.6);
+\end{tikzpicture}%
+}
+\caption{Sequence diagram cho gửi và xử lý khiếu nại}
+\end{figure}
+
+Sequence này bổ sung phần hậu mãi sau mua. Khách hàng tạo khiếu nại qua API riêng, còn Admin xử lý ở cổng quản trị bằng cách phản hồi và cập nhật trạng thái. Dữ liệu khiếu nại được lưu trong PostgreSQL để phục vụ theo dõi và truy vết.
 
 \subsubsection{Kiểm tra và sử dụng E-Voucher}
 
@@ -201,13 +410,13 @@ Trình tự tương tác thể hiện vai trò của giao diện Khách hàng, O
 \hline
 \textbf{Phân hệ hiện tại} & \textbf{Thành phần hiện thực} & \textbf{Sơ đồ thể hiện} \\ \hline
 \endhead
-Xác thực và hồ sơ & \texttt{auth}, đăng ký Khách hàng/Đối tác, hồ sơ & Use case tổng quan; sequence xác thực và khôi phục tài khoản \\ \hline
+Xác thực và hồ sơ & \texttt{auth}, đăng ký Khách hàng/Đối tác, hồ sơ & Use case tổng quan; activity đăng ký đối tác; sequence xác thực/khôi phục tài khoản; sequence đăng ký và duyệt đối tác \\ \hline
 Khám phá voucher & \texttt{shared/voucher}, tìm kiếm và xem chi tiết voucher & Use case tổng quan; component diagram \\ \hline
 Mua hàng và thanh toán & \texttt{customer/order}, MoMo, PayPal, VietQR & Activity mua E-Voucher; sequence mua/sử dụng; state diagram đơn hàng \\ \hline
 Ví E-Voucher và đánh giá & \texttt{customer/order}, \texttt{E\_Vouchers}, \texttt{Reviews} & Sequence mua/sử dụng; state voucher \\ \hline
-Khiếu nại & \texttt{customer/complaint}, API xử lý khiếu nại của Quản trị viên & Activity xử lý khiếu nại; state diagram khiếu nại \\ \hline
-Vận hành đối tác & \texttt{partner}, dashboard, report, branch, redeem & Use case tổng quan; sequence tạo/duyệt voucher; sequence redeem \\ \hline
-Quản trị hệ thống & \texttt{admin}, \texttt{admin/Voucher}, \texttt{admin/Order} & Use case tổng quan; sequence duyệt voucher; state đơn hàng \\ \hline
+Khiếu nại & \texttt{customer/complaint}, API xử lý khiếu nại của Quản trị viên & Activity xử lý khiếu nại; sequence gửi và xử lý khiếu nại; state diagram khiếu nại \\ \hline
+Vận hành đối tác & \texttt{partner}, dashboard, report, branch, redeem & Use case tổng quan; activity tạo voucher; sequence tạo/duyệt voucher; sequence redeem \\ \hline
+Quản trị hệ thống & \texttt{admin}, \texttt{admin/Voucher}, \texttt{admin/Order} & Use case tổng quan; activity quản lý người dùng; sequence duyệt voucher; sequence xác nhận thanh toán thủ công; state đơn hàng \\ \hline
 Realtime, chatbot và tiện ích ngoài & \texttt{shared/event}, \texttt{shared/chatbot}, email/SMS & Component; deployment; sequence realtime; context diagram \\ \hline
 Nội dung và nhật ký & \texttt{Content\_Items}, \texttt{System\_Logs} & Use case tổng quan \\ \hline
 \caption[]{Ma trận truy vết giữa phân hệ hiện tại và sơ đồ đặc tả}\\
@@ -217,15 +426,67 @@ Nội dung và nhật ký & \texttt{Content\_Items}, \texttt{System\_Logs} & Use
 
 \subsection{Tạo và duyệt voucher}
 
-Đối tác tạo voucher ở trạng thái Pending. Quản trị viên xem danh sách voucher Pending, kiểm tra thông tin, sau đó duyệt sang Approved, từ chối sang Rejected kèm lý do hoặc chuyển sang Suspended để tạm ẩn.
+Luồng bắt đầu khi Đối tác đã đăng nhập vào cổng Partner và chọn chức năng tạo voucher mới. Đối tác nhập danh mục, tiêu đề, mô tả, hình ảnh, giá gốc, giá bán, số lượng phát hành, thời gian bắt đầu, thời gian hết hạn, điều kiện áp dụng, chính sách hoàn/hủy và danh sách chi nhánh được phép sử dụng.
+
+Frontend kiểm tra nhanh các trường bắt buộc để giảm lỗi nhập liệu. Sau đó backend kiểm tra lại các ràng buộc nghiệp vụ quan trọng: giá bán phải nhỏ hơn giá gốc, số lượng không âm, ngày hết hạn phải sau ngày bắt đầu, đối tác phải tồn tại và các chi nhánh được chọn phải thuộc đối tác đó. Nếu dữ liệu không hợp lệ, hệ thống từ chối lưu và trả thông báo lỗi để Đối tác chỉnh sửa.
+
+Khi dữ liệu hợp lệ, voucher được lưu ở trạng thái \texttt{Pending}. Quản trị viên xem danh sách voucher chờ duyệt trong cổng Admin, kiểm tra nội dung, giá, phạm vi chi nhánh, chính sách sử dụng và hình ảnh minh họa. Nếu đạt yêu cầu, Admin chuyển voucher sang \texttt{Approved}; nếu chưa phù hợp, Admin chuyển sang \texttt{Rejected} kèm lý do hoặc \texttt{Suspended} để tạm ẩn. Chỉ voucher \texttt{Approved}, còn hiệu lực và còn tồn kho mới được API công khai trả về cho Khách hàng.
 
 \subsection{Tìm kiếm và xem voucher}
 
-Khách hàng chỉ nhìn thấy voucher có trạng thái Approved và còn hiệu lực. API tìm kiếm hỗ trợ lọc theo từ khóa, danh mục, giá, mức giảm, khu vực và đối tác.
+Luồng bắt đầu từ trang chủ hoặc trang tìm kiếm của Khách hàng. Người dùng có thể nhập từ khóa, chọn danh mục, khu vực, khoảng giá, mức giảm, đối tác hoặc tiêu chí sắp xếp. Các tham số này được gửi đến API voucher công khai.
+
+Backend chỉ truy vấn các voucher có trạng thái \texttt{Approved}, đã bắt đầu bán, chưa hết hạn và còn tồn kho. Các điều kiện lọc được áp dụng trên thông tin voucher, danh mục, đối tác và chi nhánh áp dụng. Kết quả trả về gồm danh sách voucher phù hợp, thông tin giá, mức giảm, ảnh đại diện và dữ liệu cần thiết để hiển thị card voucher.
+
+Khi Khách hàng mở chi tiết voucher, hệ thống tải thêm thông tin đầy đủ như mô tả, điều kiện sử dụng, chính sách hủy/hoàn, danh sách chi nhánh, số lượng còn lại và đánh giá. Nếu voucher đã hết hiệu lực hoặc bị tạm ẩn sau thời điểm tìm kiếm, backend không cho phép tiếp tục mua voucher đó.
 
 \subsection{Xác thực voucher code}
 
-Đối tác nhập voucher code. Backend kiểm tra code có tồn tại, thuộc voucher của đối tác, trạng thái còn Unused, chưa hết hạn và chi nhánh xác thực thuộc đúng đối tác. Nếu hợp lệ, hệ thống cập nhật trạng thái E\_Voucher thành Used và ghi nhận thời điểm sử dụng.
+Luồng xác thực bắt đầu khi nhân viên/Đối tác nhập mã E-Voucher hoặc quét QR trong cổng Partner. Partner chọn chi nhánh sử dụng, sau đó gửi mã voucher và chi nhánh đến backend để kiểm tra.
+
+Backend kiểm tra mã có tồn tại trong bảng \texttt{E\_Vouchers}, liên kết đến voucher do chính đối tác đó phát hành, trạng thái còn \texttt{Unused}, chưa hết hạn và chi nhánh xác thực thuộc phạm vi áp dụng. Nếu một trong các điều kiện không đạt, hệ thống từ chối xác thực và trả lý do phù hợp như mã không tồn tại, mã đã dùng, hết hạn hoặc không thuộc đối tác.
+
+Nếu mã hợp lệ, backend cập nhật E-Voucher sang trạng thái \texttt{Used}, ghi nhận thời điểm sử dụng và chi nhánh sử dụng. Sau khi cập nhật thành công, giao diện Partner hiển thị kết quả xác thực để nhân viên cho phép Khách hàng sử dụng dịch vụ.
+
+\subsection{Đăng ký và duyệt tài khoản đối tác}
+
+Khách truy cập trang đăng ký đối tác từ giao diện khách hàng hoặc cổng Partner. Biểu mẫu yêu cầu thông tin tài khoản, email hoặc số điện thoại, tên doanh nghiệp, người đại diện, mã số thuế, trụ sở chính và ít nhất một chi nhánh hoạt động.
+
+Khi gửi hồ sơ, backend kiểm tra username, email và số điện thoại có bị trùng hay không. Đồng thời hệ thống kiểm tra các trường pháp lý bắt buộc và danh sách chi nhánh hợp lệ. Nếu dữ liệu hợp lệ, backend tạo bản ghi trong \texttt{Users}, \texttt{Partners} và \texttt{Branches}; tài khoản đối tác được đặt ở trạng thái \texttt{Pending}.
+
+Tài khoản \texttt{Pending} chưa được phép đăng nhập vào cổng Partner. Quản trị viên xem hồ sơ trong cổng Admin, đối chiếu thông tin doanh nghiệp và chi nhánh. Nếu hồ sơ đạt yêu cầu, Admin chuyển đối tác sang \texttt{Approved}; nếu không đạt, Admin chuyển sang \texttt{Rejected}. Sau khi được duyệt, đối tác mới có thể đăng nhập và bắt đầu tạo voucher.
+
+\subsection{Quản lý người dùng bởi Quản trị viên}
+
+Luồng này bắt đầu khi Quản trị viên đăng nhập thành công vào cổng Admin. Hệ thống tải danh sách người dùng theo vai trò, trạng thái hoạt động và từ khóa tìm kiếm. Admin có thể lọc Customer, Partner, tài khoản đang hoạt động hoặc tài khoản đã bị khóa.
+
+Khi Admin chọn một tài khoản, hệ thống hiển thị thông tin hồ sơ tương ứng. Với Customer, thông tin hồ sơ lấy từ bảng \texttt{Customers}; với Partner, thông tin lấy từ \texttt{Partners} và các chi nhánh liên quan. Admin có thể khóa/mở khóa tài khoản hoặc điều chỉnh vai trò trong phạm vi được hệ thống cho phép.
+
+Các yêu cầu quản trị đều phải đi qua JWT và kiểm tra role \texttt{Admin}. Nếu một Customer hoặc Partner gọi trực tiếp API quản trị, backend trả lỗi không đủ quyền. Khi tài khoản bị khóa, lần đăng nhập tiếp theo sẽ bị từ chối dựa trên trạng thái \texttt{is\_active}.
+
+\subsection{Tạo đơn hàng, thanh toán và phát hành E-Voucher}
+
+Khách hàng thêm voucher vào giỏ hàng ở frontend. Giỏ hàng lưu thông tin voucher và số lượng chọn mua, nhưng khi checkout backend luôn kiểm tra lại dữ liệu để tránh việc người dùng sửa dữ liệu ở client. Hệ thống xác nhận voucher còn \texttt{Approved}, chưa hết hạn và còn đủ tồn kho.
+
+Khi tạo đơn, backend mở transaction, khóa các dòng voucher liên quan bằng cơ chế khóa dữ liệu, tính tổng tiền theo giá tại thời điểm mua, tạo bản ghi \texttt{Orders} và các dòng \texttt{Order\_Items}. Đơn hàng ban đầu có trạng thái \texttt{Pending}; tồn kho được giữ hoặc giảm theo thiết kế hiện tại để tránh bán vượt số lượng trong lúc chờ thanh toán.
+
+Sau đó Khách hàng chọn phương thức thanh toán mô phỏng/sandbox như VietQR, MoMo hoặc PayPal. Khi nhận xác nhận thanh toán hợp lệ, backend chuyển đơn sang \texttt{Paid}, sinh E-Voucher tương ứng với số lượng từng dòng hàng và trả thông tin mã/QR cho Khách hàng. Nếu đơn bị hủy, thất bại hoặc hết hạn trước khi thanh toán thành công, hệ thống không phát hành mã và hoàn lại tồn kho đã giữ.
+
+\subsection{Xử lý khiếu nại}
+
+Luồng khiếu nại bắt đầu từ phía Khách hàng sau khi phát sinh vấn đề với đơn hàng, E-Voucher hoặc dịch vụ của đối tác. Khách hàng nhập tiêu đề, nội dung, mức độ ưu tiên và có thể gắn khiếu nại với đơn hàng hoặc voucher liên quan.
+
+Backend kiểm tra người gửi đã đăng nhập, sau đó lưu khiếu nại ở trạng thái ban đầu. Khiếu nại xuất hiện trong cổng Admin để Quản trị viên lọc theo trạng thái, mức độ ưu tiên hoặc từ khóa. Admin đọc nội dung, kiểm tra thông tin đơn hàng/voucher liên quan và nhập phản hồi xử lý.
+
+Tùy kết quả xử lý, Admin cập nhật trạng thái khiếu nại sang \texttt{Processing}, \texttt{Resolved} hoặc \texttt{Rejected}. Lịch sử phản hồi giúp Khách hàng theo dõi quá trình xử lý và giúp nhóm vận hành truy vết các vấn đề sau giao dịch.
+
+\subsection{Dashboard, báo cáo và nhật ký hệ thống}
+
+Dashboard của Quản trị viên tổng hợp dữ liệu từ nhiều bảng như \texttt{Users}, \texttt{Partners}, \texttt{Vouchers}, \texttt{Orders} và \texttt{E\_Vouchers}. Các chỉ số chính gồm số lượng khách hàng, đối tác đã duyệt, voucher theo trạng thái, đơn hàng, doanh thu mô phỏng và tình hình xử lý khiếu nại.
+
+Dashboard của Đối tác chỉ hiển thị dữ liệu thuộc phạm vi đối tác đang đăng nhập. Các chỉ số gồm số voucher đang bán, voucher chờ duyệt, số lượng đã bán, số E-Voucher đã sử dụng, doanh thu theo voucher và hiệu quả từng chương trình. Cách lọc theo \texttt{partner\_id} giúp tránh lộ dữ liệu giữa các đối tác.
+
+Các thao tác vận hành quan trọng như duyệt đối tác, duyệt voucher, xác nhận thanh toán, hoàn tiền mô phỏng, khóa tài khoản hoặc xử lý khiếu nại được thiết kế để ghi nhận vào nhật ký hệ thống. Nhật ký hỗ trợ truy vết khi demo, kiểm tra dữ liệu và giải thích các thay đổi trạng thái trong quá trình vận hành.
 
 \section{Thiết kế phân quyền}
 
