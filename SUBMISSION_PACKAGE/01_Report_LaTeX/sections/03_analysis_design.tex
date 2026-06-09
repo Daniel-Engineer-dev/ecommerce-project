@@ -240,30 +240,7 @@ Trình tự tương tác thể hiện vai trò của giao diện Khách hàng, O
 
 \begin{figure}[H]
 \centering
-\resizebox{0.96\textwidth}{!}{%
-\begin{tikzpicture}[
-    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
-    lifeline/.style={dashed, color=gray},
-    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
-    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
-]
-\node[participant] (ui) at (0,0) {Partner\\Registration UI};
-\node[participant] (auth) at (3.7,0) {Auth API};
-\node[participant] (db) at (7.2,0) {PostgreSQL};
-\node[participant] (adminui) at (10.8,0) {Admin UI};
-\node[participant] (adminapi) at (14.3,0) {Admin API};
-\foreach \x in {ui,auth,db,adminui,adminapi} \draw[lifeline] (\x.south) -- ++(0,-7.0);
-
-\draw[msg] (0,-1.0) -- node[above]{Gửi hồ sơ đăng ký} (3.7,-1.0);
-\draw[msg] (3.7,-1.8) -- node[above]{Kiểm tra trùng username/email/phone} (7.2,-1.8);
-\draw[returnmsg] (7.2,-2.6) -- node[above]{Hợp lệ/không hợp lệ} (3.7,-2.6);
-\draw[msg] (3.7,-3.4) -- node[above]{Tạo Users, Partners, Branches} (7.2,-3.4);
-\draw[returnmsg] (3.7,-4.2) -- node[above]{Trả trạng thái Pending} (0,-4.2);
-\draw[msg] (10.8,-5.0) -- node[above]{Xem hồ sơ Pending} (14.3,-5.0);
-\draw[msg] (14.3,-5.8) -- node[above]{Cập nhật Approved/Rejected} (7.2,-5.8);
-\draw[returnmsg] (14.3,-6.6) -- node[above]{Kết quả duyệt} (10.8,-6.6);
-\end{tikzpicture}%
-}
+\diagramimage{images/diagrams/sequence-partner-registration.generated.png}
 \caption{Sequence diagram cho đăng ký và duyệt tài khoản đối tác}
 \end{figure}
 
@@ -273,30 +250,7 @@ Sơ đồ này bổ sung góc nhìn tương tác cho luồng đối tác mới: 
 
 \begin{figure}[H]
 \centering
-\resizebox{0.96\textwidth}{!}{%
-\begin{tikzpicture}[
-    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
-    lifeline/.style={dashed, color=gray},
-    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
-    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
-]
-\node[participant] (adminui) at (0,0) {Admin UI};
-\node[participant] (adminapi) at (3.7,0) {Admin Order API};
-\node[participant] (order) at (7.4,0) {Order Service};
-\node[participant] (db) at (11.0,0) {PostgreSQL};
-\node[participant] (mail) at (14.6,0) {Email/EVoucher};
-\foreach \x in {adminui,adminapi,order,db,mail} \draw[lifeline] (\x.south) -- ++(0,-7.0);
-
-\draw[msg] (0,-1.0) -- node[above]{Chọn đơn Pending và xác nhận Paid} (3.7,-1.0);
-\draw[msg] (3.7,-1.8) -- node[above]{Kiểm tra quyền Admin} (7.4,-1.8);
-\draw[msg] (7.4,-2.6) -- node[above]{Khóa đơn hàng, kiểm tra trạng thái} (11.0,-2.6);
-\draw[returnmsg] (11.0,-3.4) -- node[above]{Đơn hợp lệ} (7.4,-3.4);
-\draw[msg] (7.4,-4.2) -- node[above]{Cập nhật Paid, sinh E-Voucher} (11.0,-4.2);
-\draw[msg] (7.4,-5.0) -- node[above]{Gửi thông báo/mã nếu có} (14.6,-5.0);
-\draw[returnmsg] (7.4,-5.8) -- node[above]{Kết quả cập nhật} (3.7,-5.8);
-\draw[returnmsg] (3.7,-6.6) -- node[above]{Hiển thị đơn đã Paid} (0,-6.6);
-\end{tikzpicture}%
-}
+\diagramimage{images/diagrams/sequence-admin-payment.generated.png}
 \caption{Sequence diagram cho Admin xác nhận thanh toán thủ công}
 \end{figure}
 
@@ -306,30 +260,7 @@ Luồng này phản ánh nghiệp vụ quản trị đơn hàng trong demo học
 
 \begin{figure}[H]
 \centering
-\resizebox{0.96\textwidth}{!}{%
-\begin{tikzpicture}[
-    participant/.style={rectangle, draw=dealzyblue, fill=softgray, align=center, minimum width=2.9cm, minimum height=0.8cm},
-    lifeline/.style={dashed, color=gray},
-    msg/.style={-{Latex[length=2.0mm]}, thick, color=dealzyblue},
-    returnmsg/.style={-{Latex[length=2.0mm]}, thick, dashed, color=gray}
-]
-\node[participant] (cus) at (0,0) {Customer UI};
-\node[participant] (complaint) at (3.8,0) {Complaint API};
-\node[participant] (db) at (7.4,0) {PostgreSQL};
-\node[participant] (adminui) at (11.0,0) {Admin UI};
-\node[participant] (adminapi) at (14.6,0) {Admin API};
-\foreach \x in {cus,complaint,db,adminui,adminapi} \draw[lifeline] (\x.south) -- ++(0,-7.0);
-
-\draw[msg] (0,-1.0) -- node[above]{Gửi nội dung khiếu nại} (3.8,-1.0);
-\draw[msg] (3.8,-1.8) -- node[above]{Lưu complaint Pending} (7.4,-1.8);
-\draw[returnmsg] (3.8,-2.6) -- node[above]{Mã khiếu nại/trạng thái} (0,-2.6);
-\draw[msg] (11.0,-3.4) -- node[above]{Xem danh sách khiếu nại} (14.6,-3.4);
-\draw[msg] (14.6,-4.2) -- node[above]{Truy vấn/filter complaint} (7.4,-4.2);
-\draw[returnmsg] (7.4,-5.0) -- node[above]{Chi tiết khiếu nại} (14.6,-5.0);
-\draw[msg] (14.6,-5.8) -- node[above]{Lưu phản hồi, đổi trạng thái} (7.4,-5.8);
-\draw[returnmsg] (14.6,-6.6) -- node[above]{Resolved/Rejected/Processing} (11.0,-6.6);
-\end{tikzpicture}%
-}
+\diagramimage{images/diagrams/sequence-complaint-processing.generated.png}
 \caption{Sequence diagram cho gửi và xử lý khiếu nại}
 \end{figure}
 

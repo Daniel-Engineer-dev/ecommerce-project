@@ -62,24 +62,6 @@ npm install
 npm run dev
 \end{lstlisting}
 
-\subsection{Biên dịch báo cáo LaTeX}
-
-Báo cáo được viết bằng LaTeX trong thư mục \texttt{SUBMISSION\_PACKAGE/01\_Report\_LaTeX}. Trên Windows có thể biên dịch nhanh bằng file batch đã chuẩn bị:
-
-\begin{lstlisting}
-cd SUBMISSION_PACKAGE/01_Report_LaTeX
-build_report.bat
-\end{lstlisting}
-
-File batch chạy \texttt{xelatex} hai lần để cập nhật mục lục, số trang và liên kết nội bộ. Nếu \texttt{main.pdf} đang được mở và bị khóa bởi trình xem PDF, file batch sẽ tạo bản thay thế \texttt{main\_updated.pdf}. Nếu không dùng file batch, có thể chạy thủ công:
-
-\begin{lstlisting}
-xelatex -interaction=nonstopmode -halt-on-error main.tex
-xelatex -interaction=nonstopmode -halt-on-error main.tex
-\end{lstlisting}
-
-Kết quả đầu ra là file \texttt{main.pdf}. Cách này không phụ thuộc vào \texttt{latexmk}, phù hợp với môi trường Windows chưa cài Perl.
-
 \section{Kiểm soát trước khi bàn giao}
 
 \subsection{Chốt dữ liệu demo}
