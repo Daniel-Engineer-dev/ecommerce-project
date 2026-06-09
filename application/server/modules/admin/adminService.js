@@ -2,6 +2,7 @@ const pool = require('../../config/db');
 const { sendEmail } = require('../../utils/sendEmail');
 const { logAction } = require('../../utils/systemLog');
 const orderService = require('../customer/orderService');
+const { contentTemplates, getContentTemplate } = require('../shared/contentDefinitions');
 
 const COMPLAINT_STATUSES = ['Pending', 'Processing', 'Resolved', 'Rejected'];
 const CLOSED_COMPLAINT_STATUSES = ['Resolved', 'Rejected'];
@@ -847,7 +848,9 @@ class AdminService {
         let idx = 1;
 
         let baseQuery = `
-            SELECT l.*, u.username, u.email, u.role
+            SELECT l.*,
+                to_char(l.created_at + interval '7 hours', 'HH24:MI:SS DD/MM/YYYY') AS created_at_vn,
+                u.username, u.email, u.role
             FROM System_Logs l
             LEFT JOIN Users u ON l.user_id = u.user_id
             WHERE 1=1
@@ -896,6 +899,16 @@ class AdminService {
                 published_at TIMESTAMP,
                 created_by INTEGER,
                 updated_by INTEGER,
+                template VARCHAR(50),
+                data JSONB DEFAULT '{}'::jsonb,
+                version INTEGER DEFAULT 1,
+                last_action VARCHAR(50),
+                published_title VARCHAR(255),
+                published_summary TEXT,
+                published_body TEXT,
+                published_template VARCHAR(50),
+                published_data JSONB,
+                published_version INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -909,15 +922,149 @@ class AdminService {
                 ADD COLUMN IF NOT EXISTS published_at TIMESTAMP,
                 ADD COLUMN IF NOT EXISTS created_by INTEGER,
                 ADD COLUMN IF NOT EXISTS updated_by INTEGER,
+                ADD COLUMN IF NOT EXISTS template VARCHAR(50),
+                ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}'::jsonb,
+                ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1,
+                ADD COLUMN IF NOT EXISTS last_action VARCHAR(50),
+                ADD COLUMN IF NOT EXISTS published_title VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS published_summary TEXT,
+                ADD COLUMN IF NOT EXISTS published_body TEXT,
+                ADD COLUMN IF NOT EXISTS published_template VARCHAR(50),
+                ADD COLUMN IF NOT EXISTS published_data JSONB,
+                ADD COLUMN IF NOT EXISTS published_version INTEGER,
                 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Content_Item_Revisions (
+                revision_id SERIAL PRIMARY KEY,
+                content_id INTEGER REFERENCES Content_Items(content_id) ON DELETE CASCADE,
+                content_key VARCHAR(80) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                before_data JSONB,
+                after_data JSONB,
+                before_status VARCHAR(30),
+                after_status VARCHAR(30),
+                changed_by INTEGER REFERENCES Users(user_id),
+                changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
         `);
         await pool.query(`
             UPDATE Content_Items
             SET slug = COALESCE(slug, content_key),
                 status = CASE WHEN is_active THEN COALESCE(status, 'published') ELSE 'archived' END,
-                published_at = COALESCE(published_at, updated_at, NOW())
-            WHERE slug IS NULL OR published_at IS NULL
+                published_at = COALESCE(published_at, updated_at, NOW()),
+                data = COALESCE(data, '{}'::jsonb),
+                version = COALESCE(version, 1),
+                published_title = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_title, title) ELSE published_title END,
+                published_summary = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_summary, summary) ELSE published_summary END,
+                published_body = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_body, body) ELSE published_body END,
+                published_template = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_template, template) ELSE published_template END,
+                published_data = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_data, data) ELSE published_data END,
+                published_version = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_version, version, 1) ELSE published_version END
+            WHERE slug IS NULL OR published_at IS NULL OR data IS NULL OR version IS NULL
+                OR (status = 'published' AND is_active = TRUE AND published_data IS NULL)
         `);
+    }
+
+    getContentTemplates() {
+        return contentTemplates.map(({ key, label, template, type, slug, title, summary }) => ({
+            key,
+            label,
+            template,
+            type,
+            slug,
+            title,
+            summary,
+        }));
+    }
+
+    buildDefaultContent(key) {
+        const definition = getContentTemplate(key);
+        if (!definition) return null;
+        return {
+            content_id: null,
+            content_key: definition.key,
+            title: definition.title,
+            type: definition.type,
+            body: '',
+            is_active: true,
+            slug: definition.slug,
+            summary: definition.summary,
+            thumbnail_url: null,
+            status: 'published',
+            published_at: null,
+            template: definition.template,
+            data: definition.data,
+            version: 0,
+            last_action: 'default',
+            label: definition.label,
+        };
+    }
+
+    async getContentItemByKey(contentKey) {
+        await this.ensureContentTable();
+        const result = await pool.query(
+            'SELECT * FROM Content_Items WHERE content_key = $1',
+            [contentKey]
+        );
+        if (result.rowCount === 0) {
+            const fallback = this.buildDefaultContent(contentKey);
+            if (!fallback) {
+                const error = new Error('Content template not found');
+                error.statusCode = 404;
+                throw error;
+            }
+            return fallback;
+        }
+        const row = result.rows[0];
+        const definition = getContentTemplate(row.content_key);
+        return {
+            ...row,
+            data: row.data && Object.keys(row.data).length ? row.data : definition?.data || {},
+            label: definition?.label || row.title,
+        };
+    }
+
+    async writeContentRevision(client, beforeRow, afterRow, action, adminId) {
+        await client.query(
+            `
+                INSERT INTO Content_Item_Revisions (
+                    content_id, content_key, action, before_data, after_data,
+                    before_status, after_status, changed_by
+                )
+                VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8)
+            `,
+            [
+                afterRow.content_id,
+                afterRow.content_key,
+                action,
+                beforeRow ? JSON.stringify(beforeRow.data || {}) : null,
+                JSON.stringify(afterRow.data || {}),
+                beforeRow?.status || null,
+                afterRow.status,
+                adminId || null,
+            ]
+        );
+    }
+
+    async updatePublishedSnapshot(client, row) {
+        if (row.status !== 'published' || row.is_active !== true) return row;
+        const result = await client.query(
+            `
+                UPDATE Content_Items
+                SET published_title = title,
+                    published_summary = summary,
+                    published_body = body,
+                    published_template = template,
+                    published_data = data,
+                    published_version = version,
+                    published_at = COALESCE(published_at, NOW())
+                WHERE content_id = $1
+                RETURNING *
+            `,
+            [row.content_id]
+        );
+        return result.rows[0] || row;
     }
 
     async getContentItems({ type, search }) {
@@ -953,8 +1100,11 @@ class AdminService {
             thumbnailUrl = null,
             status,
             publishedAt = null,
+            template,
+            data: structuredData,
         } = data;
         if (!contentKey || !title) throw new Error('Content key va title la bat buoc');
+        const definition = getContentTemplate(contentKey);
         const publicStatus = status || (isActive ? 'published' : 'archived');
         const normalizedSlug = (slug || contentKey).trim().toLowerCase()
             .replace(/[^a-z0-9-_]+/g, '-')
@@ -964,9 +1114,14 @@ class AdminService {
             `
                 INSERT INTO Content_Items (
                     content_key, title, type, body, is_active, slug, summary,
-                    thumbnail_url, status, published_at, created_by, updated_by, updated_at
+                    thumbnail_url, status, published_at, created_by, updated_by,
+                    template, data, version, last_action, updated_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10::timestamp, NOW()), $11::integer, $11::integer, NOW())
+                VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9,
+                    COALESCE($10::timestamp, NOW()), $11::integer, $11::integer,
+                    $12, $13::jsonb, 1, 'upsert', NOW()
+                )
                 ON CONFLICT (content_key)
                 DO UPDATE SET title = EXCLUDED.title,
                     type = EXCLUDED.type,
@@ -978,6 +1133,10 @@ class AdminService {
                     status = EXCLUDED.status,
                     published_at = EXCLUDED.published_at,
                     updated_by = EXCLUDED.updated_by,
+                    template = EXCLUDED.template,
+                    data = EXCLUDED.data,
+                    version = COALESCE(Content_Items.version, 1) + 1,
+                    last_action = 'upsert',
                     updated_at = NOW()
                 RETURNING *
             `,
@@ -993,10 +1152,164 @@ class AdminService {
                 publicStatus,
                 publishedAt,
                 adminId,
+                template || definition?.template || type,
+                JSON.stringify(structuredData || definition?.data || {}),
             ]
         );
-        await logAction(adminId, 'UPSERT_CONTENT_ITEM', 'Content_Items', result.rows[0].content_id);
-        return result.rows[0];
+        const snapshotClient = {
+            query: (...args) => pool.query(...args),
+        };
+        const saved = await this.updatePublishedSnapshot(snapshotClient, result.rows[0]);
+        await logAction(adminId, 'UPSERT_CONTENT_ITEM', 'Content_Items', saved.content_id);
+        return saved;
+    }
+
+    async updateContentItemByKey(contentKey, payload, adminId = null, action = 'UPDATE_CONTENT_ITEM') {
+        await this.ensureContentTable();
+        const definition = getContentTemplate(contentKey);
+        if (!definition) {
+            const error = new Error('Content template not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const beforeRes = await client.query(
+                'SELECT * FROM Content_Items WHERE content_key = $1 FOR UPDATE',
+                [contentKey]
+            );
+            const beforeRow = beforeRes.rows[0] || null;
+            const nextStatus = payload.status || (payload.isActive === false ? 'archived' : 'published');
+            const nextData = payload.data || beforeRow?.data || definition.data;
+            const nextTitle = payload.title || beforeRow?.title || definition.title;
+            const nextType = payload.type || beforeRow?.type || definition.type;
+            const nextSummary = payload.summary ?? beforeRow?.summary ?? definition.summary;
+            const nextSlug = payload.slug || beforeRow?.slug || definition.slug;
+            const nextTemplate = payload.template || beforeRow?.template || definition.template;
+            const nextBody = payload.body ?? beforeRow?.body ?? '';
+            const nextIsActive = payload.isActive ?? payload.is_active ?? nextStatus === 'published';
+            const nextPublishedAt = payload.publishedAt || payload.published_at || beforeRow?.published_at || null;
+            const dbAction = nextStatus === 'archived'
+                ? 'ARCHIVE_CONTENT_ITEM'
+                : action;
+
+            const result = await client.query(
+                `
+                    INSERT INTO Content_Items (
+                        content_key, title, type, body, is_active, slug, summary,
+                        thumbnail_url, status, published_at, created_by, updated_by,
+                        template, data, version, last_action, updated_at
+                    )
+                    VALUES (
+                        $1, $2, $3, $4, $5, $6, $7, $8, $9,
+                        COALESCE($10::timestamp, NOW()), $11::integer, $11::integer,
+                        $12, $13::jsonb, 1, $14, NOW()
+                    )
+                    ON CONFLICT (content_key)
+                    DO UPDATE SET title = EXCLUDED.title,
+                        type = EXCLUDED.type,
+                        body = EXCLUDED.body,
+                        is_active = EXCLUDED.is_active,
+                        slug = EXCLUDED.slug,
+                        summary = EXCLUDED.summary,
+                        thumbnail_url = EXCLUDED.thumbnail_url,
+                        status = EXCLUDED.status,
+                        published_at = EXCLUDED.published_at,
+                        updated_by = EXCLUDED.updated_by,
+                        template = EXCLUDED.template,
+                        data = EXCLUDED.data,
+                        version = COALESCE(Content_Items.version, 1) + 1,
+                        last_action = EXCLUDED.last_action,
+                        updated_at = NOW()
+                    RETURNING *
+                `,
+                [
+                    contentKey,
+                    nextTitle,
+                    nextType,
+                    nextBody,
+                    Boolean(nextIsActive),
+                    nextSlug,
+                    nextSummary,
+                    payload.thumbnailUrl || payload.thumbnail_url || beforeRow?.thumbnail_url || null,
+                    nextStatus,
+                    nextPublishedAt,
+                    adminId,
+                    nextTemplate,
+                    JSON.stringify(nextData),
+                    dbAction,
+                ]
+            );
+            let afterRow = result.rows[0];
+            afterRow = await this.updatePublishedSnapshot(client, afterRow);
+            await this.writeContentRevision(client, beforeRow, afterRow, dbAction, adminId);
+            await client.query('COMMIT');
+            await logAction(adminId, dbAction, 'Content_Items', afterRow.content_id);
+            return afterRow;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async publishContentItem(contentKey, adminId = null) {
+        const current = await this.getContentItemByKey(contentKey);
+        return this.updateContentItemByKey(contentKey, {
+            ...current,
+            status: 'published',
+            isActive: true,
+            data: current.data,
+            publishedAt: new Date().toISOString(),
+        }, adminId, 'PUBLISH_CONTENT_ITEM');
+    }
+
+    async archiveContentItem(contentKey, adminId = null) {
+        const current = await this.getContentItemByKey(contentKey);
+        return this.updateContentItemByKey(contentKey, {
+            ...current,
+            status: 'archived',
+            isActive: false,
+            data: current.data,
+        }, adminId, 'ARCHIVE_CONTENT_ITEM');
+    }
+
+    async resetContentItem(contentKey, adminId = null) {
+        const definition = getContentTemplate(contentKey);
+        if (!definition) {
+            const error = new Error('Content template not found');
+            error.statusCode = 404;
+            throw error;
+        }
+        return this.updateContentItemByKey(contentKey, {
+            title: definition.title,
+            type: definition.type,
+            slug: definition.slug,
+            summary: definition.summary,
+            template: definition.template,
+            data: definition.data,
+            status: 'published',
+            isActive: true,
+        }, adminId, 'RESET_CONTENT_ITEM');
+    }
+
+    async getContentRevisions(contentKey) {
+        await this.ensureContentTable();
+        const result = await pool.query(
+            `
+                SELECT r.*, u.username, u.email
+                FROM Content_Item_Revisions r
+                LEFT JOIN Users u ON u.user_id = r.changed_by
+                WHERE r.content_key = $1
+                ORDER BY r.changed_at DESC, r.revision_id DESC
+                LIMIT 50
+            `,
+            [contentKey]
+        );
+        return result.rows;
     }
 
     async getPublicContentItems({ type, search, limit = 50 }) {
@@ -1004,7 +1317,8 @@ class AdminService {
         const values = [];
         let idx = 1;
         let query = `
-            SELECT content_id, content_key, title, slug, summary, type, body, thumbnail_url, published_at, updated_at
+            SELECT content_id, content_key, title, slug, summary, type, body,
+                thumbnail_url, template, data, version, published_at, updated_at
             FROM Content_Items
             WHERE is_active = TRUE
                 AND status = 'published'
@@ -1031,12 +1345,10 @@ class AdminService {
         await this.ensureContentTable();
         const result = await pool.query(
             `
-                SELECT content_id, content_key, title, slug, summary, type, body, thumbnail_url, published_at, updated_at
+                SELECT *
                 FROM Content_Items
-                WHERE is_active = TRUE
-                    AND status = 'published'
-                    AND COALESCE(published_at, updated_at, NOW()) <= NOW()
-                    AND (slug = $1::varchar OR content_key = $1::varchar)
+                WHERE slug = $1::varchar OR content_key = $1::varchar
+                LIMIT 1
             `,
             [slug]
         );
@@ -1045,7 +1357,49 @@ class AdminService {
             error.statusCode = 404;
             throw error;
         }
-        return result.rows[0];
+
+        const row = result.rows[0];
+        if (row.status === 'archived') {
+            const error = new Error('Nội dung đã bị quản trị viên tạm ẩn');
+            error.statusCode = 423;
+            error.hidden = true;
+            error.item = {
+                content_id: row.content_id,
+                content_key: row.content_key,
+                title: row.title,
+                slug: row.slug,
+                status: row.status,
+                is_active: row.is_active,
+                template: row.template,
+            };
+            throw error;
+        }
+
+        if (row.published_data && Object.keys(row.published_data).length > 0) {
+            return {
+                content_id: row.content_id,
+                content_key: row.content_key,
+                title: row.published_title || row.title,
+                slug: row.slug,
+                summary: row.published_summary || row.summary,
+                type: row.type,
+                body: row.published_body || row.body,
+                thumbnail_url: row.thumbnail_url,
+                template: row.published_template || row.template,
+                data: row.published_data,
+                version: row.published_version || row.version,
+                published_at: row.published_at,
+                updated_at: row.updated_at,
+            };
+        }
+
+        if (row.status === 'published' && row.is_active === true) {
+            return row;
+        }
+
+        const error = new Error('Nội dung không tồn tại hoặc chưa được publish');
+        error.statusCode = 404;
+        throw error;
     }
 
     /**

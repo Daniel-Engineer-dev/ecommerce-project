@@ -7,6 +7,26 @@ import { apiFetch } from '../apiClient';
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
 
+const formatVietnamTime = (value) => {
+  if (!value) return '---';
+  const raw = String(value);
+  const hasTimezone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  const date = new Date(hasTimezone ? raw : `${raw}Z`);
+
+  if (Number.isNaN(date.getTime())) return '---';
+
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour12: false,
+  }).format(date);
+};
+
 const SystemLogs = () => {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
@@ -89,7 +109,7 @@ const SystemLogs = () => {
               {logs.map((log) => (
                 <tr key={log.log_id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 text-xs font-medium">
-                    {new Date(log.created_at).toLocaleString('vi-VN')}
+                    {log.created_at_vn || formatVietnamTime(log.created_at)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-semibold text-slate-800">{log.username || 'System Admin'}</div>

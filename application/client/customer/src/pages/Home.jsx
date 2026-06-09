@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import VoucherCard from "../components/VoucherCard";
 import { API_BASE_URL, translateCategory } from "../config";
+import { usePublicContent } from "../hooks/usePublicContent";
+import HiddenContentNotice from "../components/HiddenContentNotice";
 
 const VOUCHERS_PER_SECTION = 8;
 const SECTION_LOAD_MORE_STEP = 4;
@@ -63,6 +65,7 @@ const isSameDay = (value, date = new Date()) => {
 };
 
 const Home = () => {
+  const { data: homeContent, hidden: homeBannerHidden } = usePublicContent("home-banner");
   const [vouchers, setVouchers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -173,37 +176,48 @@ const Home = () => {
     sectionRefs.current[categoryId]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const dynamicHero = homeContent.hero || {};
+  const dynamicProofs = homeContent.proofs || [];
+  const dynamicFeatures = homeContent.features || [];
+  const dynamicTiles = homeContent.tiles || heroTiles;
+  const featureIconMap = { Sparkles, Zap, ShieldCheck };
+
   return (
     <main className="lux-home">
+      {homeBannerHidden ? (
+        <HiddenContentNotice />
+      ) : (
       <section className="lux-hero">
         <div className="container lux-hero__grid">
           <div className="lux-hero__content">
-            <span className="lux-eyebrow"><Crown size={15} /> Curated offers</span>
+            <span className="lux-eyebrow"><Crown size={15} /> {dynamicHero.badge || "Curated offers"}</span>
             <h1 className="lux-hero-title">
-              <span>Đặt trải nghiệm</span>
-              <span>thông minh hơn</span>
+              <span>{dynamicHero.titleLine1 || "Đặt trải nghiệm"}</span>
+              <span>{dynamicHero.titleLine2 || "thông minh hơn"}</span>
             </h1>
             <p>
-              Dealzy chọn lọc voucher nhà hàng, spa, du lịch và giải trí với thông tin rõ ràng, thanh toán gọn và mã điện tử sẵn sàng sử dụng.
+              {dynamicHero.description || "Dealzy chọn lọc voucher nhà hàng, spa, du lịch và giải trí với thông tin rõ ràng, thanh toán gọn và mã điện tử sẵn sàng sử dụng."}
             </p>
             <div className="lux-hero__actions">
-              <Link to="/search" className="lux-button lux-button--primary">
-                Khám phá deal <ArrowRight size={18} />
+              <Link to={dynamicHero.primaryCtaUrl || "/search"} className="lux-button lux-button--primary">
+                {dynamicHero.primaryCtaText || "Khám phá deal"} <ArrowRight size={18} />
               </Link>
-              <Link to="/partners" className="lux-button lux-button--ghost">
-                Xem đối tác
+              <Link to={dynamicHero.secondaryCtaUrl || "/partners"} className="lux-button lux-button--ghost">
+                {dynamicHero.secondaryCtaText || "Xem đối tác"}
               </Link>
             </div>
             <div className="lux-hero__proof">
-              <span><BadgeCheck size={16} /> Voucher đã kiểm duyệt</span>
-              <span><ShieldCheck size={16} /> Thanh toán demo an toàn</span>
-              <span><TicketPercent size={16} /> Mã điện tử tức thì</span>
+              {(dynamicProofs.length ? dynamicProofs : ["Voucher đã kiểm duyệt", "Thanh toán demo an toàn", "Mã điện tử tức thì"]).map((proof, index) => {
+                const icons = [BadgeCheck, ShieldCheck, TicketPercent];
+                const Icon = icons[index] || BadgeCheck;
+                return <span key={proof}><Icon size={16} /> {proof}</span>;
+              })}
             </div>
           </div>
 
           <div className="lux-hero__media">
             <img
-              src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=82&w=1300"
+              src={dynamicHero.image || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=82&w=1300"}
               alt="Premium restaurant experience"
             />
             <div className="lux-hero__deal">
@@ -214,25 +228,29 @@ const Home = () => {
           </div>
         </div>
       </section>
+      )}
 
       <section className="container lux-feature-strip">
-        {[
-          { icon: Sparkles, title: "Lựa chọn có gu", copy: "Chỉ hiển thị voucher đã duyệt và còn hiệu lực." },
-          { icon: Zap, title: "Nhận mã nhanh", copy: "E-voucher được phát hành sau thanh toán thành công." },
-          { icon: ShieldCheck, title: "Kiểm soát rõ", copy: "Trạng thái đơn, mã và sử dụng được ghi nhận." },
-        ].map(({ icon: Icon, title, copy }) => (
-          <div key={title} className="lux-feature">
-            <Icon size={20} />
-            <span>
-              <strong>{title}</strong>
-              <small>{copy}</small>
-            </span>
-          </div>
-        ))}
+        {(dynamicFeatures.length ? dynamicFeatures : [
+          { icon: "Sparkles", title: "Lựa chọn có gu", copy: "Chỉ hiển thị voucher đã duyệt và còn hiệu lực." },
+          { icon: "Zap", title: "Nhận mã nhanh", copy: "E-voucher được phát hành sau thanh toán thành công." },
+          { icon: "ShieldCheck", title: "Kiểm soát rõ", copy: "Trạng thái đơn, mã và sử dụng được ghi nhận." },
+        ]).map(({ icon, title, copy }) => {
+          const Icon = featureIconMap[icon] || Sparkles;
+          return (
+            <div key={title} className="lux-feature">
+              <Icon size={20} />
+              <span>
+                <strong>{title}</strong>
+                <small>{copy}</small>
+              </span>
+            </div>
+          );
+        })}
       </section>
 
       <section className="container lux-editorial-grid">
-        {heroTiles.map((tile) => (
+        {dynamicTiles.map((tile) => (
           <Link key={tile.title} to="/search" className="lux-editorial-card">
             <img src={tile.image} alt={tile.title} />
             <span>

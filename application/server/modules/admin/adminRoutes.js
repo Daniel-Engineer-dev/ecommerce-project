@@ -34,6 +34,13 @@ router.get('/logs', auth, adminOnly, adminController.getSystemLogs);
 
 router.get('/content', auth, adminOnly, adminController.getContentItems);
 router.post('/content', auth, adminOnly, adminController.upsertContentItem);
+router.get('/content/templates', auth, adminOnly, adminController.getContentTemplates);
+router.get('/content/:contentKey/revisions', auth, adminOnly, adminController.getContentRevisions);
+router.get('/content/:contentKey', auth, adminOnly, adminController.getContentItemByKey);
+router.put('/content/:contentKey', auth, adminOnly, adminController.updateContentItemByKey);
+router.post('/content/:contentKey/publish', auth, adminOnly, adminController.publishContentItem);
+router.post('/content/:contentKey/archive', auth, adminOnly, adminController.archiveContentItem);
+router.post('/content/:contentKey/reset', auth, adminOnly, adminController.resetContentItem);
 
 // ── Dashboard tổng hợp ───────────────────────────────────────────────────────
 // GET /admin/dashboard/stats    → active_vouchers + pending_complaints

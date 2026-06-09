@@ -186,6 +186,24 @@ const getContentItems = async (req, res) => {
     }
 };
 
+const getContentTemplates = async (req, res) => {
+    try {
+        const templates = adminService.getContentTemplates();
+        res.json({ templates });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const getContentItemByKey = async (req, res) => {
+    try {
+        const item = await adminService.getContentItemByKey(req.params.contentKey);
+        res.json({ item });
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+    }
+};
+
 const upsertContentItem = async (req, res) => {
     try {
         const item = await adminService.upsertContentItem(req.body, req.user?.id);
@@ -227,6 +245,55 @@ const getContentByKey = async (req, res) => {
     }
 };
 
+const updateContentItemByKey = async (req, res) => {
+    try {
+        const item = await adminService.updateContentItemByKey(
+            req.params.contentKey,
+            req.body || {},
+            req.user?.id
+        );
+        res.json({ message: 'Content updated successfully', item });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({ error: err.message });
+    }
+};
+
+const publishContentItem = async (req, res) => {
+    try {
+        const item = await adminService.publishContentItem(req.params.contentKey, req.user?.id);
+        res.json({ message: 'Content published successfully', item });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({ error: err.message });
+    }
+};
+
+const archiveContentItem = async (req, res) => {
+    try {
+        const item = await adminService.archiveContentItem(req.params.contentKey, req.user?.id);
+        res.json({ message: 'Content archived successfully', item });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({ error: err.message });
+    }
+};
+
+const resetContentItem = async (req, res) => {
+    try {
+        const item = await adminService.resetContentItem(req.params.contentKey, req.user?.id);
+        res.json({ message: 'Content reset successfully', item });
+    } catch (err) {
+        res.status(err.statusCode || 400).json({ error: err.message });
+    }
+};
+
+const getContentRevisions = async (req, res) => {
+    try {
+        const revisions = await adminService.getContentRevisions(req.params.contentKey);
+        res.json({ revisions });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 const getPublicContentItems = async (req, res) => {
     try {
         const items = await adminService.getPublicContentItems(req.query);
@@ -241,6 +308,13 @@ const getPublicContentBySlug = async (req, res) => {
         const item = await adminService.getPublicContentBySlug(req.params.slug);
         res.json({ item });
     } catch (err) {
+        if (err.hidden) {
+            return res.status(err.statusCode || 423).json({
+                hidden: true,
+                message: err.message,
+                item: err.item,
+            });
+        }
         res.status(err.statusCode || 500).json({ error: err.message });
     }
 };
@@ -264,7 +338,14 @@ module.exports = {
     markComplaintRefunded,
     getSystemLogs,
     getContentItems,
+    getContentTemplates,
+    getContentItemByKey,
     upsertContentItem,
+    updateContentItemByKey,
+    publishContentItem,
+    archiveContentItem,
+    resetContentItem,
+    getContentRevisions,
     getVoucherAndComplaintStats,
     getDashboardChartData,
     getContentByKey,
