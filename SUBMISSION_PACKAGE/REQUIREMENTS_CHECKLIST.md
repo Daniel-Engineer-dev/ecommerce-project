@@ -2,7 +2,7 @@
 
 > Quy uoc: `[x]` da co trong du an hien tai o muc co the doi chieu; `[ ]` chua co hoac moi co mot phan, can tiep tuc hoan thien.
 > Cap nhat 2026-05-28 sau khi merge `origin/customer` vao `partner` va bo sung admin order/content/log.
-> Tom tat: `partner` hien la nhanh tong hop day du nhat. Da co luong Customer xem/tim/gio hang/checkout/thanh toan mo phong/nhan E-Voucher, Partner tao/quan ly/xac thuc voucher, Admin quan ly user/doi tac/duyet voucher/don hang/khieu nai/noi dung/nhat ky/dashboard. Con thieu video demo ghi hinh thuc te va toi uu san xuat.
+> Tom tat: `partner` hien la nhanh tong hop day du nhat. Da co luong Customer xem/tim/gio hang/checkout/thanh toan mo phong/nhan E-Voucher, Partner tao/quan ly/xac thuc voucher, Admin quan ly user/doi tac/duyet voucher/don hang/khieu nai/noi dung/nhat ky/dashboard. Truoc khi nop can chot ma nguon, copy `application` vao package va chay script bao tri du lieu neu Supabase demo con don Paid cu chua du E-Voucher.
 
 ## 1. Thong Tin De Tai
 
@@ -161,8 +161,8 @@
 6. [x] Ma nguon.
 7. [x] Script co so du lieu.
 8. [x] Bo du lieu mau.
-9. [x] Slide trinh bay.
-10. [ ] Video demo neu duoc yeu cau.
+9. [ ] Ma nguon trong package - se copy tu `application` sau khi chot ban on dinh.
+10. [x] Slide/video khong nam trong package hien tai theo pham vi nop bai cua nhom.
 
 ## 16. Tai Lieu Chuyen Tiep Nen Co
 

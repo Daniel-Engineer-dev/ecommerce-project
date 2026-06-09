@@ -174,7 +174,7 @@ const PaymentStatus = () => {
                         fontWeight: 900, 
                         letterSpacing: '2px', 
                         color: '#0f172a',
-                        fontFamily: 'monospace',
+                        fontFamily: 'inherit',
                         background: '#f1f5f9',
                         padding: '4px 20px',
                         borderRadius: '12px',

@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const defaultFrom =
-  process.env.EMAIL_FROM || `Dealzy Support <${process.env.EMAIL_USER}>`;
+  process.env.EMAIL_FROM || `Dealzy Support <${process.env.EMAIL_USER || 'support@dealzy.vn'}>`;
 
 const buildEmailTemplate = ({
   title = "Thông báo từ Dealzy",
@@ -69,6 +69,42 @@ const stripHtml = (html) =>
     .replace(/\s+/g, " ")
     .trim();
 
+let testAccount = null;
+let etherealTransporter = null;
+
+const getEtherealTransporter = async () => {
+  if (!etherealTransporter) {
+    testAccount = await nodemailer.createTestAccount();
+    etherealTransporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    console.log(`[EMAIL] Khởi tạo tài khoản kiểm thử Ethereal thành công: user=${testAccount.user}`);
+  }
+  return etherealTransporter;
+};
+
+const sendEtherealEmail = async (mailOptions) => {
+  try {
+    const transport = await getEtherealTransporter();
+    const info = await transport.sendMail(mailOptions);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    console.log(`\n========================================`);
+    console.log(`[EMAIL MOCK] Email đã được gửi thành công qua Ethereal!`);
+    console.log(`Người nhận: ${mailOptions.to}`);
+    console.log(`Tiêu đề: ${mailOptions.subject}`);
+    console.log(`Đường dẫn xem thử Email (Preview URL): ${previewUrl}`);
+    console.log(`========================================\n`);
+  } catch (err) {
+    console.error(`[EMAIL] Lỗi khi gửi email kiểm thử qua Ethereal:`, err.message);
+  }
+};
+
 const sendEmail = async (options) => {
   const { email, subject, html, text, template } = options;
 
@@ -86,15 +122,30 @@ const sendEmail = async (options) => {
     );
   }
 
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  const useRealEmail = user && pass && user.trim() !== "" && pass.trim() !== "";
+
   const mailOptions = {
-    from: defaultFrom,
+    from: useRealEmail ? defaultFrom : `"Dealzy Support (Demo)" <support@dealzy.vn>`,
     to: email,
     subject,
     html: htmlContent,
     text: text || stripHtml(htmlContent),
   };
 
-  await transporter.sendMail(mailOptions);
+  if (useRealEmail) {
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`[EMAIL] Đã gửi email thực tế đến: ${email}`);
+    } catch (error) {
+      console.error(`[EMAIL] Lỗi gửi email thực tế: ${error.message}. Chuyển hướng sang Ethereal...`);
+      await sendEtherealEmail(mailOptions);
+    }
+  } else {
+    console.log(`[EMAIL] EMAIL_USER/EMAIL_PASS chưa cấu hình. Gửi email qua Ethereal...`);
+    await sendEtherealEmail(mailOptions);
+  }
 };
 
 module.exports = { sendEmail, buildEmailTemplate };

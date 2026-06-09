@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, User, Bot } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, User, Bot, Headphones } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE_URL } from '../config';
 
@@ -171,10 +171,10 @@ const ChatbotWidget = () => {
                                         display: 'grid',
                                         placeItems: 'center'
                                     }}>
-                                        <Sparkles size={16} strokeWidth={1.5} className="text-amber-300" />
+                                        <Headphones size={16} strokeWidth={1.5} className="text-amber-300" />
                                     </div>
                                     <div>
-                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>Partner AI Assistant</div>
+                                        <div style={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>Hỗ trợ đối tác Dealzy</div>
                                         <div style={{ fontSize: '0.72rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             <span style={{
                                                 width: '6px',
@@ -213,7 +213,7 @@ const ChatbotWidget = () => {
                                         >
                                             {isBot && (
                                                 <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e2e8f0', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                                                    <Bot size={14} strokeWidth={1.5} className="text-slate-600" />
+                                                    <User size={14} strokeWidth={1.5} className="text-slate-600" />
                                                 </div>
                                             )}
                                             <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '75%', alignItems: isBot ? 'flex-start' : 'flex-end' }}>
@@ -249,7 +249,7 @@ const ChatbotWidget = () => {
                                         style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
                                     >
                                         <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#e2e8f0', display: 'grid', placeItems: 'center' }}>
-                                            <Bot size={14} strokeWidth={1.5} className="text-slate-600" />
+                                            <User size={14} strokeWidth={1.5} className="text-slate-600" />
                                         </div>
                                         <div style={{ background: '#ffffff', padding: '12px 16px', borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(15, 23, 42, 0.04)', display: 'flex', gap: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                                             <span className="dot-anim" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#94a3b8', animation: 'dotDelay1 1.2s infinite' }}></span>
@@ -452,7 +452,7 @@ const ChatbotWidget = () => {
                                 transition={{ duration: 0.2 }}
                                 style={{ display: 'flex' }}
                             >
-                                <MessageSquare size={19} strokeWidth={1.6} />
+                                <Headphones size={19} strokeWidth={1.6} />
                             </motion.div>
                         )}
                     </AnimatePresence>

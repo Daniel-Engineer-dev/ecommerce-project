@@ -34,9 +34,9 @@ const VoucherDetail = () => {
   }, [id]);
 
   if (loading) return (
-    <div style={{ paddingTop: '150px', textAlign: 'center', height: '100vh' }}>
-      <div className="loader" style={{ margin: '0 auto 1rem' }}></div>
-      <p style={{ color: '#64748b' }}>Đang tải thông tin chi tiết...</p>
+    <div className="loading-screen" style={{ minHeight: '100vh' }}>
+      <div className="loader"></div>
+      <p>Đang tải thông tin chi tiết...</p>
     </div>
   );
 

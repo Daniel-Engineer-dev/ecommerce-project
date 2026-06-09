@@ -2,22 +2,21 @@
 
 \section{Sản phẩm bàn giao}
 
-Gói nộp bài được tổ chức trong thư mục \texttt{SUBMISSION\_PACKAGE} với các nhóm tài liệu:
+Gói nộp bài được tổ chức trong thư mục \texttt{SUBMISSION\_PACKAGE}. Bảng dưới đây phản ánh các thành phần bàn giao hiện có và cách đóng gói mã nguồn ứng dụng khi chốt bản nộp.
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\textwidth}{|p{4.2cm}|Y|p{2.4cm}|}
+\small
+\begin{tabularx}{\textwidth}{|p{4.0cm}|Y|p{3.0cm}|}
 \hline
 \textbf{Thành phần} & \textbf{Nội dung} & \textbf{Trạng thái} \\ \hline
 Báo cáo đồ án & Mã nguồn LaTeX và PDF báo cáo & Đã có \\ \hline
-Mô hình nghiệp vụ & Mô tả actor, phạm vi, giá trị và giới hạn & Đã có \\ \hline
-Use case & Danh sách use case theo Khách hàng, Đối tác, Admin & Đã có \\ \hline
-ERD & Hình ERD và link bản vẽ & Đã có \\ \hline
-Biểu đồ xử lý & Mermaid flow cho các luồng chính & Đã có \\ \hline
-Mã nguồn & Source code client/server, không kèm node\_modules/dist & Đã có \\ \hline
-Script database & SQL tạo bảng, trigger và seed data & Đã có \\ \hline
-Slide & Thư mục placeholder để đặt slide & Chưa có file \\ \hline
-Video demo & Thư mục placeholder để đặt video demo & Chưa có file \\ \hline
+Mô hình nghiệp vụ & Mô tả tác nhân, phạm vi, giá trị và giới hạn & Đã có \\ \hline
+Use case và sơ đồ hệ thống & Danh sách use case cùng các sơ đồ phân tích, thiết kế & Đã có \\ \hline
+ERD và database & ERD, script tạo bảng, trigger và seed data & Đã có \\ \hline
+Mã nguồn & Source code client/server đặt tại \texttt{application}; bản đóng gói không kèm \texttt{node\_modules}, thư mục build và file môi trường thật & Quản lý ngoài package, đóng gói khi nộp \\ \hline
+Tài liệu kiểm thử & Danh sách kiểm thử kỹ thuật, nghiệp vụ và trạng thái hoàn thành & Đã có ở mức báo cáo \\ \hline
+Script bảo trì dữ liệu & Script kiểm tra và backfill E-Voucher cho dữ liệu demo cũ & Đã có \\ \hline
 \end{tabularx}
 \caption{Danh mục sản phẩm bàn giao}
 \end{table}
@@ -33,11 +32,11 @@ copy .env-sample .env
 npm run dev
 \end{lstlisting}
 
-Cần cấu hình PostgreSQL trong file \texttt{.env} theo môi trường máy chạy demo.
+File \texttt{.env} chứa cấu hình kết nối PostgreSQL và các biến môi trường liên quan. Luồng Order/\allowbreak Payment trong đồ án sử dụng cơ chế mô phỏng/sandbox và không xử lý giao dịch tiền thật.
 
 \subsection{Frontend}
 
-Mỗi app frontend chạy độc lập:
+Mỗi ứng dụng frontend chạy độc lập:
 
 \begin{lstlisting}
 cd application/client/customer
@@ -53,33 +52,37 @@ npm install
 npm run dev
 \end{lstlisting}
 
+\section{Kiểm soát trước khi bàn giao}
+
+\subsection{Chốt dữ liệu demo}
+
+Dữ liệu demo Supabase được kiểm tra bằng script bảo trì trong thư mục database script. Script này khóa E-Voucher của các đơn không còn Paid và sinh bổ sung mã còn thiếu cho các đơn Paid.
+
+\subsection{Chốt gói source}
+
+Mã nguồn đóng gói lấy từ thư mục \texttt{application}, loại trừ \texttt{node\_modules}, \texttt{dist}, file môi trường thật và các file tạm build.
+
 \section{Định hướng tiếp theo}
 
-\subsection{Hoàn thiện quy trình mua voucher}
+\subsection{Hoàn thiện sản phẩm sau demo}
 
-Ưu tiên cao nhất là hoàn thiện luồng khách hàng từ giỏ hàng đến đơn hàng:
+Các hướng phát triển tiếp theo khi đưa hệ thống ra ngoài phạm vi demo:
 
 \begin{enumerate}[leftmargin=1.2cm]
-    \item Tạo API checkout nhận danh sách voucher trong giỏ hàng.
-    \item Kiểm tra tồn kho và trạng thái voucher trong transaction.
-    \item Tạo Orders và Order\_Items.
-    \item Mô phỏng thanh toán thành công/thất bại.
-    \item Sau khi order Paid, sinh E\_Voucher unique code cho từng item.
+    \item Thay thanh toán mô phỏng bằng cổng thanh toán thật và quy trình đối soát.
+    \item Bổ sung kiểm thử tự động cho luồng checkout, callback, hoàn tiền và redeem voucher.
+    \item Chuẩn hóa quy trình seed dữ liệu demo để tránh dữ liệu cũ không khớp logic mới.
+    \item Tối ưu bundle frontend bằng code splitting cho môi trường production.
 \end{enumerate}
 
 \subsection{Hoàn thiện trải nghiệm sau mua}
 
-Bổ sung trang khách hàng xem lịch sử đơn, voucher đã mua, trạng thái sử dụng, QR mô phỏng và điều kiện sử dụng.
+Phần phát triển tiếp theo tập trung vào bằng chứng kiểm thử giao diện và kịch bản demo cho trang lịch sử đơn, E-Voucher đã mua, trạng thái sử dụng, QR và điều kiện áp dụng.
 
-\subsection{Mở rộng admin}
+\subsection{Mở rộng vận hành và kiểm thử}
 
-Bổ sung quản lý đơn hàng, hoàn/hủy mô phỏng, tra cứu nhật ký hệ thống và quản lý nội dung như banner, bài viết, popup chính sách.
+Tiếp tục hoàn thiện test tự động, nhật ký hệ thống chi tiết hơn và quy trình deploy ổn định cho từng frontend.
 
 \section{Kết luận}
 
-Đến thời điểm hiện tại, Dealzy đã hình thành được khung hệ thống thương mại điện tử voucher với ba vai trò rõ ràng, database quan hệ, luồng đối tác và admin khá đầy đủ, cùng giao diện khách hàng để tìm kiếm và chọn voucher. Những phần còn thiếu chủ yếu tập trung ở nghiệp vụ thanh toán và phát hành voucher sau thanh toán. Đây là nền tảng đủ tốt để nhóm tiếp tục hoàn thiện thành một demo end-to-end trong giai đoạn tiếp theo.
-
-\vspace{1.5cm}
-\begin{center}
--------------------- \textit{Chúc nhóm hoàn thành tốt đồ án} --------------------
-\end{center}
+Dealzy đã hình thành được hệ thống thương mại điện tử voucher với ba vai trò rõ ràng, cơ sở dữ liệu quan hệ và các luồng nghiệp vụ chính: tạo voucher, kiểm duyệt, công bố, mua voucher mô phỏng, phát hành E-Voucher và xác thực sử dụng. Báo cáo, script database và mã nguồn ứng dụng hiện đã đủ cơ sở để đóng gói bản nộp cuối cùng sau khi chốt thư mục source.

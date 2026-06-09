@@ -95,7 +95,7 @@ const PartnerRegistration = () => {
         setFormData({ ...formData, branches: newBranches });
     };
 
-    const handleNext = (e) => {
+    const handleNext = async (e) => {
         if (e) e.preventDefault();
         setError('');
         if (step === 1) {
@@ -110,6 +110,35 @@ const PartnerRegistration = () => {
             if (['invalid', 'unavailable', 'error'].includes(emailAvailability.status)) {
                 setError(emailAvailability.message);
                 return;
+            }
+
+            setLoading(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/check-availability`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: formData.username,
+                        email: formData.email,
+                        phone: formData.phone
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.available) {
+                    const conflictMap = {
+                        username: 'Tên đăng nhập',
+                        email: 'Email',
+                        phone: 'Số điện thoại'
+                    };
+                    const conflictNames = (data.conflicts || []).map(c => conflictMap[c] || c);
+                    setError(`Thông tin đã tồn tại: ${conflictNames.join(', ')}`);
+                    return;
+                }
+            } catch (err) {
+                setError('Không thể kiểm tra tài khoản. Vui lòng thử lại.');
+                return;
+            } finally {
+                setLoading(false);
             }
         } else if (step === 2) {
             if (!formData.company_name || !formData.tax_id || !formData.headquarters) {
@@ -207,15 +236,14 @@ const PartnerRegistration = () => {
                                         <div className="input-group">
                                             <Mail size={18} className="input-icon" />
                                             <input name="email" type="email" placeholder="Email liên hệ *" required value={formData.email} onChange={handleChange} className="auth-input" />
-                                            <p
-                                                className="auth-field-message"
-                                                style={{
-                                                    color: emailAvailability.status === 'checking' ? '#64748b' : '#ef4444',
-                                                    visibility: emailAvailability.message ? 'visible' : 'hidden',
-                                                }}
-                                            >
-                                                {emailAvailability.message || 'Giữ chỗ kiểm tra email'}
-                                            </p>
+                                            {emailAvailability.message && (
+                                                <p
+                                                    className="auth-field-message"
+                                                    style={{ color: emailAvailability.status === 'checking' ? '#64748b' : '#ef4444' }}
+                                                >
+                                                    {emailAvailability.message}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="input-group"><Phone size={18} className="input-icon" /><input name="phone" placeholder="Số điện thoại *" required value={formData.phone} onChange={handleChange} className="auth-input" /></div>
                                     </div>

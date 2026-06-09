@@ -2,23 +2,21 @@
 
 Thu muc nay gom cac san pham ban giao cua do an cuoi ky mon Thuong mai Dien tu.
 
-## Cau truc
+## Cau truc hien tai
 
 1. `01_Report_LaTeX/`: ma nguon LaTeX va file PDF bao cao.
-2. `02_Business_Model/`: mo hinh nghiep vu va pham vi he thong.
-3. `03_Use_Case/`: danh sach use case theo vai tro.
-4. `04_ERD/`: hinh ERD va link ban ve.
-5. `05_Process_Diagrams/`: mo ta cac luong xu ly chinh bang Mermaid.
-6. `06_Source_Code/`: ma nguon ung dung, khong kem `node_modules` va `dist`.
-7. `07_Database_Script_And_Seed/`: script tao CSDL, rang buoc nghiep vu va du lieu mau.
-8. `08_Slides/`: noi dat slide trinh bay.
-9. `09_Demo_Video/`: noi dat video demo neu duoc yeu cau.
+2. `03_Diagrams_DrawIO/`: cac so do phan tich va thiet ke dang DrawIO.
+3. `07_Database_Script_And_Seed/`: script tao CSDL, rang buoc nghiep vu, du lieu mau va script bao tri du lieu demo.
+4. `REQUIREMENTS_CHECKLIST.md`: bang doi chieu yeu cau.
+5. `00_Assignment.docx`: de bai goc.
+
+Ma nguon ung dung hien nam tai `../application` va se duoc copy vao package khi ban ma nguon da chot on dinh. Khong dua `node_modules`, `dist`, file `.env` that hoac file build tam vao goi nop.
 
 ## Trang thai hien tai
 
 - Nhanh tong hop day du nhat: `partner`.
-- Da co: Customer xem/tim/gio hang; Partner tao, quan ly, gui duyet, bao cao va xac thuc voucher; Admin quan ly user, duyet doi tac, duyet voucher va dashboard.
-- Chua hoan tat: checkout, thanh toan mo phong, phat hanh voucher code tu don hang tren API/UI, admin quan ly don hang, nhat ky he thong day du.
+- Da co: Customer xem/tim/gio hang/checkout/thanh toan mo phong/nhan E-Voucher; Partner tao, quan ly, gui duyet, bao cao va xac thuc voucher; Admin quan ly user, duyet doi tac, duyet voucher, don hang, khieu nai, noi dung, nhat ky va dashboard.
+- Can lam truoc khi nop: chot ma nguon roi copy `application` vao package; chay script `07_Database_Script_And_Seed/20260609_fix_order_evoucher_consistency.sql` tren Supabase neu du lieu demo cu co don Paid chua du E-Voucher.
 
 ## Cach build bao cao
 

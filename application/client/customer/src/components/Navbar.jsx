@@ -169,7 +169,7 @@ const Navbar = () => {
           </span>
           <span>
             <strong>Dealzy</strong>
-            <small>Premium voucher marketplace</small>
+            <small>Săn voucher xịn, tận hưởng nhiều hơn</small>
           </span>
         </Link>
 

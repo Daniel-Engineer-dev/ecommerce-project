@@ -377,6 +377,23 @@ class AdminService {
             if (orderRes.rows.length === 0) throw new Error('Don hang khong ton tai');
 
             const currentStatus = orderRes.rows[0].status;
+            if (currentStatus === status) {
+                await client.query('COMMIT');
+                return this.getOrderDetail(orderId);
+            }
+            if (['Cancelled', 'Failed', 'Expired', 'Refunded'].includes(currentStatus)) {
+                throw new Error('Don hang da dong, khong the cap nhat trang thai');
+            }
+            if (status === 'Pending') {
+                throw new Error('Khong the chuyen don hang ve Pending');
+            }
+            if (currentStatus === 'Paid' && ['Cancelled', 'Failed', 'Expired'].includes(status)) {
+                throw new Error('Don hang da thanh toan chi co the chuyen sang Refunded');
+            }
+            if (status === 'Refunded' && currentStatus !== 'Paid') {
+                throw new Error('Chi don hang da thanh toan moi co the hoan tien');
+            }
+
             if (currentStatus === 'Pending' && ['Cancelled', 'Failed', 'Expired'].includes(status)) {
                 await orderService.restoreStockForOrder(client, orderId);
             }
@@ -389,7 +406,7 @@ class AdminService {
                         FROM Order_Items oi
                         WHERE ev.order_item_id = oi.order_item_id
                             AND oi.order_id = $1
-                            AND ev.status = 'Unused'
+                            AND ev.status <> 'Locked'
                     `,
                     [orderId]
                 );

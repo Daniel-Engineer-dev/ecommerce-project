@@ -387,7 +387,7 @@ class AuthService {
                     footer: 'Nếu bạn không yêu cầu, vui lòng bỏ qua email này.',
                 },
             });
-            return { message: 'Mã OTP khôi phục đã được gửi đến Email', otp };
+            return { message: 'Mã OTP khôi phục đã được gửi đến Email' };
         }
 
         const smsContent = `Ma xac minh Dealzy cua ban la: ${otp}`;
@@ -502,7 +502,7 @@ class AuthService {
                     footer: 'Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.',
                 },
             });
-            return { message: 'Mã xác minh đã được gửi đến Email', otp };
+            return { message: 'Mã xác minh đã được gửi đến Email' };
         }
 
         const smsContent = `Ma xac minh dang ky Dealzy cua ban la: ${otp}`;

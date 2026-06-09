@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowDownWideNarrow,
   BadgePercent,
+  Building,
   ChevronDown,
   CircleDollarSign,
   Filter,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import VoucherCard from "../components/VoucherCard";
 import { API_BASE_URL, translateCategory } from "../config";
+import CustomSelect from "../components/CustomSelect";
 
 const SEARCH_RESULT_LIMIT = 12;
 
@@ -161,7 +163,7 @@ const SearchVouchers = () => {
   };
 
   return (
-    <div style={{ paddingTop: "212px", minHeight: "100vh", background: "#f6f7f5" }}>
+    <div style={{ paddingTop: "150px", minHeight: "100vh", background: "#f6f7f5" }}>
       <div className="container" style={{ paddingBottom: "4rem" }}>
         <section
           style={{
@@ -255,11 +257,11 @@ const SearchVouchers = () => {
                   background: "#ffffff",
                   borderRadius: "8px",
                   padding: "1rem",
-                  maxHeight: "calc(100vh - 232px)",
+                  maxHeight: "calc(100vh - 170px)",
                   display: "flex",
                   flexDirection: "column",
                   position: "sticky",
-                  top: "212px",
+                  top: "150px",
                   boxShadow: "0 14px 36px rgba(15,23,42,0.06)",
                   border: "1px solid #e8e2d8",
                   overflow: "hidden",
@@ -289,34 +291,50 @@ const SearchVouchers = () => {
                     />
                   </Field>
 
-                  <Field label="Danh mục" icon={Tag} isSelect>
-                    <select
+                  <Field label="Danh mục" icon={Tag}>
+                    <CustomSelect
                       value={filters.category.includes(",") ? "" : filters.category}
-                      onChange={(e) => handleFilterChange("category", e.target.value)}
-                      style={fieldStyle}
-                    >
-                      <option value="">Tất cả danh mục</option>
-                      {categories.map((cat) => (
-                        <option key={cat.category_id} value={cat.category_id}>
-                          {translateCategory(cat.category_name)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleFilterChange("category", val)}
+                      placeholder="Tất cả danh mục"
+                      options={[
+                        { value: "", label: "Tất cả danh mục" },
+                        ...categories.map((cat) => ({
+                          value: String(cat.category_id),
+                          label: translateCategory(cat.category_name),
+                        })),
+                      ]}
+                      buttonStyle={{
+                        paddingLeft: "2.3rem",
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        height: "42px",
+                        fontSize: "0.9rem",
+                        fontWeight: 650,
+                      }}
+                    />
                   </Field>
 
-                  <Field label="Đối tác" icon={Tag} isSelect>
-                    <select
+                  <Field label="Đối tác" icon={Building}>
+                    <CustomSelect
                       value={filters.partner}
-                      onChange={(e) => handleFilterChange("partner", e.target.value)}
-                      style={fieldStyle}
-                    >
-                      <option value="">Tất cả đối tác</option>
-                      {partners.map((partner) => (
-                        <option key={partner.user_id} value={partner.user_id}>
-                          {partner.company_name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleFilterChange("partner", val)}
+                      placeholder="Tất cả đối tác"
+                      options={[
+                        { value: "", label: "Tất cả đối tác" },
+                        ...partners.map((partner) => ({
+                          value: String(partner.user_id),
+                          label: partner.company_name,
+                        })),
+                      ]}
+                      buttonStyle={{
+                        paddingLeft: "2.3rem",
+                        borderRadius: "8px",
+                        border: "1px solid #e2e8f0",
+                        height: "42px",
+                        fontSize: "0.9rem",
+                        fontWeight: 650,
+                      }}
+                    />
                   </Field>
 
                   <Field label="Khu vực" icon={MapPin}>
@@ -451,6 +469,7 @@ const iconStyle = {
   transform: "translateY(-50%)",
   color: "#94a3b8",
   pointerEvents: "none",
+  zIndex: 10,
 };
 
 const fieldStyle = {

@@ -1,10 +1,10 @@
-\chapter{Thiết kế cơ sở dữ liệu}
+\section{Thiết kế cơ sở dữ liệu}
 
-\section{Tổng quan}
+\subsection{Tổng quan}
 
 Cơ sở dữ liệu sử dụng PostgreSQL và được định nghĩa trong file \texttt{scriptDatabase.sql}. Script bao gồm lệnh xóa bảng cũ, tạo bảng, tạo trigger/ràng buộc nghiệp vụ và chèn dữ liệu mẫu.
 
-\section{Các bảng chính}
+\subsection{Các bảng chính}
 
 \begin{longtable}{|p{3.4cm}|p{9.8cm}|}
 \hline
@@ -29,15 +29,23 @@ System\_Logs & Bảng dự kiến lưu vết hành động quan trọng. \\ \hli
 \caption[]{Các bảng dữ liệu chính}\\
 \end{longtable}
 
-\section{ERD}
+\subsection{ERD}
 
 \begin{figure}[H]
 \centering
-\IfFileExists{images/Voucher_ERD.drawio.png}{\includegraphics[width=0.95\textwidth]{images/Voucher_ERD.drawio.png}}{\fbox{ERD image not found}}
+\diagramimage{images/diagrams/database-erd.drawio.png}
 \caption{ERD hệ thống voucher}
 \end{figure}
 
-\section{Ràng buộc nghiệp vụ trong database}
+ERD được tổ chức thành các nhóm dữ liệu chính:
+\begin{itemize}[leftmargin=1.2cm]
+    \item Nhóm người dùng gồm Users, Customers và Partners, lưu tài khoản và hồ sơ theo từng vai trò.
+    \item Nhóm voucher gồm Vouchers, Categories, Branches và Voucher\_Branches, mô tả sản phẩm voucher cùng phạm vi áp dụng.
+    \item Nhóm giao dịch gồm Orders, Order\_Items và E\_Vouchers, hỗ trợ mô hình hóa quy trình mua và phát hành mã điện tử.
+    \item Nhóm phản hồi gồm Reviews, Complaints, Complaint\_Vouchers và Complaint\_Responses, lưu đánh giá sau giao dịch và hỗ trợ xử lý khiếu nại.
+\end{itemize}
+
+\subsection{Ràng buộc nghiệp vụ trong database}
 
 Một số quy tắc được hiện thực trực tiếp trong schema hoặc trigger:
 
@@ -50,7 +58,27 @@ Một số quy tắc được hiện thực trực tiếp trong schema hoặc tr
     \item \texttt{trg\_validate\_review}: chỉ cho phép đánh giá khi khách hàng có đơn liên quan đến voucher.
 \end{itemize}
 
-\section{Dữ liệu mẫu}
+\subsection{Chỉ mục dữ liệu}
+
+Qua kiểm tra metadata PostgreSQL trên Supabase, hệ thống hiện có nhiều chỉ mục thuộc các schema hạ tầng của Supabase như \texttt{auth}, \texttt{storage} và \texttt{realtime}. Các chỉ mục này phục vụ cơ chế xác thực, lưu trữ tệp và realtime của nền tảng Supabase, không phải thành phần thiết kế nghiệp vụ riêng của ứng dụng Dealzy. Trong phạm vi schema nghiệp vụ \texttt{public}, ngoài các chỉ mục được PostgreSQL tự động tạo từ khóa chính và ràng buộc UNIQUE, dự án có hai chỉ mục tùy chỉnh sau:
+
+\begin{table}[H]
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{|p{3.2cm}|p{3.0cm}|Y|}
+\hline
+\textbf{Chỉ mục} & \textbf{Đối tượng áp dụng} & \textbf{Ý nghĩa và tác dụng} \\ \hline
+\shortstack[l]{\texttt{idx\_users\_email}\\\texttt{\_unique\_not\_null}} & \texttt{users.email} & Bảo đảm email là duy nhất theo dạng không phân biệt chữ hoa/thường đối với các bản ghi có email. Chỉ mục này giúp kiểm soát trùng lặp khi đăng ký tài khoản, đồng thời hỗ trợ tra cứu nhanh trong các luồng đăng nhập, xác minh hoặc khôi phục tài khoản bằng email. \\ \hline
+\shortstack[l]{\texttt{idx\_users\_phone}\\\texttt{\_unique\_not\_null}} & \texttt{users.phone} & Bảo đảm số điện thoại là duy nhất khi người dùng có khai báo số điện thoại, nhưng vẫn cho phép các tài khoản chưa cập nhật số điện thoại. Chỉ mục này hỗ trợ kiểm tra trùng số điện thoại và các luồng xác thực OTP/SMS mô phỏng trong hệ thống. \\ \hline
+\end{tabularx}
+\caption{Các chỉ mục custom trong schema nghiệp vụ}
+\end{table}
+
+Về mặt cài đặt, hai chỉ mục trên đều là partial unique index. Chỉ mục email áp dụng trên biểu thức \texttt{lower(email)} với điều kiện email khác \texttt{NULL}; chỉ mục số điện thoại áp dụng trên cột \texttt{phone} với điều kiện số điện thoại khác \texttt{NULL}. Cách thiết kế này phù hợp với dữ liệu người dùng vì email và số điện thoại có thể chưa được khai báo ở thời điểm tạo tài khoản, nhưng khi đã có giá trị thì cần bảo đảm tính duy nhất.
+
+Ngoài hai chỉ mục tùy chỉnh trên, PostgreSQL tự tạo chỉ mục cho các khóa chính của những bảng nghiệp vụ như người dùng, voucher, đơn hàng và E-Voucher. Các ràng buộc UNIQUE trên username, mã E-Voucher, quan hệ đánh giá của khách hàng, tên danh mục và khóa nội dung cấu hình cũng được ánh xạ thành chỉ mục tương ứng. Nhóm chỉ mục tự sinh này vừa bảo đảm toàn vẹn dữ liệu, vừa tăng tốc tra cứu theo khóa định danh, mã voucher điện tử, username, danh mục và nội dung cấu hình.
+
+\subsection{Dữ liệu mẫu}
 
 Seed data hiện có:
 

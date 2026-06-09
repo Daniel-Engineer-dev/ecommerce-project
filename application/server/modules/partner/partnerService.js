@@ -188,23 +188,29 @@ class PartnerService {
             await client.query('BEGIN');
 
             const existing = await client.query(
-                'SELECT * FROM Vouchers WHERE voucher_id = $1 AND partner_id = $2',
+                'SELECT * FROM Vouchers WHERE voucher_id = $1 AND partner_id = $2 FOR UPDATE',
                 [voucherId, partnerId]
             );
             if (existing.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
-            if (existing.rows[0].status === 'Approved') {
+            const currentVoucher = existing.rows[0];
+            if (currentVoucher.status === 'Approved') {
                 throw new Error('Voucher da duoc duyet. Doi tac chi co the tam ngung hoac gui yeu cau thay doi rieng.');
             }
 
             const payload = this.normalizeVoucherPayload(data);
+            const committedQuantity = Math.max(0, Number(currentVoucher.total_quantity) - Number(currentVoucher.quantity_stock));
+            if (payload.total_quantity < committedQuantity) {
+                throw new Error('Tong so luong moi khong duoc nho hon so voucher da ban hoac dang giu cho');
+            }
+            const nextStock = payload.total_quantity - committedQuantity;
             const updateQuery = `
                 UPDATE Vouchers
                 SET category_id = $1, title = $2, description = $3, image_url = $4,
                     discount_percent = $5, original_price = $6, sale_price = $7,
-                    total_quantity = $8, quantity_stock = LEAST(quantity_stock, $8),
-                    start_date = $9, expiry_date = $10,
-                    terms_and_conditions = $11, cancellation_policy = $12
-                WHERE voucher_id = $13 AND partner_id = $14
+                    total_quantity = $8, quantity_stock = $9,
+                    start_date = $10, expiry_date = $11,
+                    terms_and_conditions = $12, cancellation_policy = $13
+                WHERE voucher_id = $14 AND partner_id = $15
                 RETURNING *
             `;
             const updated = await client.query(updateQuery, [
@@ -216,6 +222,7 @@ class PartnerService {
                 payload.original_price,
                 payload.sale_price,
                 payload.total_quantity,
+                nextStock,
                 payload.start_date,
                 payload.expiry_date,
                 payload.terms_and_conditions,

@@ -218,9 +218,9 @@ const SearchVouchers = () => {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '100px', color: '#64748b' }}>
-              <div className="loader" style={{ marginBottom: '1rem' }}></div>
-              Đang tìm kiếm voucher tốt nhất cho bạn...
+            <div className="loading-screen">
+              <div className="loader"></div>
+              <p>Đang tìm kiếm voucher tốt nhất cho bạn...</p>
             </div>
           ) : vouchers.length > 0 ? (
             <div style={{

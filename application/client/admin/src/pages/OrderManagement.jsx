@@ -90,29 +90,19 @@ const OrderManagement = () => {
   const executeStatusUpdate = async () => {
     const { orderId, nextStatus, note } = confirmModal;
     
-    let endpoint = '';
-    let method = '';
-    let bodyData = null;
-
-    if (nextStatus === 'Paid') {
-      endpoint = `${API}/orders/${orderId}/confirm-payment`;
-      method = 'PATCH';
-    } else if (nextStatus === 'Cancelled' || nextStatus === 'Refunded') {
-      endpoint = `${API}/orders/${orderId}/refund`;
-      method = 'POST';
-      bodyData = { reason: note };
-    }
+    const endpoint = `${API}/orders/${orderId}/status`;
+    const bodyData = { status: nextStatus, note };
 
     try {
       const fetchOptions = {
-        method: method,
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${getToken()}`,
           'Content-Type': 'application/json',
         },
       };
 
-      if (bodyData) fetchOptions.body = JSON.stringify(bodyData);
+      fetchOptions.body = JSON.stringify(bodyData);
 
       const res = await apiFetch(endpoint, fetchOptions);
       const data = await res.json();

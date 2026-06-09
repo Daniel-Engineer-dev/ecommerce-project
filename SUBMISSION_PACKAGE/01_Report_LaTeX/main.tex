@@ -1,6 +1,6 @@
 \documentclass[12pt,a4paper]{report}
 
-\usepackage[a4paper,left=2.5cm,right=2.0cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage[a4paper,left=2.5cm,right=2.0cm,top=2.3cm,bottom=2.5cm,headheight=30pt,headsep=0.25cm]{geometry}
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
 \setsansfont{Arial}
@@ -18,9 +18,10 @@
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,calc}
 
 \renewcommand{\tablename}{Bảng}
-\renewcommand{\figurename}{Hình ảnh}
+\renewcommand{\figurename}{Hình}
 \captionsetup{position=bottom}
 
 \definecolor{dealzyblue}{RGB}{0,112,192}
@@ -41,6 +42,22 @@
 \setlength{\headheight}{30pt}
 \renewcommand{\arraystretch}{1.25}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\interfaceimage}[2]{%
+    \IfFileExists{images/ui/#1}{%
+        \includegraphics[width=0.92\textwidth,height=0.52\textheight,keepaspectratio]{images/ui/#1}%
+    }{%
+        \fbox{\parbox[c][5.0cm][c]{0.88\textwidth}{%
+            \centering\color{gray}\bfseries Ảnh giao diện chưa được nhúng\\[0.25cm]
+            \normalfont\color{black}#2\\[0.25cm]
+            Tệp minh họa: \texttt{images/ui/#1}%
+        }}%
+    }%
+}
+\newcommand{\diagramimage}[1]{%
+    \makebox[\textwidth][c]{%
+        \includegraphics[width=1.10\textwidth,height=0.84\textheight,keepaspectratio,interpolate=false]{#1}%
+    }%
+}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -55,18 +72,21 @@
   {\fontsize{68}{72}\selectfont\thechapter}
   {0pt}
   {\Huge\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-24pt}{18pt}
 
 \titleformat{\section}
   {\normalfont\Large\bfseries\color{lightblue}}
   {\thesection}
   {0.8em}
   {}
+\titlespacing*{\section}{0pt}{10pt}{6pt}
 
 \titleformat{\subsection}
   {\normalfont\large\bfseries\color{dealzyblue}}
   {\thesubsection}
   {0.8em}
   {}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
 
 \lstdefinestyle{code}{
     basicstyle=\ttfamily\small,
@@ -100,7 +120,6 @@
 \input{sections/02_requirements}
 \input{sections/03_analysis_design}
 \input{sections/04_implementation}
-\input{sections/05_database}
 \input{sections/06_testing_status}
 \input{sections/07_submission_next}
 

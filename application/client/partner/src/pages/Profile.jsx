@@ -121,7 +121,12 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <div style={{ paddingTop: '150px', textAlign: 'center' }}>Đang tải...</div>;
+    if (loading) return (
+        <div className="loading-screen" style={{ minHeight: '100vh' }}>
+            <div className="loader"></div>
+            <p>Đang tải...</p>
+        </div>
+    );
 
     if (!profile) {
         return (
@@ -143,25 +148,25 @@ const Profile = () => {
     }
 
     return (
-        <div style={{ padding: '28px', minHeight: 'calc(100vh - 68px)', background: '#f8fafc' }}>
-            <div style={{ position: 'relative', maxWidth: '1180px', margin: '0 auto', display: 'grid', gridTemplateColumns: '250px minmax(0, 1fr)', gap: '36px', alignItems: 'start' }}>
+        <div style={{ padding: '22px 30px', minHeight: 'calc(100vh - 72px)', background: 'transparent' }}>
+            <div style={{ position: 'relative', maxWidth: '1480px', margin: '0 auto', display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gap: '20px', alignItems: 'start' }}>
                 {/* Sidebar Tabs */}
                 <div style={{
-                    width: '250px',
+                    width: '220px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.5rem',
+                    gap: '0.35rem',
                     position: 'sticky',
-                    top: '96px'
+                    top: '88px'
                 }}>
-                    <div style={{ padding: '0 1rem 1rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Cài đặt</h2>
+                    <div style={{ padding: '0 0.75rem 0.65rem' }}>
+                        <h2 style={{ fontSize: '1.05rem', fontWeight: 850 }}>Cài đặt</h2>
                     </div>
                     <button
                         onClick={() => setActiveTab('info')}
                         style={{
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: 'var(--radius-md, 8px)',
+                            padding: '0.62rem 0.9rem',
+                            borderRadius: '14px',
                             border: activeTab === 'info' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                             background: activeTab === 'info' ? 'white' : 'transparent',
                             color: activeTab === 'info' ? 'var(--primary)' : 'var(--text-muted)',
@@ -170,7 +175,7 @@ const Profile = () => {
                             textAlign: 'left',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.75rem',
+                            gap: '0.65rem',
                             boxShadow: activeTab === 'info' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                             transition: '0.3s',
                             lineHeight: 1
@@ -183,8 +188,8 @@ const Profile = () => {
                         <button
                             onClick={() => setActiveTab('branches')}
                             style={{
-                                padding: '0.75rem 1.25rem',
-                                borderRadius: 'var(--radius-md, 8px)',
+                                padding: '0.62rem 0.9rem',
+                                borderRadius: '14px',
                                 border: activeTab === 'branches' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                                 background: activeTab === 'branches' ? 'white' : 'transparent',
                                 color: activeTab === 'branches' ? 'var(--primary)' : 'var(--text-muted)',
@@ -193,7 +198,7 @@ const Profile = () => {
                                 textAlign: 'left',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.75rem',
+                                gap: '0.65rem',
                                 boxShadow: activeTab === 'branches' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                                 transition: '0.3s',
                                 lineHeight: 1
@@ -206,8 +211,8 @@ const Profile = () => {
                     <button
                         onClick={() => setActiveTab('security')}
                         style={{
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: 'var(--radius-md, 8px)',
+                            padding: '0.62rem 0.9rem',
+                            borderRadius: '14px',
                             border: activeTab === 'security' ? '1px solid var(--border-color, #e4e4e7)' : '1px solid transparent',
                             background: activeTab === 'security' ? 'white' : 'transparent',
                             color: activeTab === 'security' ? 'var(--primary)' : 'var(--text-muted)',
@@ -216,7 +221,7 @@ const Profile = () => {
                             textAlign: 'left',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.75rem',
+                            gap: '0.65rem',
                             boxShadow: activeTab === 'security' ? 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))' : 'none',
                             transition: '0.3s',
                             lineHeight: 1
@@ -229,11 +234,11 @@ const Profile = () => {
 
                 {/* Main Content Area */}
                 <div style={{
-                    maxWidth: '720px',
+                    maxWidth: '1040px',
                     width: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '1.5rem'
+                    gap: '0.85rem'
                 }}>
 
                     <motion.div
@@ -241,18 +246,18 @@ const Profile = () => {
                         animate={{ opacity: 1, y: 0 }}
                         style={{ textAlign: 'left' }}
                     >
-                        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>Hồ sơ của bạn</h1>
-                        <p style={{ color: 'var(--text-muted)' }}>Quản lý thông tin cá nhân và cài đặt bảo mật</p>
+                        <h1 style={{ fontSize: '1.6rem', lineHeight: 1.16, fontWeight: 850, marginBottom: '0.2rem', letterSpacing: 0 }}>Hồ sơ của bạn</h1>
+                        <p style={{ color: '#64748b', fontWeight: 600, fontSize: '0.92rem' }}>Quản lý thông tin cá nhân và cài đặt bảo mật</p>
                     </motion.div>
 
-                    <div style={{ background: 'white', padding: '2.5rem', borderRadius: 'var(--radius-lg, 12px)', boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))', border: '1px solid var(--border-color, #e4e4e7)' }}>
+                    <div style={{ background: 'rgba(255, 255, 255, 0.96)', padding: '18px', borderRadius: '18px', boxShadow: '0 14px 34px rgba(15, 23, 42, 0.055)', border: '1px solid #dce7f3' }}>
                         <AnimatePresence mode="wait">
                             {activeTab === 'info' && (
                                 <motion.div key="info" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 850, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                         <User color="var(--primary)" /> Thông tin tài khoản
                                     </h3>
-                                    <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem 1rem' }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Email</label>
                                             <div className="input-group"><Mail size={18} className="input-icon" /><input type="email" value={profile.email || ''} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="auth-input" placeholder="Chưa cập nhật" /></div>
@@ -265,7 +270,7 @@ const Profile = () => {
 
                                         {profile.role === 'Partner' ? (
                                             <>
-                                                <div style={{ gridColumn: 'span 2' }}>
+                                                <div>
                                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Tên doanh nghiệp</label>
                                                     <div className="input-group"><Building size={18} className="input-icon" /><input type="text" value={profile.company_name} onChange={(e) => setProfile({ ...profile, company_name: e.target.value })} className="auth-input" /></div>
                                                 </div>
@@ -277,7 +282,7 @@ const Profile = () => {
                                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Mã số thuế</label>
                                                     <div className="input-group"><Briefcase size={18} className="input-icon" /><input type="text" value={profile.tax_id} onChange={(e) => setProfile({ ...profile, tax_id: e.target.value })} className="auth-input" /></div>
                                                 </div>
-                                                <div style={{ gridColumn: 'span 2' }}>
+                                                <div>
                                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Trụ sở chính</label>
                                                     <div className="input-group"><MapPin size={18} className="input-icon" /><input type="text" value={profile.headquarters} onChange={(e) => setProfile({ ...profile, headquarters: e.target.value })} className="auth-input" /></div>
                                                 </div>
@@ -300,10 +305,10 @@ const Profile = () => {
                                             </>
                                         )}
 
-                                        <div style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
+                                        <div style={{ gridColumn: 'span 2', marginTop: '0.25rem' }}>
                                             {success && activeTab === 'info' && <p style={{ color: '#10b981', marginBottom: '1rem', fontSize: '0.9rem' }}>{success}</p>}
                                             {error && activeTab === 'info' && <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</p>}
-                                            <button type="submit" className="btn-primary" style={{ height: '50px', padding: '0 2.5rem', gap: '0.5rem' }}>
+                                            <button type="submit" className="btn-primary" style={{ height: '42px', padding: '0 1.5rem', gap: '0.5rem' }}>
                                                 <Save size={18} /> Lưu thay đổi
                                             </button>
                                         </div>
@@ -313,10 +318,10 @@ const Profile = () => {
 
                             {activeTab === 'security' && (
                                 <motion.div key="security" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 850, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                                         <ShieldCheck color="var(--primary)" /> Bảo mật tài khoản
                                     </h3>
-                                    <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                    <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                                         <div>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Mật khẩu hiện tại</label>
                                             <div className="input-group"><Lock size={18} className="input-icon" /><input type="password" value={passwords.oldPassword} onChange={(e) => setPasswords({ ...passwords, oldPassword: e.target.value })} className="auth-input" placeholder="••••••••" required /></div>
@@ -330,10 +335,10 @@ const Profile = () => {
                                             <div className="input-group"><Lock size={18} className="input-icon" /><input type="password" value={passwords.confirmPassword} onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })} className="auth-input" placeholder="••••••••" required /></div>
                                         </div>
 
-                                        <div style={{ marginTop: '1rem' }}>
+                                        <div style={{ marginTop: '0.25rem' }}>
                                             {error && activeTab === 'security' && <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</p>}
                                             {success && activeTab === 'security' && <p style={{ color: '#10b981', marginBottom: '1rem', fontSize: '0.9rem' }}>{success}</p>}
-                                            <button type="submit" className="btn-primary" style={{ height: '50px', padding: '0 2.5rem', gap: '0.5rem' }}>
+                                            <button type="submit" className="btn-primary" style={{ height: '42px', padding: '0 1.5rem', gap: '0.5rem' }}>
                                                 <Save size={18} /> Đổi mật khẩu
                                             </button>
                                         </div>

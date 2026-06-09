@@ -14,7 +14,27 @@ const chatbotRoutes = require('./modules/shared/chatbotRoutes');
 const eventRoutes = require('./modules/shared/eventRoutes');
 const pool = require('./config/db');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const app = express();
+
+// 1. Kích hoạt bảo mật HTTP Headers với Helmet
+app.use(helmet());
+
+// 2. Giới hạn tần suất yêu cầu (Rate Limiting) để tránh DDoS & Brute force
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 300, // Tối đa 300 requests từ mỗi IP trong 15 phút
+  message: {
+    message: 'Tần suất gửi yêu cầu quá lớn. Vui lòng thử lại sau 15 phút.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Chỉ áp dụng Rate Limit lên các endpoint API
+app.use('/api', apiLimiter);
 
 // Cho phép request từ frontend (localhost dev + Vercel production)
 const allowedOrigins = [
@@ -35,7 +55,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 
 // Routes
