@@ -140,6 +140,11 @@ class AdminService {
                 (u.role = 'Partner' AND p.is_active = FALSE) OR
                 (u.role = 'Customer' AND c.is_active = FALSE)
             )`;
+        } else if (status === 'active') {
+            baseQuery += ` AND (
+                (u.role = 'Partner' AND p.is_active = TRUE) OR
+                (u.role = 'Customer' AND c.is_active = TRUE)
+            )`;
         }
 
         if (search) {
@@ -153,7 +158,7 @@ class AdminService {
             values.push(`%${search}%`);
             idx++;
         }
-
+        
         const countResult = await pool.query(`SELECT COUNT(*) FROM (${baseQuery}) AS sub`, values);
         const total = parseInt(countResult.rows[0].count, 10);
 

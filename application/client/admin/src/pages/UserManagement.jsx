@@ -84,7 +84,7 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
         if (!user) return;
         setActionLoading(true);
         try {
-            const currentLockState = !user.is_active;
+            const currentLockState = user.is_active;
             const res = await apiFetch(`${API}/users/${userId}/toggle-lock`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },

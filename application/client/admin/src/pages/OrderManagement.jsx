@@ -268,11 +268,6 @@ const OrderManagement = () => {
                     </button>
                   </>
                 )}
-                {selected.order.status === 'Paid' && (
-                  <button onClick={() => openConfirmModal(selected.order.order_id, 'Refunded')} className="col-span-2 py-2.5 rounded-xl bg-[#f5f7fa] border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm">
-                    <RotateCcw size={14} /> Hoàn tiền hệ thống
-                  </button>
-                )}
                 {['Cancelled', 'Refunded', 'Failed', 'Expired'].includes(selected.order.status) && (
                   <div className="col-span-2 text-center py-2.5 text-xs font-semibold text-slate-400 bg-slate-50 border border-slate-100 rounded-xl">
                     Đơn hàng đã đóng

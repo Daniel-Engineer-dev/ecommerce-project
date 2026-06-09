@@ -186,16 +186,42 @@ class AuthService {
 
     async login(username, password) {
         const result = await pool.query('SELECT * FROM Users WHERE username = $1', [username]);
-        if (result.rows.length === 0) throw new Error('Tai khoan khong ton tai');
+        if (result.rows.length === 0) throw new Error('Tài khoản không tồn tại');
 
         const user = result.rows[0];
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) throw new Error('Mat khau khong chinh xac');
+        if (!isMatch) throw new Error('Mật khẩu không chính xác');
 
+        // ─── KIỂM TRA TRẠNG THÁI HOẠT ĐỘNG (IS_ACTIVE) THEO VAI TRÒ ───
         if (user.role === 'Partner') {
-            const partnerRes = await pool.query('SELECT status FROM Partners WHERE user_id = $1', [user.user_id]);
-            if (partnerRes.rows[0].status === 'Pending') throw new Error('Tai khoan dang cho xet duyet');
-            if (partnerRes.rows[0].status === 'Rejected') throw new Error('Tai khoan da bi tu choi');
+            const partnerRes = await pool.query(
+                'SELECT status, is_active FROM Partners WHERE user_id = $1', 
+                [user.user_id]
+            );
+            const partner = partnerRes.rows[0];
+            
+            if (!partner) throw new Error('Thông tin đối tác không tồn tại trên hệ thống');
+            if (partner.status === 'Pending') throw new Error('Tai khoan dang cho xet duyet');
+            if (partner.status === 'Rejected') throw new Error('Tai khoan da bi tu choi');
+            
+            // Chặn đăng nhập nếu đối tác bị khóa tài khoản
+            if (partner.is_active === false) {
+                throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên để được hỗ trợ.');
+            }
+            
+        } else if (user.role === 'Customer') {
+            const customerRes = await pool.query(
+                'SELECT is_active FROM Customers WHERE user_id = $1', 
+                [user.user_id]
+            );
+            const customer = customerRes.rows[0];
+            
+            if (!customer) throw new Error('Thông tin khách hàng không tồn tại trên hệ thống');
+            
+            // Chặn đăng nhập nếu khách hàng bị khóa tài khoản
+            if (customer.is_active === false) {
+                throw new Error('Tài khoản của bạn đang bị tạm khóa do vi phạm tiêu chuẩn. Vui lòng liên hệ tổng đài.');
+            }
         }
 
         const accessToken = this.createAccessToken(user);
