@@ -51,13 +51,13 @@ const ResetPassword = () => {
 
     if (success) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '20px' }}>
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'white', padding: '40px', borderRadius: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', maxWidth: '450px', width: '100%', textAlign: 'center' }}>
-                    <div style={{ width: '80px', height: '80px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                        <CheckCircle size={40} color="#10b981" />
+            <div className="auth-reset-shell">
+                <motion.div initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="auth-reset-card auth-reset-card--center">
+                    <div className="auth-reset-icon">
+                        <CheckCircle size={38} />
                     </div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '10px' }}>Thành công!</h2>
-                    <p style={{ color: '#64748b', marginBottom: '30px' }}>Mật khẩu của bạn đã được cập nhật. Bây giờ bạn có thể đăng nhập bằng mật khẩu mới.</p>
+                    <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '10px', color: '#0f172a' }}>Cập nhật thành công</h2>
+                    <p style={{ color: '#64748b', marginBottom: '30px', lineHeight: 1.6 }}>Mật khẩu của bạn đã được cập nhật. Bạn có thể đăng nhập bằng mật khẩu mới.</p>
                     <button onClick={() => navigate('/auth')} className="btn-primary" style={{ width: '100%', height: '52px' }}>Đăng nhập ngay <ChevronRight size={18} /></button>
                 </motion.div>
             </div>
@@ -65,11 +65,11 @@ const ResetPassword = () => {
     }
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '20px' }}>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ background: 'white', padding: '40px', borderRadius: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', maxWidth: '450px', width: '100%' }}>
+        <div className="auth-reset-shell">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="auth-reset-card">
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#1e293b' }}>Đặt lại mật khẩu</h1>
-                    <p style={{ color: '#64748b', marginTop: '8px' }}>Vui lòng nhập mật khẩu mới cho tài khoản của bạn</p>
+                    <h1 style={{ fontSize: '28px', fontWeight: 950, color: '#0f172a' }}>Đặt lại mật khẩu</h1>
+                    <p style={{ color: '#64748b', marginTop: '8px', lineHeight: 1.55 }}>Nhập mật khẩu mới để tiếp tục sử dụng tài khoản Dealzy.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -85,7 +85,7 @@ const ResetPassword = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required 
                             />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '15px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="auth-password-toggle" aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
@@ -106,13 +106,13 @@ const ResetPassword = () => {
                         </div>
                     </div>
 
-                    {error && <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center' }}>{error}</p>}
+                    {error && <p className="auth-error" style={{ textAlign: 'center' }}>{error}</p>}
 
                     <button type="submit" disabled={loading} className="btn-primary" style={{ height: '52px', marginTop: '10px' }}>
                         {loading ? 'Đang xử lý...' : 'Cập nhật mật khẩu'}
                     </button>
                     
-                    <button type="button" onClick={() => navigate('/auth')} style={{ color: '#64748b', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer', marginTop: '10px' }}>Quay lại</button>
+                    <button type="button" onClick={() => navigate('/auth')} className="auth-secondary-button" style={{ marginTop: '4px' }}>Quay lại đăng nhập</button>
                 </form>
             </motion.div>
         </div>

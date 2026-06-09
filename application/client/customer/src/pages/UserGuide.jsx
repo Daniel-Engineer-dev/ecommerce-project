@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BadgeCheck,
@@ -27,7 +27,13 @@ const iconMap = {
 };
 
 const slugify = (value) =>
-  String(value || "").toLowerCase().replace(/\s+/g, "-");
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 const UserGuide = () => {
   const { data, hidden } = usePublicContent("user-guide");
@@ -35,12 +41,49 @@ const UserGuide = () => {
   const roadmap = data.roadmap || [];
   const quickTips = data.quickTips || [];
   const cta = data.cta || {};
+  const roadmapIds = useMemo(() => roadmap.map((item) => slugify(item.phase)), [roadmap]);
+  const [activeId, setActiveId] = useState("");
+
+  useEffect(() => {
+    const readHash = () => {
+      const nextHash = decodeURIComponent(window.location.hash.replace("#", ""));
+      setActiveId(nextHash || roadmapIds[0] || "");
+    };
+
+    readHash();
+    window.addEventListener("hashchange", readHash);
+    return () => window.removeEventListener("hashchange", readHash);
+  }, [roadmapIds]);
+
+  useEffect(() => {
+    if (!roadmapIds.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target?.id) setActiveId(visible.target.id);
+      },
+      {
+        rootMargin: "-34% 0px -48% 0px",
+        threshold: [0.2, 0.45, 0.7],
+      },
+    );
+
+    roadmapIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+
+    return () => observer.disconnect();
+  }, [roadmapIds]);
 
   if (hidden) return <HiddenContentNotice />;
 
   return (
-    <main className="static-page">
-      <section className="static-hero">
+    <main className="static-page guide-page">
+      <section className="static-hero guide-hero">
         <div className="static-hero__badge">
           <TicketCheck size={16} />
           {hero.badge}
@@ -50,140 +93,63 @@ const UserGuide = () => {
       </section>
 
       <section className="container static-section">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "280px 1fr",
-            gap: "2rem",
-            alignItems: "start",
-          }}
-        >
-          <aside
-            style={{
-              position: "sticky",
-              top: "190px",
-              background: "white",
-              border: "1px solid #e2e8f0",
-              borderRadius: "8px",
-              padding: "1.25rem",
-              boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "1rem",
-                fontWeight: 800,
-                marginBottom: "1rem",
-                color: "#0f172a",
-              }}
-            >
-              Tổng quan lộ trình
-            </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+        <div className="guide-layout">
+          <aside className="guide-overview" aria-label="Tổng quan lộ trình">
+            <div className="guide-overview__eyebrow">Lộ trình sử dụng</div>
+            <h2>Tổng quan lộ trình</h2>
+            <div className="guide-overview__list">
               {roadmap.map((item) => {
                 const Icon = iconMap[item.icon] || BadgeCheck;
+                const itemId = slugify(item.phase);
+                const isActive = activeId === itemId;
+
                 return (
                   <a
                     key={item.phase}
-                    href={`#${slugify(item.phase)}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.65rem",
-                      padding: "0.65rem",
-                      borderRadius: "6px",
-                      color: "#334155",
-                      textDecoration: "none",
-                      fontWeight: 700,
-                      fontSize: "0.86rem",
-                      background: "#f8fafc",
-                    }}
+                    href={`#${itemId}`}
+                    className={`guide-overview__link${isActive ? " is-active" : ""}`}
+                    aria-current={isActive ? "step" : undefined}
+                    onClick={() => setActiveId(itemId)}
                   >
-                    <Icon size={16} color="var(--primary)" />
-                    {item.phase}
+                    <span className="guide-overview__icon">
+                      <Icon size={17} />
+                    </span>
+                    <span className="guide-overview__copy">
+                      <span className="guide-overview__phase">{item.phase}</span>
+                      <span className="guide-overview__title">{item.title}</span>
+                    </span>
                   </a>
                 );
               })}
             </div>
           </aside>
 
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                position: "absolute",
-                left: "27px",
-                top: "24px",
-                bottom: "24px",
-                width: "2px",
-                background: "var(--border-color)",
-              }}
-            />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div className="guide-roadmap">
+            <div className="guide-roadmap__line" />
+            <div className="guide-roadmap__stack">
               {roadmap.map((item) => {
                 const Icon = iconMap[item.icon] || BadgeCheck;
+                const itemId = slugify(item.phase);
+                const isActive = activeId === itemId;
+
                 return (
                   <article
-                    id={slugify(item.phase)}
+                    id={itemId}
                     key={item.phase}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "56px 1fr",
-                      gap: "1.25rem",
-                      scrollMarginTop: "190px",
-                    }}
+                    className={`guide-step${isActive ? " is-active" : ""}`}
                   >
-                    <div
-                      style={{
-                        width: "56px",
-                        height: "56px",
-                        borderRadius: "50%",
-                        background: "var(--primary)",
-                        color: "white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "var(--shadow-sm)",
-                        zIndex: 1,
-                      }}
-                    >
+                    <div className="guide-step__marker">
                       <Icon size={24} />
                     </div>
 
-                    <div
-                      style={{
-                        background: "white",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "8px",
-                        padding: "1.5rem",
-                        boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-                      }}
-                    >
-                      <span style={{ color: "var(--primary)", fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase" }}>
-                        {item.phase}
-                      </span>
-                      <h2 style={{ fontSize: "1.35rem", fontWeight: 800, margin: "0.35rem 0 0.75rem", color: "#0f172a" }}>
-                        {item.title}
-                      </h2>
-                      <p style={{ color: "#475569", lineHeight: 1.7, marginBottom: "1rem" }}>{item.text}</p>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.75rem" }}>
+                    <div className="guide-step__card">
+                      <span className="guide-step__phase">{item.phase}</span>
+                      <h2>{item.title}</h2>
+                      <p>{item.text}</p>
+                      <div className="guide-checklist">
                         {(item.checklist || []).map((entry) => (
-                          <div
-                            key={entry}
-                            style={{
-                              display: "flex",
-                              gap: "0.5rem",
-                              alignItems: "flex-start",
-                              background: "#f8fafc",
-                              border: "1px solid #e2e8f0",
-                              borderRadius: "6px",
-                              padding: "0.75rem",
-                              color: "#334155",
-                              fontSize: "0.88rem",
-                              lineHeight: 1.45,
-                            }}
-                          >
-                            <BadgeCheck size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: "2px" }} />
+                          <div className="guide-checklist__item" key={entry}>
+                            <BadgeCheck size={16} />
                             {entry}
                           </div>
                         ))}
@@ -198,11 +164,11 @@ const UserGuide = () => {
       </section>
 
       <section className="container static-section">
-        <div className="static-card-grid">
+        <div className="static-card-grid guide-tip-grid">
           {quickTips.map(({ icon, title, text }) => {
             const Icon = iconMap[icon] || CircleHelp;
             return (
-              <article className="static-card" key={title}>
+              <article className="static-card guide-tip-card" key={title}>
                 <Icon size={24} />
                 <h2>{title}</h2>
                 <p>{text}</p>
@@ -212,7 +178,7 @@ const UserGuide = () => {
         </div>
       </section>
 
-      <section className="container static-section static-panel">
+      <section className="container static-section static-panel guide-cta-panel">
         <div>
           <h2>{cta.title}</h2>
           <p>{cta.description}</p>

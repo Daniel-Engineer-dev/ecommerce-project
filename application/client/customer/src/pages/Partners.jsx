@@ -93,6 +93,13 @@ const testimonials = [
   },
 ];
 
+const sectionReveal = {
+  initial: { opacity: 0, y: 42 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.18 },
+  transition: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+};
+
 const Partners = () => {
   const sliderRef = useRef(null);
 
@@ -190,7 +197,7 @@ const Partners = () => {
         </div>
       </section>
 
-      <section className="partners-logo-section" aria-label="Đối tác tiêu biểu">
+      <Motion.section className="partners-logo-section" aria-label="Đối tác tiêu biểu" {...sectionReveal}>
         <div className="container">
           <div className="partners-section-intro partners-section-intro--inline">
             <span>Được tin chọn bởi</span>
@@ -224,9 +231,9 @@ const Partners = () => {
             </button>
           </div>
         </div>
-      </section>
+      </Motion.section>
 
-      <section className="partners-benefits">
+      <Motion.section className="partners-benefits" {...sectionReveal}>
         <div className="container">
           <div className="partners-section-intro">
             <span>Lợi ích thiết thực</span>
@@ -251,9 +258,9 @@ const Partners = () => {
             ))}
           </div>
         </div>
-      </section>
+      </Motion.section>
 
-      <section className="container case-study">
+      <Motion.section className="container case-study" {...sectionReveal}>
         <div className="case-study__metric">
           <span>Case study</span>
           <strong>65%</strong>
@@ -267,9 +274,9 @@ const Partners = () => {
             tạo thói quen quay lại chỉ sau hai tháng.
           </p>
         </div>
-      </section>
+      </Motion.section>
 
-      <section id="partner-stories" className="testimonial-section">
+      <Motion.section id="partner-stories" className="testimonial-section" {...sectionReveal}>
         <div className="container">
           <div className="partners-section-intro">
             <span>Đối tác nói gì</span>
@@ -297,9 +304,9 @@ const Partners = () => {
             ))}
           </div>
         </div>
-      </section>
+      </Motion.section>
 
-      <section className="container partners-cta">
+      <Motion.section className="container partners-cta" {...sectionReveal}>
         <div>
           <span>Bắt đầu trong 24 giờ</span>
           <h2>Sẵn sàng biến ưu đãi thành tăng trưởng?</h2>
@@ -308,7 +315,7 @@ const Partners = () => {
         <Link to="/register-partner" className="partners-primary-link">
           Đăng ký hợp tác <ArrowUpRight size={18} />
         </Link>
-      </section>
+      </Motion.section>
     </main>
   );
 };

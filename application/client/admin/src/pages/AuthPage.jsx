@@ -89,7 +89,7 @@ const AuthPage = () => {
               <input
                 required
                 type="text"
-                className="w-full bg-[#f5f7fa] border border-slate-100 p-3.5 pl-11 rounded-xl text-slate-800 focus:bg-white focus:border-[#1a3a5c] outline-none transition-all text-sm font-semibold placeholder:text-slate-400 placeholder:font-medium"
+                className="w-full bg-white border border-slate-200 p-3.5 pl-11 rounded-xl text-slate-800 hover:border-[#6ec6a0]/60 hover:bg-slate-50 focus:bg-white focus:border-[#1a3a5c] focus:ring-4 focus:ring-[#6ec6a0]/15 outline-none transition-all text-sm font-semibold placeholder:text-slate-400 placeholder:font-medium"
                 placeholder="Nhập ID Quản trị"
                 value={formData.username}
                 onChange={(e) => {
@@ -107,7 +107,7 @@ const AuthPage = () => {
               <input
                 required
                 type="password"
-                className="w-full bg-[#f5f7fa] border border-slate-100 p-3.5 pl-11 rounded-xl text-slate-800 focus:bg-white focus:border-[#1a3a5c] outline-none transition-all text-sm font-bold placeholder:text-slate-400 placeholder:font-medium"
+                className="w-full bg-white border border-slate-200 p-3.5 pl-11 rounded-xl text-slate-800 hover:border-[#6ec6a0]/60 hover:bg-slate-50 focus:bg-white focus:border-[#1a3a5c] focus:ring-4 focus:ring-[#6ec6a0]/15 outline-none transition-all text-sm font-bold placeholder:text-slate-400 placeholder:font-medium"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => {
@@ -120,7 +120,7 @@ const AuthPage = () => {
 
           <button
             disabled={loading}
-            className="w-full bg-[#1a3a5c] text-white p-3.5 rounded-xl font-bold text-sm hover:bg-[#132a44] transition-all shadow-sm flex items-center justify-center gap-2 mt-4 group disabled:opacity-70"
+            className="w-full bg-[#1a3a5c] text-white p-3.5 rounded-xl font-bold text-sm hover:bg-[#132a44] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] transition-all shadow-sm hover:shadow-lg flex items-center justify-center gap-2 mt-4 group disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none"
           >
             {loading ? 'Đang xác thực...' : (
               <>

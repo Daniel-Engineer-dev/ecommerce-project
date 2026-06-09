@@ -1,14 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import jsQR from 'jsqr';
 import {
   BarChart3,
   Building2,
   CheckCircle,
+  Check,
+  ChevronDown,
   ClipboardCheck,
   Edit3,
   Eye,
+  ImagePlus,
   LayoutDashboard,
   Loader2,
   Lock,
@@ -22,6 +25,7 @@ import {
   Search,
   Settings,
   Ticket,
+  UploadCloud,
   User,
   XCircle,
 } from 'lucide-react';
@@ -59,6 +63,33 @@ const escapeHtml = (value) =>
 const QR_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/bmp', 'image/gif']);
 const QR_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'];
 const QR_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const VOUCHER_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const VOUCHER_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const CATEGORY_LABELS_VI = {
+  Beauty: 'Làm đẹp',
+  Cafe: 'Cà phê',
+  Dining: 'Ẩm thực',
+  Education: 'Giáo dục',
+  Entertainment: 'Giải trí',
+  Health: 'Sức khỏe',
+  Hotels: 'Khách sạn',
+  Shopping: 'Mua sắm',
+  Spa: 'Spa & thư giãn',
+  Travel: 'Du lịch',
+};
+
+const ORDER_STATUS_LABELS_VI = {
+  Pending: 'Chờ thanh toán',
+  Paid: 'Đã thanh toán',
+  Completed: 'Đã hoàn tất',
+  Cancelled: 'Đã hủy',
+  Failed: 'Thanh toán thất bại',
+  Expired: 'Đã hết hạn',
+  Refunded: 'Đã hoàn tiền',
+};
+
+const categoryLabelVi = (label) => CATEGORY_LABELS_VI[label] || label;
+const orderStatusLabelVi = (status) => ORDER_STATUS_LABELS_VI[status] || status;
 
 const decodeQrWithCanvas = async (file) => {
   const bitmap = await createImageBitmap(file);
@@ -213,89 +244,59 @@ function Dashboard() {
 
   if (!data && !error) return <LoadingBlock />;
 
+  const allActivities = data?.recent_activity || [];
   const usedQuantity = Number(data?.used_quantity || 0);
-  const unusedQuantity = Number(data?.unused_quantity || 0);
   const soldQuantity = Number(data?.sold_quantity || 0);
+  const revenue = Number(data?.revenue || 0);
   const approvedVouchers = Number(data?.approved_vouchers || 0);
   const pendingVouchers = Number(data?.pending_vouchers || 0);
   const disabledVouchers = Number(data?.disabled_vouchers || 0);
   const usageRate = Math.round((usedQuantity / Math.max(soldQuantity, 1)) * 100);
   const stats = [
-    { label: 'Doanh thu đã ghi nhận', value: money(data?.revenue), icon: BarChart3, color: 'var(--primary)' },
-    { label: 'Đã bán', value: soldQuantity, icon: Ticket, color: '#0369a1' },
-    { label: 'Tỷ lệ sử dụng', value: `${usageRate}%`, icon: CheckCircle, color: '#0f766e' },
-    { label: 'Voucher đang bán', value: approvedVouchers, icon: Ticket, color: 'var(--primary)' },
-    { label: 'Voucher chờ duyệt', value: pendingVouchers, icon: ClipboardCheck, color: 'var(--primary)' },
-    { label: 'Mã đã sử dụng', value: usedQuantity, icon: CheckCircle, color: 'var(--primary)' },
+    { label: 'Doanh thu', value: money(revenue), icon: BarChart3, color: '#0f766e', tone: '#ecfdf5' },
+    { label: 'Mã đã bán', value: soldQuantity, icon: Ticket, color: '#0369a1', tone: '#eff6ff' },
+    { label: 'Tỷ lệ sử dụng', value: `${usageRate}%`, icon: CheckCircle, color: '#7c3aed', tone: '#f5f3ff' },
+    { label: 'Đang bán', value: approvedVouchers, icon: Ticket, color: '#16a34a', tone: '#f0fdf4' },
+    { label: 'Chờ duyệt', value: pendingVouchers, icon: ClipboardCheck, color: '#d97706', tone: '#fffbeb' },
+    { label: 'Đã sử dụng', value: usedQuantity, icon: CheckCircle, color: '#0f172a', tone: '#f8fafc' },
   ];
   const voucherStatusChart = [
-    { label: 'Đang bán', value: approvedVouchers, color: '#16a34a' },
-    { label: 'Chờ duyệt', value: pendingVouchers, color: '#d97706' },
-    { label: 'Tạm ngưng', value: disabledVouchers, color: '#dc2626' },
+    { key: 'approved', label: 'Đang bán', value: approvedVouchers, color: '#16a34a', tone: '#f0fdf4' },
+    { key: 'pending', label: 'Chờ duyệt', value: pendingVouchers, color: '#d97706', tone: '#fffbeb' },
+    { key: 'suspended', label: 'Tạm ngưng', value: disabledVouchers, color: '#dc2626', tone: '#fef2f2' },
   ];
-  const revenueTrend = (data?.recent_activity || [])
+  const revenueTrend = allActivities
     .filter((item) => item.status === 'Used')
     .slice()
     .reverse()
-    .reduce((points, item, index) => {
-      const previous = points[index - 1]?.value || 0;
-      points.push({
-        label: item.unique_code || `Mã ${index + 1}`,
-        value: previous + Number(item.price_at_purchase || item.sale_price || 0),
-      });
-      return points;
-    }, []);
+    .map((item, index) => ({
+      label: item.unique_code || `Mã ${index + 1}`,
+      title: item.title || 'Voucher',
+      date: item.used_date || item.issued_at || item.order_date,
+      amount: Number(item.price_at_purchase || item.sale_price || 0),
+    }));
   const fallbackTrend = revenueTrend.length > 0 ? revenueTrend : [
-    { label: 'Bắt đầu', value: 0 },
-    { label: 'Hiện tại', value: Number(data?.revenue || 0) },
+    { label: 'Hiện tại', title: 'Doanh thu đã ghi nhận', date: null, amount: revenue },
   ];
 
   return (
     <div style={shell.page}>
-      <PageTitle title="Tổng quan kinh doanh" subtitle="Theo dõi nhanh doanh thu, voucher và hoạt động xác thực của đối tác." onRefresh={load} />
+      <PageTitle title="Tổng quan kinh doanh" subtitle="Theo dõi doanh thu, trạng thái voucher và hoạt động xác thực của đối tác." onRefresh={load} />
       <ErrorBox message={error} />
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '12px' }}>
-        {stats.map((item) => (
-          <motion.div
-            key={item.label}
-            whileHover={{ y: -4, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 24 }}
-            style={{ ...shell.card, padding: '16px', minHeight: '150px', cursor: 'default' }}
-          >
-            <item.icon size={22} color={item.color} />
-            <div style={{ color: '#64748b', fontWeight: 800, marginTop: '12px', fontSize: '0.78rem', lineHeight: 1.25 }}>{item.label}</div>
-            <div style={{ fontSize: 'clamp(1.35rem, 1.6vw, 1.75rem)', fontWeight: 900, marginTop: '6px', lineHeight: 1.15, wordBreak: 'break-word' }}>{item.value}</div>
-          </motion.div>
-        ))}
+        {stats.map((item) => <DashboardStatCard key={item.label} item={item} />)}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '16px' }}>
-        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px', borderRadius: '22px' }}>
           <h2 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>Xu hướng doanh thu</h2>
           <p style={{ color: '#64748b', fontWeight: 700, fontSize: '0.82rem', marginBottom: '18px' }}>Tích lũy theo các mã đã sử dụng gần đây</p>
           <RevenueTrendChart points={fallbackTrend} />
         </motion.div>
 
-        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px' }}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: '18px' }}>Trạng thái voucher</h2>
-          <div style={{ display: 'grid', gap: '14px' }}>
-            {voucherStatusChart.map((item) => {
-              const total = Math.max(approvedVouchers + pendingVouchers + disabledVouchers, 1);
-              const percent = Math.round((item.value / total) * 100);
-              return (
-                <div key={item.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '7px', fontWeight: 800 }}>
-                    <span>{item.label}</span>
-                    <span style={{ color: '#64748b' }}>{item.value} · {percent}%</span>
-                  </div>
-                  <div style={{ height: '12px', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
-                    <div style={{ width: `${percent}%`, height: '100%', background: item.color, borderRadius: '999px' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <motion.div whileHover={{ y: -3, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} style={{ ...shell.card, padding: '22px', borderRadius: '22px' }}>
+          <VoucherStatusDonut items={voucherStatusChart} />
         </motion.div>
       </div>
     </div>
@@ -389,6 +390,10 @@ function VoucherManagement() {
 
   const submitForm = async (event) => {
     event.preventDefault();
+    if (!isVoucherFormComplete) {
+      setError('Vui lòng điền đầy đủ tất cả thông tin voucher trước khi gửi duyệt.');
+      return;
+    }
     try {
       setError('');
       setSuccess('');
@@ -422,6 +427,36 @@ function VoucherManagement() {
     }));
   };
 
+  const handleVoucherImageUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!VOUCHER_IMAGE_TYPES.has(file.type)) {
+      setError('Chỉ hỗ trợ ảnh PNG, JPG/JPEG hoặc WEBP.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > VOUCHER_IMAGE_MAX_SIZE) {
+      setError('Ảnh voucher tối đa 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setError('');
+      setForm((prev) => ({ ...prev, image_url: reader.result }));
+    };
+    reader.onerror = () => setError('Không thể đọc file ảnh. Vui lòng thử ảnh khác.');
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const removeVoucherImage = () => {
+    setForm((prev) => ({ ...prev, image_url: '' }));
+  };
+
   const voucherStats = useMemo(() => {
     const approved = vouchers.filter((voucher) => voucher.status === 'Approved').length;
     const pending = vouchers.filter((voucher) => voucher.status === 'Pending').length;
@@ -434,6 +469,27 @@ function VoucherManagement() {
       { label: 'Đã dùng', value: `${used}/${Math.max(sold, 1)}`, icon: BarChart3 },
     ];
   }, [vouchers]);
+
+  const isVoucherFormComplete = useMemo(() => {
+    const hasText = (value) => String(value ?? '').trim().length > 0;
+    const positiveNumber = (value) => Number(value) > 0;
+
+    return (
+      hasText(form.title) &&
+      hasText(form.category_id) &&
+      positiveNumber(form.original_price) &&
+      positiveNumber(form.sale_price) &&
+      positiveNumber(form.total_quantity) &&
+      hasText(form.image_url) &&
+      hasText(form.start_date) &&
+      hasText(form.expiry_date) &&
+      hasText(form.description) &&
+      hasText(form.terms_and_conditions) &&
+      hasText(form.cancellation_policy) &&
+      Array.isArray(form.branch_ids) &&
+      form.branch_ids.length > 0
+    );
+  }, [form]);
 
   return (
     <div style={shell.page}>
@@ -460,33 +516,76 @@ function VoucherManagement() {
       )}
 
       {formOpen && (
-        <form onSubmit={submitForm} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
-          <h2 style={{ gridColumn: '1 / -1', fontSize: '1.2rem' }}>{editing ? 'Cập nhật thông tin voucher' : 'Tạo voucher mới'}</h2>
-          <Field label="Tên voucher" value={form.title} onChange={(title) => setForm({ ...form, title })} required />
-          <Select label="Danh mục" value={form.category_id} onChange={(category_id) => setForm({ ...form, category_id })} options={categories.map((c) => [c.category_id, c.category_name])} required />
-          <Field label="Giá gốc" type="number" value={form.original_price} onChange={(original_price) => setForm({ ...form, original_price })} required />
-          <Field label="Giá bán" type="number" value={form.sale_price} onChange={(sale_price) => setForm({ ...form, sale_price })} required />
-          <Field label="Số lượng phát hành" type="number" value={form.total_quantity} onChange={(total_quantity) => setForm({ ...form, total_quantity })} required />
-          <Field label="Ảnh voucher URL" value={form.image_url} onChange={(image_url) => setForm({ ...form, image_url })} />
-          <Field label="Ngày bắt đầu bán" type="date" value={form.start_date} onChange={(start_date) => setForm({ ...form, start_date })} />
-          <Field label="Ngày hết hạn/sử dụng" type="date" value={form.expiry_date} onChange={(expiry_date) => setForm({ ...form, expiry_date })} required />
-          <TextArea label="Mô tả" value={form.description} onChange={(description) => setForm({ ...form, description })} />
-          <TextArea label="Điều kiện áp dụng" value={form.terms_and_conditions} onChange={(terms_and_conditions) => setForm({ ...form, terms_and_conditions })} />
-          <TextArea label="Chính sách hoàn/hủy" value={form.cancellation_policy} onChange={(cancellation_policy) => setForm({ ...form, cancellation_policy })} />
-          <div>
-            <label style={shell.label}>Chi nhánh áp dụng</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
-              {branches.map((branch) => (
-                <label key={branch.branch_id} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 700, color: '#334155' }}>
-                  <input type="checkbox" checked={form.branch_ids.map(Number).includes(branch.branch_id)} onChange={(e) => updateBranch(branch.branch_id, e.target.checked)} />
-                  {branch.branch_name}
-                </label>
-              ))}
+        <form onSubmit={submitForm} style={{ ...shell.card, overflow: 'hidden' }}>
+          <div style={{ padding: '22px 26px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', gap: '16px', alignItems: 'flex-start', background: 'linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)' }}>
+            <div>
+              <h2 style={{ fontSize: '1.28rem', marginBottom: '6px' }}>{editing ? 'Cập nhật thông tin voucher' : 'Tạo voucher mới'}</h2>
+              <p style={{ color: '#64748b', fontWeight: 700, maxWidth: '620px' }}>
+                Điền đầy đủ thông tin, chọn ảnh đại diện và chi nhánh áp dụng trước khi gửi admin duyệt.
+              </p>
             </div>
+            <span style={{ padding: '8px 12px', borderRadius: '999px', background: isVoucherFormComplete ? '#dcfce7' : '#fff7ed', color: isVoucherFormComplete ? '#166534' : '#9a3412', fontWeight: 850, whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
+              {isVoucherFormComplete ? 'Đã đủ thông tin' : 'Còn thiếu thông tin'}
+            </span>
           </div>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={() => setFormOpen(false)} style={{ ...shell.button, background: '#f1f5f9', color: '#475569' }}><XCircle size={18} /> Hủy</button>
-            <button type="submit" style={{ ...shell.button, background: '#16a34a', color: 'white' }}><Save size={18} /> {editing ? 'Lưu thay đổi' : 'Tạo và gửi duyệt'}</button>
+
+          <div style={{ padding: '24px 26px', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(320px, 1fr))', gap: '22px', alignItems: 'stretch' }}>
+            <FormSection title="Thông tin cơ bản" description="Tên, danh mục, giá bán và số lượng phát hành.">
+              <Field label="Tên voucher" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="VD: Buffet hải sản cuối tuần tại Quận 1" required />
+              <Select label="Danh mục" value={form.category_id} onChange={(category_id) => setForm({ ...form, category_id })} options={categories.map((c) => [c.category_id, c.category_name])} placeholder="Chọn danh mục voucher" required />
+              <Field label="Giá gốc" type="number" value={form.original_price} onChange={(original_price) => setForm({ ...form, original_price })} placeholder="VD: 800000" required />
+              <Field label="Giá bán" type="number" value={form.sale_price} onChange={(sale_price) => setForm({ ...form, sale_price })} placeholder="VD: 560000" required />
+              <Field label="Số lượng phát hành" type="number" value={form.total_quantity} onChange={(total_quantity) => setForm({ ...form, total_quantity })} placeholder="VD: 100" required />
+            </FormSection>
+
+            <FormSection title="Ảnh và thời gian" description="Ảnh rõ nét giúp voucher được duyệt nhanh hơn." contentStyle={{ gridTemplateColumns: 'minmax(220px, 1fr) minmax(220px, 1fr)', alignItems: 'start' }}>
+              <div>
+                <VoucherImageUpload value={form.image_url} onUpload={handleVoucherImageUpload} onRemove={removeVoucherImage} />
+              </div>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <Field label="Ngày bắt đầu bán" type="date" value={form.start_date} onChange={(start_date) => setForm({ ...form, start_date })} required />
+                <Field label="Ngày hết hạn/sử dụng" type="date" value={form.expiry_date} onChange={(expiry_date) => setForm({ ...form, expiry_date })} required />
+              </div>
+            </FormSection>
+
+            <FormSection title="Nội dung hiển thị" description="Mô tả ngắn gọn, rõ quyền lợi và điều kiện sử dụng voucher.">
+              <TextArea label="Mô tả" value={form.description} onChange={(description) => setForm({ ...form, description })} placeholder="Mô tả trải nghiệm, dịch vụ bao gồm và điểm nổi bật của voucher..." required />
+              <TextArea label="Điều kiện áp dụng" value={form.terms_and_conditions} onChange={(terms_and_conditions) => setForm({ ...form, terms_and_conditions })} placeholder="VD: Áp dụng từ thứ 2 đến thứ 6, vui lòng đặt chỗ trước..." required />
+              <TextArea label="Chính sách hoàn/hủy" value={form.cancellation_policy} onChange={(cancellation_policy) => setForm({ ...form, cancellation_policy })} placeholder="VD: Không hoàn/hủy sau khi mã đã phát hành hoặc đã sử dụng..." required />
+            </FormSection>
+
+            <FormSection title="Chi nhánh áp dụng" description="Chọn ít nhất một chi nhánh có thể sử dụng voucher.">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', maxHeight: '210px', overflow: 'auto' }}>
+                {branches.map((branch) => (
+                  <label key={branch.branch_id} style={{ display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 750, color: '#334155', padding: '8px 10px', borderRadius: '10px', background: form.branch_ids.map(Number).includes(branch.branch_id) ? '#e0f2fe' : '#ffffff', border: '1px solid #e2e8f0', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.branch_ids.map(Number).includes(branch.branch_id)} onChange={(e) => updateBranch(branch.branch_id, e.target.checked)} />
+                    {branch.branch_name}
+                  </label>
+                ))}
+              </div>
+            </FormSection>
+          </div>
+
+          <div style={{ padding: '18px 26px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '12px', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+            <p style={{ margin: 0, color: '#64748b', fontWeight: 700 }}>
+              {isVoucherFormComplete ? 'Thông tin đã sẵn sàng để gửi duyệt.' : 'Nút gửi duyệt sẽ được mở khi tất cả trường đã được điền.'}
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="button" onClick={() => setFormOpen(false)} style={{ ...shell.button, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0' }}><XCircle size={18} /> Hủy</button>
+              <button
+                type="submit"
+                disabled={!isVoucherFormComplete}
+                style={{
+                  ...shell.button,
+                  background: isVoucherFormComplete ? '#16a34a' : '#cbd5e1',
+                  color: isVoucherFormComplete ? 'white' : '#64748b',
+                  cursor: isVoucherFormComplete ? 'pointer' : 'not-allowed',
+                  opacity: isVoucherFormComplete ? 1 : 0.82,
+                }}
+              >
+                <Save size={18} /> {editing ? 'Lưu thay đổi' : 'Tạo và gửi duyệt'}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -495,13 +594,13 @@ function VoucherManagement() {
         <div style={{ ...shell.card, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: '34%' }} />
+              <col style={{ width: '31%' }} />
               <col style={{ width: '10%' }} />
               <col style={{ width: '8%' }} />
               <col style={{ width: '7%' }} />
               <col style={{ width: '7%' }} />
               <col style={{ width: '10%' }} />
-              <col style={{ width: '24%' }} />
+              <col style={{ width: '27%' }} />
             </colgroup>
             <thead style={{ background: '#f8fafc' }}>
               <tr>
@@ -515,7 +614,7 @@ function VoucherManagement() {
                 <tr key={voucher.voucher_id} style={{ borderTop: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '16px' }}>
                     <div style={{ fontWeight: 900 }}>{voucher.title}</div>
-                    <div style={{ color: '#64748b', fontSize: '0.82rem' }}>{voucher.category_name} · {voucher.branch_names || 'Tất cả chi nhánh'}</div>
+                    <div style={{ color: '#64748b', fontSize: '0.82rem' }}>{categoryLabelVi(voucher.category_name)} · {voucher.branch_names || 'Tất cả chi nhánh'}</div>
                   </td>
                   <td style={{ padding: '16px', fontWeight: 800, whiteSpace: 'nowrap' }}>{money(voucher.sale_price)}</td>
                   <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>{voucher.quantity_stock}/{voucher.total_quantity}</td>
@@ -523,14 +622,14 @@ function VoucherManagement() {
                   <td style={{ padding: '16px', whiteSpace: 'nowrap' }}>{voucher.used_quantity}</td>
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}><StatusPill status={voucher.status} /></td>
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}>
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                    <div className="voucher-action-group">
                       {voucher.status !== 'Approved' && (
                         <>
-                          <button onClick={() => editVoucher(voucher)} title="Sửa thông tin voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: 'var(--bg-dark)', color: 'var(--primary)', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
-                          <button onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fef3c7', color: '#92400e', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
+                          <button className="btn-table-edit" onClick={() => editVoucher(voucher)} title="Sửa thông tin voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
+                          <button className="btn-table-submit" onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
                         </>
                       )}
-                      <button onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', background: '#fee2e2', color: '#991b1b', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
+                      <button className="btn-table-disable" onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
                     </div>
                   </td>
                 </tr>
@@ -648,11 +747,11 @@ function RedeemVoucher() {
       <form onSubmit={check} style={{ ...shell.card, padding: '22px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
         <Field label="Mã voucher" value={code} onChange={(value) => setCode(value.toUpperCase())} placeholder="VD: DLZ-SHER-0001" required />
         <div style={{ display: 'flex', gap: '10px' }}>
-          <label style={{ ...shell.button, background: '#eef6ff', color: '#0369a1', height: '42px' }}>
+          <label className="partner-action-button partner-action-button--blue" style={{ ...shell.button, height: '42px' }}>
             <QrCode size={18} /> {scanningImage ? 'Đang quét...' : 'Quét QR'}
             <input type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,image/png,image/jpeg,image/webp,image/bmp,image/gif" onChange={scanQrImage} disabled={scanningImage} style={{ display: 'none' }} />
           </label>
-          <button type="submit" style={{ ...shell.button, background: 'var(--primary)', color: 'white', height: '42px' }}><Search size={18} /> Kiểm tra</button>
+          <button className="partner-action-button partner-action-button--dark" type="submit" style={{ ...shell.button, height: '42px' }}><Search size={18} /> Kiểm tra</button>
         </div>
       </form>
       <ErrorBox message={error} />
@@ -805,7 +904,7 @@ function Reports() {
   return (
     <div style={shell.page}>
       <PageTitle title="Báo cáo đối tác" subtitle="Hiệu quả phát hành, bán và sử dụng theo từng chương trình voucher." onRefresh={load}>
-        <button onClick={printReport} style={{ ...shell.button, background: '#eef6ff', color: '#0369a1' }}><Printer size={18} /> In PDF</button>
+        <button className="partner-action-button partner-action-button--blue" onClick={printReport} style={shell.button}><Printer size={18} /> In PDF</button>
       </PageTitle>
       <ErrorBox message={error} />
       <div style={{ ...shell.card, padding: '22px' }}>
@@ -862,10 +961,7 @@ function Reports() {
                 key={`${item.evoucher_id}-${item.unique_code}`}
                 type="button"
                 onClick={() => setSelectedActivity(item)}
-                whileHover={{ x: 4, backgroundColor: '#f8fafc' }}
-                whileTap={{ scale: 0.995 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: '18px', padding: '14px 0', border: 'none', borderTop: '1px solid #f1f5f9', background: 'transparent', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}
+                className="activity-item"
               >
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 900 }}>{item.title}</div>
@@ -890,12 +986,12 @@ function Reports() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
               <DetailBox label="Trạng thái" value={<StatusPill status={selectedActivity.status} />} />
-              <DetailBox label="Danh mục" value={selectedActivity.category_name || 'Không rõ'} />
+              <DetailBox label="Danh mục" value={categoryLabelVi(selectedActivity.category_name) || 'Không rõ'} />
               <DetailBox label="Khách hàng" value={selectedActivity.customer_name || 'Chưa có thông tin'} />
               <DetailBox label="Email khách hàng" value={selectedActivity.customer_email || 'Chưa có thông tin'} />
               <DetailBox label="SĐT khách hàng" value={selectedActivity.customer_phone || 'Chưa có thông tin'} />
               <DetailBox label="Mã đơn hàng" value={`#${selectedActivity.order_id}`} />
-              <DetailBox label="Trạng thái đơn" value={selectedActivity.order_status || 'Không rõ'} />
+              <DetailBox label="Trạng thái đơn" value={orderStatusLabelVi(selectedActivity.order_status) || 'Không rõ'} />
               <DetailBox label="Giá mua" value={money(selectedActivity.price_at_purchase || selectedActivity.sale_price)} />
               <DetailBox label="Ngày phát hành" value={dateTime(selectedActivity.issued_at)} />
               <DetailBox label="Hạn dùng" value={dateTime(selectedActivity.expiry_date)} />
@@ -994,10 +1090,218 @@ function PageTitle({ title, subtitle, children, onRefresh }) {
         <p style={{ color: '#64748b' }}>{subtitle}</p>
       </div>
       <div style={{ display: 'flex', gap: '10px' }}>
-        {onRefresh && <button onClick={onRefresh} style={{ ...shell.button, background: '#f1f5f9', color: '#475569' }}><RefreshCw size={18} /> Làm mới</button>}
+        {onRefresh && <button className="partner-action-button partner-action-button--neutral" onClick={onRefresh} style={shell.button}><RefreshCw size={18} /> Làm mới</button>}
         {children}
       </div>
     </div>
+  );
+}
+
+function DashboardStatCard({ item }) {
+  return (
+    <motion.div
+      whileHover={{ y: -4, boxShadow: '0 14px 30px rgba(15, 23, 42, 0.08)' }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 24 }}
+      style={{
+        ...shell.card,
+        padding: '16px',
+        minHeight: '142px',
+        cursor: 'default',
+        borderRadius: '20px',
+        background: `linear-gradient(180deg, #ffffff 0%, ${item.tone || '#f8fafc'} 100%)`,
+      }}
+    >
+      <div style={{ width: '40px', height: '40px', borderRadius: '14px', background: item.tone || '#f8fafc', color: item.color, display: 'grid', placeItems: 'center' }}>
+        <item.icon size={21} />
+      </div>
+      <div style={{ color: '#64748b', fontWeight: 800, marginTop: '12px', fontSize: '0.78rem', lineHeight: 1.25 }}>{item.label}</div>
+      <div style={{ fontSize: 'clamp(1.25rem, 1.55vw, 1.7rem)', fontWeight: 950, marginTop: '6px', lineHeight: 1.15, wordBreak: 'break-word' }}>{item.value}</div>
+    </motion.div>
+  );
+}
+
+function VoucherStatusDonut({ items }) {
+  const [activeKey, setActiveKey] = useState('all');
+  const [tooltip, setTooltip] = useState(null);
+  const total = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  const selectedItem = activeKey === 'all' ? null : items.find((item) => item.key === activeKey);
+  const centerValue = selectedItem ? selectedItem.value : total;
+  const centerLabel = selectedItem ? selectedItem.label : 'Tổng voucher';
+  let cumulativePercent = 0;
+
+  const showTooltip = (event, item, percent) => {
+    const bounds = event.currentTarget.ownerSVGElement.getBoundingClientRect();
+    setTooltip({
+      item,
+      percent,
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    });
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+        <div>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: '4px' }}>Cơ cấu trạng thái voucher</h2>
+          <p style={{ color: '#64748b', fontWeight: 700, fontSize: '0.82rem' }}>Di chuột lên biểu đồ để xem chi tiết</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+        {[{ key: 'all', label: 'Tất cả' }, ...items].map((item) => {
+          const isActive = activeKey === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setActiveKey(item.key)}
+              style={{
+                border: `1px solid ${isActive ? '#0f172a' : '#e2e8f0'}`,
+                borderRadius: '10px',
+                padding: '7px 10px',
+                background: isActive ? '#0f172a' : '#ffffff',
+                color: isActive ? '#ffffff' : '#475569',
+                fontWeight: 850,
+                fontSize: '0.76rem',
+                cursor: 'pointer',
+                transition: 'transform 0.18s ease, background-color 0.2s ease, border-color 0.2s ease',
+              }}
+              onMouseEnter={(event) => {
+                if (!isActive) event.currentTarget.style.background = '#f8fafc';
+              }}
+              onMouseLeave={(event) => {
+                if (!isActive) event.currentTarget.style.background = '#ffffff';
+              }}
+              onMouseDown={(event) => {
+                event.currentTarget.style.transform = 'scale(0.97)';
+              }}
+              onMouseUp={(event) => {
+                event.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 0.9fr) minmax(160px, 1.1fr)', alignItems: 'center', gap: '16px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '250px', margin: '0 auto' }}>
+          <svg viewBox="0 0 240 240" width="100%" role="img" aria-label="Biểu đồ cơ cấu trạng thái voucher" onMouseLeave={() => setTooltip(null)}>
+            <circle cx="120" cy="120" r="78" fill="none" stroke="#f1f5f9" strokeWidth="30" />
+            {items.map((item) => {
+              const percent = total > 0 ? (Number(item.value || 0) / total) * 100 : 0;
+              const offset = -cumulativePercent;
+              cumulativePercent += percent;
+              const isHighlighted = activeKey === 'all' || activeKey === item.key;
+              return (
+                <circle
+                  key={item.key}
+                  cx="120"
+                  cy="120"
+                  r="78"
+                  fill="none"
+                  stroke={item.color}
+                  strokeWidth={isHighlighted ? 32 : 24}
+                  strokeLinecap="butt"
+                  pathLength="100"
+                  strokeDasharray={`${percent} ${100 - percent}`}
+                  strokeDashoffset={offset}
+                  transform="rotate(-90 120 120)"
+                  opacity={isHighlighted ? 1 : 0.18}
+                  style={{ cursor: 'pointer', transition: 'opacity 0.22s ease, stroke-width 0.22s ease, filter 0.22s ease' }}
+                  onMouseEnter={(event) => showTooltip(event, item, Math.round(percent))}
+                  onMouseMove={(event) => showTooltip(event, item, Math.round(percent))}
+                  onClick={() => setActiveKey(item.key)}
+                />
+              );
+            })}
+            <text x="120" y="112" textAnchor="middle" fill="#64748b" fontSize="12" fontWeight="800">{centerLabel}</text>
+            <text x="120" y="139" textAnchor="middle" fill="#0f172a" fontSize="28" fontWeight="950">{centerValue}</text>
+          </svg>
+
+          <AnimatePresence>
+            {tooltip && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                style={{
+                  position: 'absolute',
+                  left: Math.min(tooltip.x + 10, 150),
+                  top: Math.max(tooltip.y - 42, 8),
+                  zIndex: 3,
+                  minWidth: '118px',
+                  padding: '9px 10px',
+                  borderRadius: '10px',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  boxShadow: '0 12px 28px rgba(15, 23, 42, 0.24)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <div style={{ fontWeight: 900, fontSize: '0.8rem' }}>{tooltip.item.label}</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.74rem', marginTop: '2px' }}>{tooltip.item.value} voucher · {tooltip.percent}%</div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div style={{ display: 'grid', gap: '9px' }}>
+          {items.map((item) => {
+            const percent = total > 0 ? Math.round((Number(item.value || 0) / total) * 100) : 0;
+            const isActive = activeKey === 'all' || activeKey === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setActiveKey(item.key)}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '10px minmax(0, 1fr) auto',
+                  alignItems: 'center',
+                  gap: '9px',
+                  border: `1px solid ${activeKey === item.key ? item.color : '#e2e8f0'}`,
+                  borderRadius: '12px',
+                  padding: '10px',
+                  background: isActive ? item.tone : '#ffffff',
+                  opacity: isActive ? 1 : 0.58,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'transform 0.18s ease, opacity 0.2s ease, border-color 0.2s ease',
+                }}
+                onMouseEnter={(event) => {
+                  event.currentTarget.style.transform = 'translateX(2px)';
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.transform = 'translateX(0)';
+                }}
+              >
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: item.color }} />
+                <span style={{ fontWeight: 850, color: '#334155', fontSize: '0.82rem' }}>{item.label}</span>
+                <span style={{ fontWeight: 950, color: '#0f172a', fontSize: '0.82rem' }}>{item.value} · {percent}%</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormSection({ title, description, children, contentStyle = {} }) {
+  return (
+    <section style={{ border: '1px solid #e2e8f0', borderRadius: '18px', background: '#ffffff', padding: '18px', boxShadow: '0 10px 26px rgba(15, 23, 42, 0.04)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: '15px' }}>
+        <h3 style={{ margin: 0, color: '#0f172a', fontSize: '1rem', fontWeight: 900 }}>{title}</h3>
+        {description && <p style={{ margin: '4px 0 0', color: '#64748b', fontWeight: 650, fontSize: '0.86rem' }}>{description}</p>}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', flex: 1, ...contentStyle }}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -1010,23 +1314,140 @@ function Field({ label, value, onChange, type = 'text', required = false, placeh
   );
 }
 
-function Select({ label, value, onChange, options, required = false }) {
+function Select({ label, value, onChange, options, placeholder = 'Chọn...' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(([optionValue]) => String(optionValue) === String(value));
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
+
   return (
-    <div>
+    <div ref={containerRef} className="partner-custom-select">
       <label style={shell.label}>{label}</label>
-      <select required={required} value={value} onChange={(e) => onChange(e.target.value)} style={shell.input}>
-        <option value="">Chọn...</option>
-        {options.map(([optionValue, labelText]) => <option key={optionValue} value={optionValue}>{labelText}</option>)}
-      </select>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className={`partner-custom-select__trigger ${isOpen ? 'is-open' : ''}`}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <span className={selectedOption ? '' : 'is-placeholder'}>
+          {selectedOption ? categoryLabelVi(selectedOption[1]) : placeholder}
+        </span>
+        <ChevronDown size={18} className="partner-custom-select__chevron" />
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            role="listbox"
+            initial={{ opacity: 0, y: -6, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.99 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            className="partner-custom-select__menu"
+          >
+            {options.map(([optionValue, labelText]) => {
+              const isSelected = String(optionValue) === String(value);
+              return (
+                <button
+                  key={optionValue}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`partner-custom-select__option ${isSelected ? 'is-selected' : ''}`}
+                  onClick={() => {
+                    onChange(optionValue);
+                    setIsOpen(false);
+                  }}
+                >
+                  <span>{categoryLabelVi(labelText)}</span>
+                  {isSelected && <Check size={16} />}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function TextArea({ label, value, onChange }) {
+function TextArea({ label, value, onChange, placeholder = '', required = false }) {
   return (
     <div style={{ gridColumn: 'span 1' }}>
       <label style={shell.label}>{label}</label>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={4} style={{ ...shell.input, resize: 'vertical' }} />
+      <textarea required={required} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} rows={4} style={{ ...shell.input, resize: 'vertical' }} />
+    </div>
+  );
+}
+
+function VoucherImageUpload({ value, onUpload, onRemove }) {
+  return (
+    <div>
+      <label style={shell.label}>Ảnh voucher</label>
+      <label
+        style={{
+          minHeight: '156px',
+          border: '1.5px dashed #bfd7ef',
+          borderRadius: '18px',
+          background: value ? '#0f172a' : 'linear-gradient(135deg, #f8fbff 0%, #eef8ff 100%)',
+          display: 'grid',
+          placeItems: 'center',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          position: 'relative',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8)',
+        }}
+      >
+        {value ? (
+          <>
+            <img src={value} alt="Ảnh voucher" style={{ width: '100%', height: '156px', objectFit: 'cover', display: 'block' }} />
+            <span
+              className="voucher-image-upload-overlay"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'grid',
+                placeItems: 'center',
+                background: 'rgba(15, 23, 42, 0.35)',
+                color: '#fff',
+                fontWeight: 900,
+                opacity: 0,
+                transition: 'opacity 0.18s ease',
+              }}
+            >
+              <UploadCloud size={20} /> Đổi ảnh
+            </span>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', color: '#475569', padding: '18px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: '#dff3ff', color: '#0369a1', display: 'grid', placeItems: 'center', margin: '0 auto 10px' }}>
+              <ImagePlus size={22} />
+            </div>
+            <div style={{ color: '#0f172a', fontWeight: 900 }}>Upload ảnh voucher</div>
+            <div style={{ marginTop: '4px', fontSize: '0.82rem', fontWeight: 700 }}>PNG, JPG hoặc WEBP tối đa 5MB</div>
+          </div>
+        )}
+        <input type="file" accept="image/png,image/jpeg,image/webp" onChange={onUpload} style={{ display: 'none' }} />
+      </label>
+      {value && (
+        <button type="button" onClick={onRemove} style={{ marginTop: '8px', border: 0, background: 'transparent', color: '#dc2626', fontWeight: 850, cursor: 'pointer' }}>
+          Xóa ảnh đã chọn
+        </button>
+      )}
     </div>
   );
 }
@@ -1045,49 +1466,139 @@ function DetailBox({ label, value }) {
 }
 
 function RevenueTrendChart({ points }) {
+  const [limit, setLimit] = useState('all');
+  const [mode, setMode] = useState('cumulative');
+  const [tooltip, setTooltip] = useState(null);
   const width = 520;
   const height = 220;
   const padding = 24;
-  const maxValue = Math.max(...points.map((point) => Number(point.value || 0)), 1);
+  const visibleRawPoints = limit === 'all' ? points : points.slice(-Number(limit));
+  const visiblePoints = visibleRawPoints.map((point, index) => ({
+    ...point,
+    value: mode === 'cumulative'
+      ? visibleRawPoints.slice(0, index + 1).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+      : Number(point.amount || 0),
+  }));
+  const maxValue = Math.max(...visiblePoints.map((point) => Number(point.value || 0)), 1);
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
-  const coordinates = points.map((point, index) => {
-    const x = padding + (points.length === 1 ? chartWidth : (index / (points.length - 1)) * chartWidth);
+  const coordinates = visiblePoints.map((point, index) => {
+    const x = padding + (visiblePoints.length === 1 ? chartWidth / 2 : (index / (visiblePoints.length - 1)) * chartWidth);
     const y = padding + chartHeight - (Number(point.value || 0) / maxValue) * chartHeight;
     return { ...point, x, y };
   });
   const linePath = coordinates.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
-  const areaPath = `${linePath} L ${coordinates[coordinates.length - 1].x} ${height - padding} L ${coordinates[0].x} ${height - padding} Z`;
+  const areaPath = coordinates.length > 0
+    ? `${linePath} L ${coordinates[coordinates.length - 1].x} ${height - padding} L ${coordinates[0].x} ${height - padding} Z`
+    : '';
   const latest = coordinates[coordinates.length - 1]?.value || 0;
-  const previous = coordinates[coordinates.length - 2]?.value || 0;
-  const delta = latest - previous;
+  const totalAmount = visibleRawPoints.reduce((sum, point) => sum + Number(point.amount || 0), 0);
+
+  const chartButton = (active) => ({
+    border: `1px solid ${active ? '#0f766e' : '#e2e8f0'}`,
+    borderRadius: '9px',
+    padding: '6px 9px',
+    background: active ? '#0f766e' : '#ffffff',
+    color: active ? '#ffffff' : '#64748b',
+    fontWeight: 850,
+    fontSize: '0.73rem',
+    cursor: 'pointer',
+    transition: 'transform 0.18s ease, background-color 0.2s ease, border-color 0.2s ease',
+  });
 
   return (
     <div>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="220" role="img" aria-label="Xu hướng doanh thu">
-        <defs>
-          <linearGradient id="partnerRevenueArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0f766e" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#0f766e" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        {[0, 1, 2, 3].map((line) => {
-          const y = padding + (line / 3) * chartHeight;
-          return <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="4 6" />;
-        })}
-        <path d={areaPath} fill="url(#partnerRevenueArea)" />
-        <path d={linePath} fill="none" stroke="#0f766e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {coordinates.map((point) => (
-          <circle key={`${point.label}-${point.x}`} cx={point.x} cy={point.y} r="5" fill="#ffffff" stroke="#0f766e" strokeWidth="3" />
-        ))}
-      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {[['5', '5 mã'], ['10', '10 mã'], ['all', 'Tất cả']].map(([value, label]) => (
+            <button key={value} type="button" onClick={() => setLimit(value)} style={chartButton(limit === value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {[['cumulative', 'Tích lũy'], ['transaction', 'Theo từng mã']].map(([value, label]) => (
+            <button key={value} type="button" onClick={() => setMode(value)} style={chartButton(mode === value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ position: 'relative' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="220" role="img" aria-label="Xu hướng doanh thu" onMouseLeave={() => setTooltip(null)}>
+          <defs>
+            <linearGradient id="partnerRevenueArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#0f766e" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="#0f766e" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {[0, 1, 2, 3].map((line) => {
+            const y = padding + (line / 3) * chartHeight;
+            return <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} stroke="#e2e8f0" strokeDasharray="4 6" />;
+          })}
+          <path d={areaPath} fill="url(#partnerRevenueArea)" />
+          <path d={linePath} fill="none" stroke="#0f766e" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+          {coordinates.map((point, index) => (
+            <g
+              key={`${point.label}-${point.x}`}
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setTooltip({ ...point, index })}
+              onMouseMove={() => setTooltip({ ...point, index })}
+            >
+              <circle cx={point.x} cy={point.y} r="14" fill="transparent" />
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={tooltip?.index === index ? 7 : 5}
+                fill="#ffffff"
+                stroke="#0f766e"
+                strokeWidth="3"
+                style={{ transition: 'r 0.18s ease, filter 0.18s ease', filter: tooltip?.index === index ? 'drop-shadow(0 4px 7px rgba(15, 118, 110, 0.3))' : 'none' }}
+              />
+            </g>
+          ))}
+        </svg>
+
+        <AnimatePresence>
+          {tooltip && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              style={{
+                position: 'absolute',
+                left: `${Math.min(Math.max((tooltip.x / width) * 100, 8), 72)}%`,
+                top: `${Math.max((tooltip.y / height) * 100 - 28, 2)}%`,
+                zIndex: 3,
+                width: 'min(210px, 48%)',
+                padding: '10px 11px',
+                borderRadius: '11px',
+                background: '#0f172a',
+                color: '#ffffff',
+                boxShadow: '0 14px 30px rgba(15, 23, 42, 0.25)',
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{ fontWeight: 950, fontSize: '0.78rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tooltip.label}</div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.72rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tooltip.title}</div>
+              <div style={{ marginTop: '7px', fontWeight: 900, fontSize: '0.82rem' }}>
+                Giá trị mã: {money(tooltip.amount)}
+              </div>
+              {mode === 'cumulative' && <div style={{ color: '#99f6e4', fontSize: '0.72rem', marginTop: '2px' }}>Tích lũy: {money(tooltip.value)}</div>}
+              {tooltip.date && <div style={{ color: '#94a3b8', fontSize: '0.68rem', marginTop: '5px' }}>{new Date(tooltip.date).toLocaleString('vi-VN')}</div>}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
         <div>
-          <div style={{ color: '#64748b', fontWeight: 800, fontSize: '0.78rem' }}>Doanh thu tích lũy</div>
-          <div style={{ fontWeight: 900, fontSize: '1.25rem' }}>{money(latest)}</div>
+          <div style={{ color: '#64748b', fontWeight: 800, fontSize: '0.78rem' }}>{mode === 'cumulative' ? 'Doanh thu tích lũy' : 'Tổng doanh thu trong bộ lọc'}</div>
+          <div style={{ fontWeight: 900, fontSize: '1.25rem' }}>{money(mode === 'cumulative' ? latest : totalAmount)}</div>
         </div>
-        <div style={{ color: delta >= 0 ? '#0f766e' : '#dc2626', background: delta >= 0 ? '#ccfbf1' : '#fee2e2', padding: '8px 10px', borderRadius: '999px', fontWeight: 900, fontSize: '0.8rem' }}>
-          {delta >= 0 ? '+' : ''}{money(delta)}
+        <div style={{ color: '#0f766e', background: '#ccfbf1', padding: '8px 10px', borderRadius: '999px', fontWeight: 900, fontSize: '0.8rem' }}>
+          {visibleRawPoints.length} mã
         </div>
       </div>
     </div>
@@ -1140,7 +1651,7 @@ function Sidebar() {
         {menuItems.map((item) => {
           const active = location.pathname === item.path;
           return (
-            <Link key={item.path} to={item.path} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: 'var(--radius-md)', color: active ? '#075985' : '#475569', background: active ? '#e0f2fe' : 'transparent', textDecoration: 'none', fontWeight: 700 }}>
+            <Link key={item.path} to={item.path} className={`sidebar-item ${active ? 'active' : ''}`}>
               <item.icon size={20} /> {item.label}
             </Link>
           );
@@ -1162,15 +1673,49 @@ function PartnerShell() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--primary)', fontWeight: 900 }}><Eye size={18} /> Cổng đối tác Dealzy</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#667085', fontWeight: 800 }}><User size={18} /> {JSON.parse(localStorage.getItem('partnerUser') || '{}').username || 'Partner'}</div>
         </header>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vouchers" element={<VoucherManagement />} />
-          <Route path="/redeem" element={<RedeemVoucher />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Profile />} />
-        </Routes>
+        <PartnerRoutes />
       </main>
     </div>
+  );
+}
+
+function RouteTransition({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.995 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.995 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function PartnerRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<RouteTransition><Dashboard /></RouteTransition>} />
+        <Route path="/vouchers" element={<RouteTransition><VoucherManagement /></RouteTransition>} />
+        <Route path="/redeem" element={<RouteTransition><RedeemVoucher /></RouteTransition>} />
+        <Route path="/reports" element={<RouteTransition><Reports /></RouteTransition>} />
+        <Route path="/settings" element={<RouteTransition><Profile /></RouteTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
+function PublicRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/register-partner" element={<RouteTransition><PartnerRegistration /></RouteTransition>} />
+        <Route path="*" element={<RouteTransition><AuthPage /></RouteTransition>} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 
@@ -1180,10 +1725,7 @@ function App() {
   if (!token) {
     return (
       <Router>
-        <Routes>
-          <Route path="/register-partner" element={<PartnerRegistration />} />
-          <Route path="*" element={<AuthPage />} />
-        </Routes>
+        <PublicRoutes />
       </Router>
     );
   }

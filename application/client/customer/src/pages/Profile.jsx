@@ -20,7 +20,10 @@ import {
   Check,
   FileText,
   MessageSquare,
+  PackageCheck,
   QrCode,
+  ReceiptText,
+  CreditCard,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -250,6 +253,10 @@ const Profile = () => {
         return "Chưa dùng";
       case "Used":
         return "Đã dùng";
+      case "Locked":
+        return "Đã khóa";
+      case "Refunded":
+        return "Đã hoàn tiền";
       default:
         return status;
     }
@@ -2532,44 +2539,68 @@ const Profile = () => {
             >
               <div
                 style={{
-                  padding: "1.25rem 1.5rem",
+                  padding: "1.5rem",
                   borderBottom: "1px solid #e2e8f0",
                   display: "flex",
-                  alignItems: "center",
+                  alignItems: "flex-start",
                   justifyContent: "space-between",
                   gap: "1rem",
+                  background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
                 }}
               >
-                <div>
-                  <p
+                <div style={{ display: "flex", gap: "0.9rem", alignItems: "center" }}>
+                  <div
                     style={{
-                      margin: 0,
-                      color: "#64748b",
-                      fontSize: "0.78rem",
-                      fontWeight: 800,
-                      textTransform: "uppercase",
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "16px",
+                      background: "#ecfeff",
+                      color: "#0f766e",
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
                     }}
                   >
-                    Chi tiết đơn hàng
-                  </p>
-                  <h3
-                    style={{
-                      margin: "0.25rem 0 0",
-                      color: "#0f172a",
-                      fontSize: "1.35rem",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {selectedOrder ? `#${selectedOrder.order_id}` : "Đang tải..."}
-                  </h3>
+                    <ReceiptText size={24} />
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#64748b",
+                        fontSize: "0.78rem",
+                        fontWeight: 850,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      Hóa đơn mua voucher
+                    </p>
+                    <h3
+                      style={{
+                        margin: "0.25rem 0 0",
+                        color: "#0f172a",
+                        fontSize: "1.55rem",
+                        fontWeight: 950,
+                      }}
+                    >
+                      {selectedOrder ? `Đơn hàng #${selectedOrder.order_id}` : "Đang tải..."}
+                    </h3>
+                    {selectedOrder && (
+                      <p style={{ margin: "0.3rem 0 0", color: "#64748b", fontWeight: 700 }}>
+                        Cảm ơn bạn đã mua voucher tại Dealzy.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedOrder(null)}
                   disabled={loadingOrderDetail}
+                  aria-label="Đóng hóa đơn"
                   style={{
-                    width: "36px",
-                    height: "36px",
+                    width: "40px",
+                    height: "40px",
                     border: "none",
                     borderRadius: "50%",
                     background: "#f1f5f9",
@@ -2578,13 +2609,14 @@ const Profile = () => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  <X size={18} />
+                  <X size={19} />
                 </button>
               </div>
 
-              <div style={{ padding: "1.5rem" }}>
+              <div style={{ padding: "1.5rem", background: "#ffffff" }}>
                 {loadingOrderDetail && (
                   <div style={{ color: "#64748b", fontWeight: 700 }}>
                     Đang tải chi tiết đơn hàng...
@@ -2596,26 +2628,71 @@ const Profile = () => {
                     <div
                       style={{
                         display: "grid",
+                        gridTemplateColumns: "minmax(0, 1.1fr) minmax(220px, 0.9fr)",
+                        gap: "1rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          border: "1px solid #dbeafe",
+                          borderRadius: "18px",
+                          padding: "1rem",
+                          background: "#f8fbff",
+                        }}
+                      >
+                        <div style={{ color: "#64748b", fontWeight: 850, fontSize: "0.78rem", textTransform: "uppercase" }}>
+                          Trạng thái đơn hàng
+                        </div>
+                        <div style={{ marginTop: "0.45rem", display: "flex", alignItems: "center", gap: "0.55rem", color: "#0f172a", fontWeight: 950, fontSize: "1.1rem" }}>
+                          <PackageCheck size={19} color="#059669" />
+                          {getOrderStatusText(selectedOrder.status)}
+                        </div>
+                        <div style={{ marginTop: "0.5rem", color: "#64748b", fontWeight: 700 }}>
+                          Đặt lúc {new Date(selectedOrder.order_date).toLocaleString("vi-VN")}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          borderRadius: "18px",
+                          padding: "1rem",
+                          background: "#0f172a",
+                          color: "#fff",
+                          boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                        }}
+                      >
+                        <div style={{ color: "#cbd5e1", fontWeight: 850, fontSize: "0.78rem", textTransform: "uppercase" }}>
+                          Tổng thanh toán
+                        </div>
+                        <div style={{ marginTop: "0.45rem", fontSize: "1.6rem", fontWeight: 950 }}>
+                          {Number(selectedOrder.total_amount || 0).toLocaleString("vi-VN")}đ
+                        </div>
+                        <div style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.45rem", color: "#dbeafe", fontWeight: 750 }}>
+                          <CreditCard size={17} />
+                          {selectedOrder.payment_method || "Chưa có phương thức thanh toán"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
                         gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                         gap: "0.85rem",
                       }}
                     >
                       {[
-                        ["Trạng thái", getOrderStatusText(selectedOrder.status)],
                         [
-                          "Ngày đặt",
+                          "Thời gian đặt",
                           new Date(selectedOrder.order_date).toLocaleString("vi-VN"),
                         ],
-                        ["Thanh toán", selectedOrder.payment_method || "Chưa có"],
-                        [
-                          "Tổng tiền",
-                          `${Number(selectedOrder.total_amount || 0).toLocaleString("vi-VN")}đ`,
-                        ],
+                        ["Phương thức thanh toán", selectedOrder.payment_method || "Chưa có"],
+                        ["Số loại voucher", `${(selectedOrder.items || []).length} loại`],
+                        ["Mã đã phát hành", `${(selectedOrder.evouchers || []).length} mã`],
                       ].map(([label, value]) => (
                         <div
                           key={label}
                           style={{
-                            background: "#f8fafc",
+                            background: "#ffffff",
                             border: "1px solid #e2e8f0",
                             borderRadius: "14px",
                             padding: "0.9rem",
@@ -2647,7 +2724,7 @@ const Profile = () => {
                           marginBottom: "0.75rem",
                         }}
                       >
-                        Voucher trong đơn
+                        Chi tiết voucher
                       </h4>
                       <div style={{ display: "grid", gap: "0.75rem" }}>
                         {(selectedOrder.items || []).map((item) => (
@@ -2658,8 +2735,10 @@ const Profile = () => {
                               gap: "0.85rem",
                               alignItems: "center",
                               border: "1px solid #e2e8f0",
-                              borderRadius: "14px",
+                              borderRadius: "16px",
                               padding: "0.85rem",
+                              background: "#ffffff",
+                              boxShadow: "0 8px 20px rgba(15, 23, 42, 0.04)",
                             }}
                           >
                             <img
@@ -2677,13 +2756,18 @@ const Profile = () => {
                               <div style={{ color: "#0f172a", fontWeight: 900 }}>
                                 {item.title}
                               </div>
-                              <div style={{ color: "#64748b", fontSize: "0.88rem" }}>
-                                {item.company_name} · SL: {item.quantity}
+                              <div style={{ color: "#64748b", fontSize: "0.88rem", marginTop: "0.2rem" }}>
+                                {item.company_name} · Số lượng: {item.quantity}
                               </div>
                             </div>
-                            <strong style={{ color: "#0f172a" }}>
-                              {Number(item.price_at_purchase || 0).toLocaleString("vi-VN")}đ
-                            </strong>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                              <div style={{ color: "#94a3b8", fontSize: "0.74rem", fontWeight: 850, textTransform: "uppercase" }}>
+                                Thành tiền
+                              </div>
+                              <strong style={{ color: "#0f172a", fontSize: "1.02rem" }}>
+                                {Number(item.price_at_purchase || 0).toLocaleString("vi-VN")}đ
+                              </strong>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2697,7 +2781,7 @@ const Profile = () => {
                           marginBottom: "0.75rem",
                         }}
                       >
-                        Mã E-Voucher đã phát hành
+                        Mã E-Voucher
                       </h4>
                       {(selectedOrder.evouchers || []).length > 0 ? (
                         <div style={{ display: "grid", gap: "0.6rem" }}>
@@ -2708,21 +2792,35 @@ const Profile = () => {
                                 display: "flex",
                                 justifyContent: "space-between",
                                 gap: "1rem",
-                                border: "1px solid #e2e8f0",
-                                borderRadius: "12px",
-                                padding: "0.75rem 0.9rem",
-                                background: "#f8fafc",
+                                border: "1px solid #dbeafe",
+                                borderRadius: "14px",
+                                padding: "0.85rem 0.95rem",
+                                background: "#f8fbff",
+                                alignItems: "center",
                               }}
                             >
-                              <div>
-                                <strong style={{ color: "#0f172a" }}>
-                                  {evoucher.unique_code}
-                                </strong>
-                                <div style={{ color: "#64748b", fontSize: "0.82rem" }}>
-                                  {evoucher.title}
+                              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", minWidth: 0 }}>
+                                <div style={{ width: "38px", height: "38px", borderRadius: "12px", background: "#ecfeff", color: "#0f766e", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                                  <QrCode size={19} />
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <strong style={{ color: "#0f172a", letterSpacing: "0.02em" }}>
+                                    {evoucher.unique_code}
+                                  </strong>
+                                  <div style={{ color: "#64748b", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {evoucher.title}
+                                  </div>
                                 </div>
                               </div>
-                              <span style={{ color: "#64748b", fontWeight: 800 }}>
+                              <span
+                                style={{
+                                  ...getStatusStyles(evoucher.status, evoucher.expiry_date),
+                                  borderRadius: "999px",
+                                  padding: "0.38rem 0.65rem",
+                                  fontWeight: 850,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
                                 {getStatusText(evoucher.status, evoucher.expiry_date)}
                               </span>
                             </div>
@@ -2730,7 +2828,7 @@ const Profile = () => {
                         </div>
                       ) : (
                         <p style={{ color: "#64748b", margin: 0 }}>
-                          Đơn hàng này chưa có mã E-Voucher được phát hành.
+                          Đơn hàng này chưa phát hành mã E-Voucher.
                         </p>
                       )}
                     </section>

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion as Motion } from "framer-motion";
 import {
   Activity,
   ArrowRight,
@@ -53,6 +54,13 @@ const heroTiles = [
     image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=82&w=900",
   },
 ];
+
+const sectionReveal = {
+  initial: { opacity: 0, y: 42 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.16 },
+  transition: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+};
 
 const isSameDay = (value, date = new Date()) => {
   if (!value) return false;
@@ -187,7 +195,7 @@ const Home = () => {
       {homeBannerHidden ? (
         <HiddenContentNotice />
       ) : (
-      <section className="lux-hero">
+      <Motion.section className="lux-hero" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.68, ease: [0.22, 1, 0.36, 1] }}>
         <div className="container lux-hero__grid">
           <div className="lux-hero__content">
             <span className="lux-eyebrow"><Crown size={15} /> {dynamicHero.badge || "Curated offers"}</span>
@@ -227,10 +235,10 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </section>
+      </Motion.section>
       )}
 
-      <section className="container lux-feature-strip">
+      <Motion.section className="container lux-feature-strip" {...sectionReveal}>
         {(dynamicFeatures.length ? dynamicFeatures : [
           { icon: "Sparkles", title: "Lựa chọn có gu", copy: "Chỉ hiển thị voucher đã duyệt và còn hiệu lực." },
           { icon: "Zap", title: "Nhận mã nhanh", copy: "E-voucher được phát hành sau thanh toán thành công." },
@@ -247,9 +255,9 @@ const Home = () => {
             </div>
           );
         })}
-      </section>
+      </Motion.section>
 
-      <section className="container lux-editorial-grid">
+      <Motion.section className="container lux-editorial-grid" {...sectionReveal}>
         {dynamicTiles.map((tile) => (
           <Link key={tile.title} to="/search" className="lux-editorial-card">
             <img src={tile.image} alt={tile.title} />
@@ -259,9 +267,9 @@ const Home = () => {
             </span>
           </Link>
         ))}
-      </section>
+      </Motion.section>
 
-      <section className="container lux-market">
+      <Motion.section className="container lux-market" {...sectionReveal}>
         <div className="lux-market__header">
           <div>
             <span className="lux-eyebrow">Marketplace</span>
@@ -303,8 +311,8 @@ const Home = () => {
             </aside>
 
             <div className="lux-sections">
-              {groupedSections.map(({ category, items }) => (
-                <section
+              {groupedSections.map(({ category, items }, index) => (
+                <Motion.section
                   key={category.category_id}
                   data-category-id={category.category_id}
                   ref={(node) => {
@@ -315,6 +323,10 @@ const Home = () => {
                     }
                   }}
                   className="lux-section"
+                  initial={{ opacity: 0, y: 36 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.12 }}
+                  transition={{ duration: 0.56, delay: Math.min(index * 0.04, 0.18), ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div className="lux-section__head">
                     <div>
@@ -343,7 +355,7 @@ const Home = () => {
                       </button>
                     </div>
                   )}
-                </section>
+                </Motion.section>
               ))}
             </div>
           </div>
@@ -354,7 +366,7 @@ const Home = () => {
             <p>Thử đổi bộ lọc hoặc quay lại sau khi đối tác phát hành voucher mới.</p>
           </div>
         )}
-      </section>
+      </Motion.section>
     </main>
   );
 };
