@@ -3,6 +3,9 @@ const { sendEmail } = require('../../utils/sendEmail');
 const { logAction } = require('../../utils/systemLog');
 const orderService = require('../customer/orderService');
 
+const COMPLAINT_STATUSES = ['Pending', 'Processing', 'Resolved', 'Rejected'];
+const CLOSED_COMPLAINT_STATUSES = ['Resolved', 'Rejected'];
+
 const sendNotificationEmail = async (mailOptions) => {
     try {
         await sendEmail(mailOptions);
@@ -14,6 +17,43 @@ const sendNotificationEmail = async (mailOptions) => {
 };
 
 class AdminService {
+    async ensureComplaintWorkflowColumns() {
+        await pool.query(`
+            ALTER TABLE Complaints
+                ADD COLUMN IF NOT EXISTS admin_note TEXT,
+                ADD COLUMN IF NOT EXISTS resolution_type VARCHAR(40) DEFAULT 'none',
+                ADD COLUMN IF NOT EXISTS resolution_note TEXT,
+                ADD COLUMN IF NOT EXISTS refund_status VARCHAR(40) DEFAULT 'none',
+                ADD COLUMN IF NOT EXISTS refund_amount NUMERIC DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS voucher_id INTEGER,
+                ADD COLUMN IF NOT EXISTS attempt_no INTEGER DEFAULT 1,
+                ADD COLUMN IF NOT EXISTS reviewed_by INTEGER,
+                ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+    }
+
+    async assertOpenComplaint(complaintId, client = pool) {
+        await this.ensureComplaintWorkflowColumns();
+        const result = await client.query(
+            `
+                SELECT c.*, o.status AS order_status, o.total_amount AS order_total_amount
+                FROM Complaints c
+                LEFT JOIN Orders o ON o.order_id = c.order_id
+                WHERE c.complaint_id = $1
+                FOR UPDATE OF c
+            `,
+            [complaintId]
+        );
+        if (result.rowCount === 0) throw new Error('Khiếu nại không tồn tại');
+        const complaint = result.rows[0];
+        if (CLOSED_COMPLAINT_STATUSES.includes(complaint.status)) {
+            throw new Error('Không thể thay đổi khiếu nại đã đóng');
+        }
+        return complaint;
+    }
+
     /**
      * Lấy danh sách hồ sơ đối tác đang chờ duyệt (Pending)
      */
@@ -438,6 +478,7 @@ class AdminService {
     }
 
     async getComplaints({ status, search, page = 1, limit = 10 }) {
+        await this.ensureComplaintWorkflowColumns();
         const offset = (Number(page) - 1) * Number(limit);
         const values = [];
         let idx = 1;
@@ -514,8 +555,9 @@ class AdminService {
     }
 
     async updateComplaintStatus(complaintId, payload, adminId = null) {
+        await this.ensureComplaintWorkflowColumns();
         const { status, actionType, responseContent } = payload;
-        const allowed = ['Pending', 'Processing', 'Resolved', 'Rejected'];
+        const allowed = COMPLAINT_STATUSES;
         
         if (!allowed.includes(status)) {
             throw new Error('Trạng thái khiếu nại không hợp lệ');
@@ -526,7 +568,7 @@ class AdminService {
         if (checkRes.rowCount === 0) throw new Error('Khiếu nại không tồn tại');
         const currentStatus = checkRes.rows[0].status;
 
-        if (['Resolved', 'Rejected'].includes(currentStatus)) {
+        if (CLOSED_COMPLAINT_STATUSES.includes(currentStatus)) {
             throw new Error('Lỗi E1: Không thể thay đổi trạng thái của khiếu nại đã Đã xử lý hoặc Từ chối.');
         }
 
@@ -542,10 +584,29 @@ class AdminService {
         try {
             await client.query('BEGIN');
 
-            // 3. Chỉ cập nhật status ở bảng Complaints
             await client.query(
-                `UPDATE Complaints SET status = $1 WHERE complaint_id = $2`,
-                [status, complaintId]
+                `
+                    UPDATE Complaints
+                    SET status = $1::varchar,
+                        resolution_type = CASE
+                            WHEN $1::varchar = 'Rejected' THEN 'reject'
+                            WHEN $2::varchar = 'Refund' THEN 'refund_manual'
+                            WHEN $2::varchar = 'NewCode' THEN 'voucher'
+                            WHEN $2::varchar = 'Other' THEN 'other'
+                            ELSE resolution_type
+                        END,
+                        refund_status = CASE
+                            WHEN $1::varchar = 'Resolved' AND $2::varchar = 'Refund' THEN 'pending_manual'
+                            ELSE refund_status
+                        END,
+                        resolution_note = COALESCE($3::text, resolution_note),
+                        reviewed_by = $4::integer,
+                        reviewed_at = NOW(),
+                        resolved_at = CASE WHEN $1::varchar IN ('Resolved', 'Rejected') THEN NOW() ELSE resolved_at END,
+                        updated_at = NOW()
+                    WHERE complaint_id = $5
+                `,
+                [status, actionType || null, responseContent?.trim() || null, adminId, complaintId]
             );
 
             // 4. Lưu phản hồi và action_type vào Complaint_Responses
@@ -569,6 +630,196 @@ class AdminService {
         
         const updated = await pool.query('SELECT * FROM Complaints WHERE complaint_id = $1', [complaintId]);
         return updated.rows[0];
+    }
+
+    async issueComplaintVoucher(complaintId, payload = {}, adminId = null) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const complaint = await this.assertOpenComplaint(complaintId, client);
+            if (!complaint.order_id) throw new Error('Khiếu nại chưa gắn với đơn hàng nên không thể cấp voucher mới');
+
+            const itemRes = await client.query(
+                `
+                    SELECT oi.order_item_id, oi.voucher_id, v.expiry_date
+                    FROM Order_Items oi
+                    JOIN Vouchers v ON v.voucher_id = oi.voucher_id
+                    LEFT JOIN Complaint_Vouchers cv
+                        ON cv.voucher_id = oi.voucher_id AND cv.complaint_id = $2
+                    WHERE oi.order_id = $1
+                    ORDER BY CASE WHEN cv.voucher_id IS NOT NULL THEN 0 ELSE 1 END, oi.order_item_id
+                    LIMIT 1
+                `,
+                [complaint.order_id, complaintId]
+            );
+            if (itemRes.rowCount === 0) throw new Error('Không tìm thấy voucher trong đơn hàng liên quan');
+
+            const item = itemRes.rows[0];
+            if (payload.lockOldCode !== false) {
+                await client.query(
+                    `
+                        UPDATE E_Vouchers
+                        SET status = 'Locked'
+                        WHERE order_item_id = $1 AND status = 'Unused'
+                    `,
+                    [item.order_item_id]
+                );
+            }
+
+            let issued;
+            for (let attempts = 0; attempts < 5; attempts++) {
+                try {
+                    const insertRes = await client.query(
+                        `
+                            INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
+                            VALUES ($1, $2, 'Unused', COALESCE($3::timestamp, $4::timestamp))
+                            RETURNING *
+                        `,
+                        [
+                            item.order_item_id,
+                            orderService.generateUniqueCode(),
+                            payload.expired_at || payload.expiryDate || null,
+                            item.expiry_date,
+                        ]
+                    );
+                    issued = insertRes.rows[0];
+                    break;
+                } catch (error) {
+                    if (error.code !== '23505') throw error;
+                }
+            }
+            if (!issued) throw new Error('Không thể tạo mã e-voucher mới');
+
+            await client.query(
+                `
+                    INSERT INTO Complaint_Vouchers (complaint_id, voucher_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING
+                `,
+                [complaintId, item.voucher_id]
+            );
+
+            const note = payload.note || `Đã cấp e-voucher mới: ${issued.unique_code}`;
+            await client.query(
+                `
+                    UPDATE Complaints
+                    SET status = 'Resolved',
+                        resolution_type = 'voucher',
+                        resolution_note = $1,
+                        voucher_id = $2,
+                        reviewed_by = $3::integer,
+                        reviewed_at = NOW(),
+                        resolved_at = NOW(),
+                        updated_at = NOW()
+                    WHERE complaint_id = $4
+                `,
+                [note, item.voucher_id, adminId, complaintId]
+            );
+
+            await client.query(
+                `
+                    INSERT INTO Complaint_Responses (complaint_id, responder_id, action_type, content)
+                    VALUES ($1, $2, 'NewCode', $3::text)
+                `,
+                [complaintId, adminId, note]
+            );
+
+            await client.query('COMMIT');
+            await logAction(adminId, 'ISSUE_COMPLAINT_VOUCHER', 'Complaints', complaintId);
+            return { evoucher: issued, voucherId: item.voucher_id };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async markComplaintRefundPending(complaintId, payload = {}, adminId = null) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const complaint = await this.assertOpenComplaint(complaintId, client);
+            const amount = Number(payload.refund_amount ?? payload.refundAmount ?? complaint.order_total_amount ?? 0);
+            if (!Number.isFinite(amount) || amount < 0) throw new Error('Số tiền hoàn không hợp lệ');
+            const note = payload.note || 'Đã duyệt hoàn tiền thủ công, chờ xử lý bên ngoài hệ thống';
+
+            const result = await client.query(
+                `
+                    UPDATE Complaints
+                    SET status = 'Processing',
+                        resolution_type = 'refund_manual',
+                        refund_status = 'pending_manual',
+                        refund_amount = $1::numeric,
+                        resolution_note = $2::text,
+                        reviewed_by = $3::integer,
+                        reviewed_at = NOW(),
+                        updated_at = NOW()
+                    WHERE complaint_id = $4
+                    RETURNING *
+                `,
+                [amount, note, adminId, complaintId]
+            );
+            await client.query(
+                `
+                    INSERT INTO Complaint_Responses (complaint_id, responder_id, action_type, content)
+                    VALUES ($1, $2, 'Refund', $3::text)
+                `,
+                [complaintId, adminId, note]
+            );
+            await client.query('COMMIT');
+            await logAction(adminId, 'MARK_COMPLAINT_REFUND_PENDING', 'Complaints', complaintId);
+            return result.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async markComplaintRefunded(complaintId, payload = {}, adminId = null) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const complaint = await this.assertOpenComplaint(complaintId, client);
+            const amount = Number(payload.refund_amount ?? payload.refundAmount ?? complaint.refund_amount ?? complaint.order_total_amount ?? 0);
+            if (!Number.isFinite(amount) || amount < 0) throw new Error('Số tiền hoàn không hợp lệ');
+            const note = payload.note || 'Đã hoàn tiền thủ công';
+
+            const result = await client.query(
+                `
+                    UPDATE Complaints
+                    SET status = 'Resolved',
+                        resolution_type = 'refund_manual',
+                        refund_status = 'completed_manual',
+                        refund_amount = $1::numeric,
+                        resolution_note = $2::text,
+                        reviewed_by = COALESCE(reviewed_by, $3::integer),
+                        reviewed_at = COALESCE(reviewed_at, NOW()),
+                        resolved_at = NOW(),
+                        updated_at = NOW()
+                    WHERE complaint_id = $4
+                    RETURNING *
+                `,
+                [amount, note, adminId, complaintId]
+            );
+            await client.query(
+                `
+                    INSERT INTO Complaint_Responses (complaint_id, responder_id, action_type, content)
+                    VALUES ($1, $2, 'RefundCompleted', $3::text)
+                `,
+                [complaintId, adminId, note]
+            );
+            await client.query('COMMIT');
+            await logAction(adminId, 'MARK_COMPLAINT_REFUNDED', 'Complaints', complaintId);
+            return result.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     async respondComplaint(complaintId, responderId, content) {
@@ -638,8 +889,34 @@ class AdminService {
                 type VARCHAR(30) NOT NULL DEFAULT 'policy',
                 body TEXT,
                 is_active BOOLEAN DEFAULT TRUE,
+                slug VARCHAR(120),
+                summary TEXT,
+                thumbnail_url TEXT,
+                status VARCHAR(30) DEFAULT 'published',
+                published_at TIMESTAMP,
+                created_by INTEGER,
+                updated_by INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+        await pool.query(`
+            ALTER TABLE Content_Items
+                ADD COLUMN IF NOT EXISTS slug VARCHAR(120),
+                ADD COLUMN IF NOT EXISTS summary TEXT,
+                ADD COLUMN IF NOT EXISTS thumbnail_url TEXT,
+                ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'published',
+                ADD COLUMN IF NOT EXISTS published_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS created_by INTEGER,
+                ADD COLUMN IF NOT EXISTS updated_by INTEGER,
+                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        await pool.query(`
+            UPDATE Content_Items
+            SET slug = COALESCE(slug, content_key),
+                status = CASE WHEN is_active THEN COALESCE(status, 'published') ELSE 'archived' END,
+                published_at = COALESCE(published_at, updated_at, NOW())
+            WHERE slug IS NULL OR published_at IS NULL
         `);
     }
 
@@ -665,24 +942,109 @@ class AdminService {
 
     async upsertContentItem(data, adminId = null) {
         await this.ensureContentTable();
-        const { contentKey, title, type = 'policy', body = '', isActive = true } = data;
+        const {
+            contentKey,
+            title,
+            type = 'policy',
+            body = '',
+            isActive = true,
+            slug,
+            summary = '',
+            thumbnailUrl = null,
+            status,
+            publishedAt = null,
+        } = data;
         if (!contentKey || !title) throw new Error('Content key va title la bat buoc');
+        const publicStatus = status || (isActive ? 'published' : 'archived');
+        const normalizedSlug = (slug || contentKey).trim().toLowerCase()
+            .replace(/[^a-z0-9-_]+/g, '-')
+            .replace(/^-+|-+$/g, '') || contentKey;
 
         const result = await pool.query(
             `
-                INSERT INTO Content_Items (content_key, title, type, body, is_active, updated_at)
-                VALUES ($1, $2, $3, $4, $5, NOW())
+                INSERT INTO Content_Items (
+                    content_key, title, type, body, is_active, slug, summary,
+                    thumbnail_url, status, published_at, created_by, updated_by, updated_at
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10::timestamp, NOW()), $11::integer, $11::integer, NOW())
                 ON CONFLICT (content_key)
                 DO UPDATE SET title = EXCLUDED.title,
                     type = EXCLUDED.type,
                     body = EXCLUDED.body,
                     is_active = EXCLUDED.is_active,
+                    slug = EXCLUDED.slug,
+                    summary = EXCLUDED.summary,
+                    thumbnail_url = EXCLUDED.thumbnail_url,
+                    status = EXCLUDED.status,
+                    published_at = EXCLUDED.published_at,
+                    updated_by = EXCLUDED.updated_by,
                     updated_at = NOW()
                 RETURNING *
             `,
-            [contentKey, title, type, body, Boolean(isActive)]
+            [
+                contentKey,
+                title,
+                type,
+                body,
+                Boolean(isActive),
+                normalizedSlug,
+                summary,
+                thumbnailUrl,
+                publicStatus,
+                publishedAt,
+                adminId,
+            ]
         );
         await logAction(adminId, 'UPSERT_CONTENT_ITEM', 'Content_Items', result.rows[0].content_id);
+        return result.rows[0];
+    }
+
+    async getPublicContentItems({ type, search, limit = 50 }) {
+        await this.ensureContentTable();
+        const values = [];
+        let idx = 1;
+        let query = `
+            SELECT content_id, content_key, title, slug, summary, type, body, thumbnail_url, published_at, updated_at
+            FROM Content_Items
+            WHERE is_active = TRUE
+                AND status = 'published'
+                AND COALESCE(published_at, updated_at, NOW()) <= NOW()
+        `;
+
+        if (type) {
+            query += ` AND type = $${idx++}`;
+            values.push(type);
+        }
+        if (search) {
+            query += ` AND (title ILIKE $${idx} OR summary ILIKE $${idx} OR body ILIKE $${idx})`;
+            values.push(`%${search}%`);
+            idx++;
+        }
+
+        query += ` ORDER BY published_at DESC NULLS LAST, updated_at DESC LIMIT $${idx++}`;
+        values.push(Math.min(Math.max(Number(limit) || 50, 1), 100));
+        const result = await pool.query(query, values);
+        return result.rows;
+    }
+
+    async getPublicContentBySlug(slug) {
+        await this.ensureContentTable();
+        const result = await pool.query(
+            `
+                SELECT content_id, content_key, title, slug, summary, type, body, thumbnail_url, published_at, updated_at
+                FROM Content_Items
+                WHERE is_active = TRUE
+                    AND status = 'published'
+                    AND COALESCE(published_at, updated_at, NOW()) <= NOW()
+                    AND (slug = $1::varchar OR content_key = $1::varchar)
+            `,
+            [slug]
+        );
+        if (result.rowCount === 0) {
+            const error = new Error('Nội dung không tồn tại hoặc chưa được publish');
+            error.statusCode = 404;
+            throw error;
+        }
         return result.rows[0];
     }
 

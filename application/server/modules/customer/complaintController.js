@@ -27,6 +27,15 @@ class ComplaintController {
             return res.status(error.statusCode || 500).json({ message: error.message || 'Could not load complaint.' });
         }
     }
+
+    async getOrderComplaints(req, res) {
+        try {
+            const complaints = await complaintService.getOrderComplaints(req.params.orderId, req.user.id);
+            return res.json({ success: true, complaints });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Could not load order complaints.' });
+        }
+    }
 }
 
 module.exports = new ComplaintController();

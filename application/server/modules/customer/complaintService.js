@@ -1,14 +1,66 @@
 const pool = require('../../config/db');
 
+const ACTIVE_COMPLAINT_STATUSES = ['Pending', 'Processing'];
+const MAX_COMPLAINTS_PER_ORDER = Number(process.env.MAX_COMPLAINTS_PER_ORDER || 2);
+const COMPLAINABLE_ORDER_STATUSES = ['Paid', 'Refunded'];
+
 class ComplaintService {
+    async ensureComplaintWorkflowColumns() {
+        await pool.query(`
+            ALTER TABLE Complaints
+                ADD COLUMN IF NOT EXISTS admin_note TEXT,
+                ADD COLUMN IF NOT EXISTS resolution_type VARCHAR(40) DEFAULT 'none',
+                ADD COLUMN IF NOT EXISTS resolution_note TEXT,
+                ADD COLUMN IF NOT EXISTS refund_status VARCHAR(40) DEFAULT 'none',
+                ADD COLUMN IF NOT EXISTS refund_amount NUMERIC DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS voucher_id INTEGER,
+                ADD COLUMN IF NOT EXISTS attempt_no INTEGER DEFAULT 1,
+                ADD COLUMN IF NOT EXISTS reviewed_by INTEGER,
+                ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+    }
+
     async assertOrderBelongsToCustomer(orderId, customerId) {
         const { rows } = await pool.query(
-            'SELECT 1 FROM Orders WHERE order_id = $1 AND customer_id = $2',
+            'SELECT order_id, status FROM Orders WHERE order_id = $1 AND customer_id = $2',
             [orderId, customerId]
         );
         if (rows.length === 0) {
             throw new Error('Order not found.');
         }
+        return rows[0];
+    }
+
+    async assertOrderCanReceiveComplaint(orderId, customerId) {
+        const order = await this.assertOrderBelongsToCustomer(orderId, customerId);
+        if (!COMPLAINABLE_ORDER_STATUSES.includes(order.status)) {
+            throw new Error('Only paid or refunded orders can be complained.');
+        }
+
+        const { rows } = await pool.query(
+            `
+                SELECT
+                    COUNT(*)::int AS total_count,
+                    COUNT(*) FILTER (WHERE status = ANY($3::varchar[]))::int AS active_count
+                FROM Complaints
+                WHERE order_id = $1 AND customer_id = $2
+            `,
+            [orderId, customerId, ACTIVE_COMPLAINT_STATUSES]
+        );
+
+        const totalCount = Number(rows[0]?.total_count || 0);
+        const activeCount = Number(rows[0]?.active_count || 0);
+
+        if (activeCount > 0) {
+            throw new Error('This order already has a complaint being processed.');
+        }
+        if (totalCount >= MAX_COMPLAINTS_PER_ORDER) {
+            throw new Error('This order has exceeded the allowed number of complaints.');
+        }
+
+        return { order, attemptNo: totalCount + 1 };
     }
 
     async assertVouchersBelongToCustomer(voucherIds, customerId) {
@@ -39,6 +91,7 @@ class ComplaintService {
     }
 
     async createComplaint(customerId, data) {
+        await this.ensureComplaintWorkflowColumns();
         const client = await pool.connect();
         try {
             const { title, content, priority = 'Normal', voucherIds = [], orderId } = data;
@@ -46,19 +99,21 @@ class ComplaintService {
             if (!content || !content.trim()) {
                 throw new Error('Complaint content is required.');
             }
+            let attemptNo = 1;
             if (orderId) {
-                await this.assertOrderBelongsToCustomer(orderId, customerId);
+                const complaintGuard = await this.assertOrderCanReceiveComplaint(orderId, customerId);
+                attemptNo = complaintGuard.attemptNo;
             }
             const normalizedVoucherIds = await this.assertVouchersBelongToCustomer(voucherIds, customerId);
 
             await client.query('BEGIN');
             const complaintRes = await client.query(
                 `
-                    INSERT INTO Complaints (customer_id, order_id, title, content, status, priority)
-                    VALUES ($1, $2, $3, $4, 'Pending', $5)
+                    INSERT INTO Complaints (customer_id, order_id, title, content, status, priority, attempt_no, updated_at)
+                    VALUES ($1, $2, $3, $4, 'Pending', $5, $6, NOW())
                     RETURNING *
                 `,
-                [customerId, orderId || null, title || null, content, priority]
+                [customerId, orderId || null, title || null, content, priority, attemptNo]
             );
 
             const complaint = complaintRes.rows[0];
@@ -152,6 +207,20 @@ class ComplaintService {
             vouchers: vouchersRes.rows,
             responses: responsesRes.rows,
         };
+    }
+
+    async getOrderComplaints(orderId, customerId) {
+        await this.assertOrderBelongsToCustomer(orderId, customerId);
+        const { rows } = await pool.query(
+            `
+                SELECT *
+                FROM Complaints
+                WHERE order_id = $1 AND customer_id = $2
+                ORDER BY created_at DESC, complaint_id DESC
+            `,
+            [orderId, customerId]
+        );
+        return rows;
     }
 }
 

@@ -54,6 +54,8 @@ const Profile = () => {
   const [loadingEvouchers, setLoadingEvouchers] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
   const [selectedEVoucher, setSelectedEVoucher] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
 
   // State cho Modal đánh giá
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -88,6 +90,24 @@ const Profile = () => {
     const res = await apiFetch(`${API_BASE_URL}/api/orders/my-orders`);
     const data = await res.json();
     if (res.ok) setOrders(data.orders || []);
+  };
+
+  const fetchOrderDetail = async (orderId) => {
+    setLoadingOrderDetail(true);
+    setError("");
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/orders/${orderId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSelectedOrder(data.order);
+      } else {
+        setError(data.message || "Không thể tải chi tiết đơn hàng");
+      }
+    } catch (err) {
+      setError("Lỗi kết nối server khi tải chi tiết đơn hàng");
+    } finally {
+      setLoadingOrderDetail(false);
+    }
   };
 
   const fetchComplaints = async () => {
@@ -784,7 +804,7 @@ const Profile = () => {
 
                     {profile.role === "Partner" ? (
                       <>
-                        <div style={{ gridColumn: "span 2" }}>
+                        <div>
                           <label
                             style={{
                               display: "block",
@@ -1931,13 +1951,34 @@ const Profile = () => {
                   >
                     {orders.length > 0 ? (
                       orders.map((order) => (
-                        <div
+                        <button
+                          type="button"
                           key={order.order_id}
+                          onClick={() => fetchOrderDetail(order.order_id)}
                           style={{
+                            width: "100%",
                             border: "1px solid #e2e8f0",
                             borderRadius: "12px",
                             padding: "1rem",
                             background: "#f8fafc",
+                            color: "inherit",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition:
+                              "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor =
+                              "var(--primary)";
+                            e.currentTarget.style.boxShadow =
+                              "0 12px 28px rgba(15, 76, 129, 0.12)";
+                            e.currentTarget.style.transform =
+                              "translateY(-1px)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = "#e2e8f0";
+                            e.currentTarget.style.boxShadow = "none";
+                            e.currentTarget.style.transform = "translateY(0)";
                           }}
                         >
                           <div
@@ -1985,7 +2026,17 @@ const Profile = () => {
                               đ
                             </b>
                           </div>
-                        </div>
+                          <div
+                            style={{
+                              marginTop: "0.75rem",
+                              fontSize: "0.82rem",
+                              fontWeight: 800,
+                              color: "var(--primary)",
+                            }}
+                          >
+                            Xem chi tiết đơn hàng
+                          </div>
+                        </button>
                       ))
                     ) : (
                       <p
@@ -2438,6 +2489,252 @@ const Profile = () => {
                       )}
                     </div>
                   </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {(selectedOrder || loadingOrderDetail) && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15, 23, 42, 0.45)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "1rem",
+            }}
+            onClick={() => {
+              if (!loadingOrderDetail) setSelectedOrder(null);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ type: "spring", damping: 24, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                maxWidth: "760px",
+                maxHeight: "86vh",
+                overflow: "auto",
+                background: "white",
+                borderRadius: "24px",
+                boxShadow: "0 25px 60px rgba(15, 23, 42, 0.28)",
+              }}
+            >
+              <div
+                style={{
+                  padding: "1.25rem 1.5rem",
+                  borderBottom: "1px solid #e2e8f0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "1rem",
+                }}
+              >
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#64748b",
+                      fontSize: "0.78rem",
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Chi tiết đơn hàng
+                  </p>
+                  <h3
+                    style={{
+                      margin: "0.25rem 0 0",
+                      color: "#0f172a",
+                      fontSize: "1.35rem",
+                      fontWeight: 900,
+                    }}
+                  >
+                    {selectedOrder ? `#${selectedOrder.order_id}` : "Đang tải..."}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrder(null)}
+                  disabled={loadingOrderDetail}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    border: "none",
+                    borderRadius: "50%",
+                    background: "#f1f5f9",
+                    color: "#64748b",
+                    cursor: loadingOrderDetail ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ padding: "1.5rem" }}>
+                {loadingOrderDetail && (
+                  <div style={{ color: "#64748b", fontWeight: 700 }}>
+                    Đang tải chi tiết đơn hàng...
+                  </div>
+                )}
+
+                {!loadingOrderDetail && selectedOrder && (
+                  <div style={{ display: "grid", gap: "1.25rem" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gap: "0.85rem",
+                      }}
+                    >
+                      {[
+                        ["Trạng thái", getOrderStatusText(selectedOrder.status)],
+                        [
+                          "Ngày đặt",
+                          new Date(selectedOrder.order_date).toLocaleString("vi-VN"),
+                        ],
+                        ["Thanh toán", selectedOrder.payment_method || "Chưa có"],
+                        [
+                          "Tổng tiền",
+                          `${Number(selectedOrder.total_amount || 0).toLocaleString("vi-VN")}đ`,
+                        ],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          style={{
+                            background: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "14px",
+                            padding: "0.9rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: "#94a3b8",
+                              fontSize: "0.72rem",
+                              fontWeight: 900,
+                              textTransform: "uppercase",
+                              marginBottom: "0.35rem",
+                            }}
+                          >
+                            {label}
+                          </div>
+                          <div style={{ color: "#0f172a", fontWeight: 850 }}>
+                            {value}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <section>
+                      <h4
+                        style={{
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Voucher trong đơn
+                      </h4>
+                      <div style={{ display: "grid", gap: "0.75rem" }}>
+                        {(selectedOrder.items || []).map((item) => (
+                          <div
+                            key={item.order_item_id}
+                            style={{
+                              display: "flex",
+                              gap: "0.85rem",
+                              alignItems: "center",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "14px",
+                              padding: "0.85rem",
+                            }}
+                          >
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                              style={{
+                                width: "64px",
+                                height: "64px",
+                                borderRadius: "10px",
+                                objectFit: "cover",
+                                background: "#e2e8f0",
+                              }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ color: "#0f172a", fontWeight: 900 }}>
+                                {item.title}
+                              </div>
+                              <div style={{ color: "#64748b", fontSize: "0.88rem" }}>
+                                {item.company_name} · SL: {item.quantity}
+                              </div>
+                            </div>
+                            <strong style={{ color: "#0f172a" }}>
+                              {Number(item.price_at_purchase || 0).toLocaleString("vi-VN")}đ
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section>
+                      <h4
+                        style={{
+                          color: "#0f172a",
+                          fontWeight: 900,
+                          marginBottom: "0.75rem",
+                        }}
+                      >
+                        Mã E-Voucher đã phát hành
+                      </h4>
+                      {(selectedOrder.evouchers || []).length > 0 ? (
+                        <div style={{ display: "grid", gap: "0.6rem" }}>
+                          {selectedOrder.evouchers.map((evoucher) => (
+                            <div
+                              key={evoucher.evoucher_id}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: "1rem",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "12px",
+                                padding: "0.75rem 0.9rem",
+                                background: "#f8fafc",
+                              }}
+                            >
+                              <div>
+                                <strong style={{ color: "#0f172a" }}>
+                                  {evoucher.unique_code}
+                                </strong>
+                                <div style={{ color: "#64748b", fontSize: "0.82rem" }}>
+                                  {evoucher.title}
+                                </div>
+                              </div>
+                              <span style={{ color: "#64748b", fontWeight: 800 }}>
+                                {getStatusText(evoucher.status, evoucher.expiry_date)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ color: "#64748b", margin: 0 }}>
+                          Đơn hàng này chưa có mã E-Voucher được phát hành.
+                        </p>
+                      )}
+                    </section>
+                  </div>
                 )}
               </div>
             </motion.div>

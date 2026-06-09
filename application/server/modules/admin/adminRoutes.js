@@ -26,6 +26,9 @@ router.patch('/orders/:id/status', auth, adminOnly, adminController.updateOrderS
 
 router.get('/complaints', auth, adminOnly, adminController.getComplaints);
 router.patch('/complaints/:id/status', auth, adminOnly, adminController.updateComplaintStatus);
+router.post('/complaints/:id/issue-voucher', auth, adminOnly, adminController.issueComplaintVoucher);
+router.post('/complaints/:id/mark-refund-pending', auth, adminOnly, adminController.markComplaintRefundPending);
+router.post('/complaints/:id/mark-refunded', auth, adminOnly, adminController.markComplaintRefunded);
 
 router.get('/logs', auth, adminOnly, adminController.getSystemLogs);
 

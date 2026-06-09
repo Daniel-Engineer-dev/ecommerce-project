@@ -114,12 +114,55 @@ const getComplaints = async (req, res) => {
 const updateComplaintStatus = async (req, res) => {
     try {
         const { status, actionType, responseContent } = req.body;
+        if (status === 'Resolved' && actionType === 'NewCode') {
+            const result = await adminService.issueComplaintVoucher(
+                req.params.id,
+                { note: responseContent },
+                req.user?.id
+            );
+            return res.json({ message: 'Đã cấp voucher bồi thường thành công', ...result });
+        }
+        if (status === 'Resolved' && actionType === 'Refund') {
+            const complaint = await adminService.markComplaintRefundPending(
+                req.params.id,
+                { note: responseContent },
+                req.user?.id
+            );
+            return res.json({ message: 'Đã ghi nhận yêu cầu hoàn tiền thủ công', complaint });
+        }
         const complaint = await adminService.updateComplaintStatus(
             req.params.id, 
             { status, actionType, responseContent }, 
             req.user?.id
         );
         res.json({ message: 'Cập nhật khiếu nại thành công', complaint });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+const issueComplaintVoucher = async (req, res) => {
+    try {
+        const result = await adminService.issueComplaintVoucher(req.params.id, req.body || {}, req.user?.id);
+        res.json({ message: 'Đã cấp voucher bồi thường thành công', ...result });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+const markComplaintRefundPending = async (req, res) => {
+    try {
+        const complaint = await adminService.markComplaintRefundPending(req.params.id, req.body || {}, req.user?.id);
+        res.json({ message: 'Đã ghi nhận yêu cầu hoàn tiền thủ công', complaint });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+const markComplaintRefunded = async (req, res) => {
+    try {
+        const complaint = await adminService.markComplaintRefunded(req.params.id, req.body || {}, req.user?.id);
+        res.json({ message: 'Đã ghi nhận hoàn tiền thủ công', complaint });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
@@ -184,6 +227,24 @@ const getContentByKey = async (req, res) => {
     }
 };
 
+const getPublicContentItems = async (req, res) => {
+    try {
+        const items = await adminService.getPublicContentItems(req.query);
+        res.json({ items });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const getPublicContentBySlug = async (req, res) => {
+    try {
+        const item = await adminService.getPublicContentBySlug(req.params.slug);
+        res.json({ item });
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ error: err.message });
+    }
+};
+
 module.exports = {
     getPendingPartners,
     approvePartner,
@@ -198,10 +259,15 @@ module.exports = {
     updateOrderStatus,
     getComplaints,
     updateComplaintStatus,
+    issueComplaintVoucher,
+    markComplaintRefundPending,
+    markComplaintRefunded,
     getSystemLogs,
     getContentItems,
     upsertContentItem,
     getVoucherAndComplaintStats,
     getDashboardChartData,
-    getContentByKey
+    getContentByKey,
+    getPublicContentItems,
+    getPublicContentBySlug
 };

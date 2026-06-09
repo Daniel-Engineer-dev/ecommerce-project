@@ -14,6 +14,8 @@ import UserGuide from './pages/UserGuide';
 import RefundPolicy from './pages/RefundPolicy';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicContent from './pages/PublicContent';
+import PublicContentDetail from './pages/PublicContentDetail';
 
 import { CartProvider } from './context/CartContext';
 import Cart from './pages/Cart';
@@ -119,6 +121,8 @@ function AnimatedRoutes() {
             <Route path="/refund-policy" element={<PageWrapper><RefundPolicy /></PageWrapper>} />
             <Route path="/terms" element={<PageWrapper><TermsOfService /></PageWrapper>} />
             <Route path="/privacy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
+            <Route path="/content" element={<PageWrapper><PublicContent /></PageWrapper>} />
+            <Route path="/content/:slug" element={<PageWrapper><PublicContentDetail /></PageWrapper>} />
             <Route path="/cart" element={<PageWrapper><Cart /></PageWrapper>} />
             <Route path="/profile" element={<PageWrapper><ProtectedRoute><Profile /></ProtectedRoute></PageWrapper>} />
             <Route path="/search" element={<PageWrapper><SearchVouchers /></PageWrapper>} />
