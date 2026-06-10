@@ -14,6 +14,12 @@ const redirectToLogin = () => {
   window.location.href = '/';
 };
 
+const endSession = (message) => {
+  if (message) sessionStorage.setItem('partnerSessionMessage', message);
+  clearSession();
+  redirectToLogin();
+};
+
 export const refreshAccessToken = async () => {
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) return null;
@@ -25,16 +31,15 @@ export const refreshAccessToken = async () => {
   });
 
   if (!res.ok) {
-    clearSession();
-    redirectToLogin();
+    const data = await res.json().catch(() => ({}));
+    endSession(data.message || 'Phiên đăng nhập không còn hợp lệ.');
     return null;
   }
 
   const data = await res.json();
   const accessToken = data.accessToken || data.token;
   if (!accessToken || !data.refreshToken) {
-    clearSession();
-    redirectToLogin();
+    endSession('Phiên đăng nhập không còn hợp lệ.');
     return null;
   }
 

@@ -228,8 +228,8 @@ class PartnerService {
             );
             if (existing.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
             const currentVoucher = existing.rows[0];
-            if (currentVoucher.status === 'Approved') {
-                throw new Error('Voucher da duoc duyet. Doi tac chi co the tam ngung hoac gui yeu cau thay doi rieng.');
+            if (!['Pending', 'Rejected', 'Draft'].includes(currentVoucher.status)) {
+                throw new Error('Voucher da tung duoc duyet khong the sua truc tiep.');
             }
 
             const payload = this.normalizeVoucherPayload(data);
@@ -289,12 +289,12 @@ class PartnerService {
             [voucherId, partnerId]
         );
         if (existing.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
-        if (existing.rows[0].status === 'Approved') {
-            throw new Error('Voucher da duoc duyet. Doi tac chi co the tam ngung voucher nay.');
+        if (!['Pending', 'Rejected', 'Draft'].includes(existing.rows[0].status)) {
+            throw new Error('Voucher da tung duoc duyet khong the gui lai truc tiep.');
         }
 
         const result = await pool.query(
-            "UPDATE Vouchers SET status = 'Pending' WHERE voucher_id = $1 AND partner_id = $2 RETURNING *",
+            "UPDATE Vouchers SET status = 'Pending' WHERE voucher_id = $1 AND partner_id = $2 AND status IN ('Pending', 'Rejected', 'Draft') RETURNING *",
             [voucherId, partnerId]
         );
         eventBus.emit('voucher.status_changed', {
@@ -308,10 +308,10 @@ class PartnerService {
 
     async disableVoucher(partnerId, voucherId) {
         const result = await pool.query(
-            "UPDATE Vouchers SET status = 'Suspended' WHERE voucher_id = $1 AND partner_id = $2 RETURNING *",
+            "UPDATE Vouchers SET status = 'Suspended' WHERE voucher_id = $1 AND partner_id = $2 AND status = 'Approved' RETURNING *",
             [voucherId, partnerId]
         );
-        if (result.rows.length === 0) throw new Error('Voucher khong ton tai hoac khong thuoc doi tac nay');
+        if (result.rows.length === 0) throw new Error('Chi voucher da duyet moi co the tam ngung');
         eventBus.emit('voucher.status_changed', {
             voucherId: result.rows[0].voucher_id,
             partnerId,
@@ -360,7 +360,9 @@ class PartnerService {
 
         return {
             ...voucher,
-            can_redeem: voucher.status === 'Unused' && (!voucher.expiry_date || new Date(voucher.expiry_date) > new Date()),
+            can_redeem: voucher.order_status === 'Paid'
+                && voucher.status === 'Unused'
+                && (!voucher.expiry_date || new Date(voucher.expiry_date) > new Date()),
             branches: branches.rows
         };
     }
@@ -372,28 +374,44 @@ class PartnerService {
         }
         if (!branchId) throw new Error('Vui long chon chi nhanh su dung');
 
-        const branch = await pool.query(
-            'SELECT branch_id FROM Branches WHERE branch_id = $1 AND partner_id = $2',
-            [branchId, partnerId]
-        );
-        if (branch.rows.length === 0) throw new Error('Chi nhanh khong thuoc doi tac nay');
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const order = await client.query(
+                "SELECT status FROM Orders WHERE order_id = $1 FOR UPDATE",
+                [checked.order_id]
+            );
+            if (order.rows[0]?.status !== 'Paid') {
+                throw new Error('Chi voucher thuoc don hang da thanh toan moi co the su dung');
+            }
 
-        const allowed = await pool.query(
-            'SELECT 1 FROM Voucher_Branches WHERE voucher_id = $1 AND branch_id = $2',
-            [checked.voucher_id, branchId]
-        );
-        if (allowed.rows.length === 0) throw new Error('Voucher khong ap dung tai chi nhanh nay');
+            const branch = await client.query(
+                'SELECT branch_id FROM Branches WHERE branch_id = $1 AND partner_id = $2',
+                [branchId, partnerId]
+            );
+            if (branch.rows.length === 0) throw new Error('Chi nhanh khong thuoc doi tac nay');
 
-        const result = await pool.query(
-            `
-            UPDATE E_Vouchers
-            SET status = 'Used', used_at_branch_id = $1, used_date = CURRENT_TIMESTAMP
-            WHERE unique_code = $2 AND status = 'Unused'
-            RETURNING *
-            `,
-            [branchId, normalizeCode(code)]
-        );
-        if (result.rows.length === 0) throw new Error('Khong the cap nhat voucher. Ma co the da duoc su dung.');
+            const allowed = await client.query(
+                'SELECT 1 FROM Voucher_Branches WHERE voucher_id = $1 AND branch_id = $2',
+                [checked.voucher_id, branchId]
+            );
+            if (allowed.rows.length === 0) throw new Error('Voucher khong ap dung tai chi nhanh nay');
+
+            const result = await client.query(
+                `UPDATE E_Vouchers
+                 SET status = 'Used', used_at_branch_id = $1, used_date = CURRENT_TIMESTAMP
+                 WHERE unique_code = $2 AND status = 'Unused'
+                 RETURNING evoucher_id`,
+                [branchId, normalizeCode(code)]
+            );
+            if (result.rows.length === 0) throw new Error('Khong the cap nhat voucher. Ma co the da duoc su dung.');
+            await client.query('COMMIT');
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
         eventBus.emit('voucher_code.redeemed', {
             voucherId: checked.voucher_id,
             partnerId,

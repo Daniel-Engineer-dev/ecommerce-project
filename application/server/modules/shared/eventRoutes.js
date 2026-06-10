@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { getRequiredSecret } = require('../../utils/jwtSecrets');
 const eventBus = require('../../utils/eventBus');
 
 const router = express.Router();
@@ -11,7 +12,7 @@ router.get('/', (req, res) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey_tmdt');
+        const decoded = jwt.verify(token, getRequiredSecret('JWT_SECRET'));
         if (decoded.type === 'refresh' || !['Admin', 'Partner'].includes(decoded.role)) {
             return res.status(403).json({ message: 'Token khong hop le cho realtime events' });
         }

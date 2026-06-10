@@ -40,6 +40,7 @@ DROP FUNCTION IF EXISTS fn_validate_voucher_usage() CASCADE;
 DROP FUNCTION IF EXISTS fn_validate_order_item() CASCADE;
 DROP FUNCTION IF EXISTS fn_validate_review() CASCADE;
 DROP FUNCTION IF EXISTS fn_log_action() CASCADE;
+DROP FUNCTION IF EXISTS enforce_complaint_order_limit() CASCADE;
 
 -- ============================================================
 -- 2. TABLES
@@ -86,7 +87,7 @@ CREATE TABLE partners (
 
 CREATE TABLE branches (
     branch_id SERIAL PRIMARY KEY,
-    partner_id INT REFERENCES partners(user_id) ON DELETE CASCADE,
+    partner_id INT REFERENCES partners(user_id) ON DELETE RESTRICT,
     branch_name VARCHAR(200),
     address TEXT,
     phone VARCHAR(20)
@@ -99,7 +100,7 @@ CREATE TABLE categories (
 
 CREATE TABLE vouchers (
     voucher_id SERIAL PRIMARY KEY,
-    partner_id INT REFERENCES partners(user_id) ON DELETE CASCADE,
+    partner_id INT REFERENCES partners(user_id) ON DELETE RESTRICT,
     category_id INT REFERENCES categories(category_id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -129,9 +130,29 @@ CREATE TABLE voucher_branches (
     PRIMARY KEY (voucher_id, branch_id)
 );
 
+CREATE OR REPLACE FUNCTION fn_validate_voucher_branch_owner()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM vouchers v
+        JOIN branches b ON b.branch_id = NEW.branch_id
+        WHERE v.voucher_id = NEW.voucher_id
+          AND v.partner_id = b.partner_id
+    ) THEN
+        RAISE EXCEPTION 'Voucher and branch must belong to the same partner.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_voucher_branch_owner
+BEFORE INSERT OR UPDATE ON voucher_branches
+FOR EACH ROW EXECUTE FUNCTION fn_validate_voucher_branch_owner();
+
 CREATE TABLE orders (
     order_id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(user_id) ON DELETE CASCADE,
+    customer_id INT REFERENCES customers(user_id) ON DELETE RESTRICT,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount NUMERIC(12,2),
     status VARCHAR(20) DEFAULT 'Pending'
@@ -212,8 +233,23 @@ CREATE TABLE complaints (
         CHECK (status IN ('Pending', 'Processing', 'Resolved', 'Rejected')),
     priority VARCHAR(10) DEFAULT 'Normal'
         CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    admin_note TEXT,
+    resolution_type VARCHAR(40) DEFAULT 'none',
+    resolution_note TEXT,
+    refund_status VARCHAR(40) DEFAULT 'none',
+    refund_amount NUMERIC DEFAULT 0,
+    voucher_id INTEGER,
+    attempt_no INTEGER DEFAULT 1,
+    reviewed_by INTEGER,
+    reviewed_at TIMESTAMP,
+    resolved_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX complaints_one_active_per_order
+ON complaints (order_id, customer_id)
+WHERE status IN ('Pending', 'Processing') AND order_id IS NOT NULL;
 
 CREATE TABLE complaint_vouchers (
     complaint_id INT REFERENCES complaints(complaint_id) ON DELETE CASCADE,
@@ -273,10 +309,6 @@ BEGIN
         RAISE EXCEPTION 'Voucher stock is not enough. Remaining: %', v_stock;
     END IF;
 
-    UPDATE vouchers
-    SET quantity_stock = quantity_stock - NEW.quantity
-    WHERE voucher_id = NEW.voucher_id;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -290,12 +322,14 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_voucher_partner_id INT;
     v_branch_partner_id INT;
+    v_order_status VARCHAR(20);
 BEGIN
     IF NEW.status = 'Used' AND OLD.status <> 'Used' THEN
-        SELECT v.partner_id
-        INTO v_voucher_partner_id
+        SELECT v.partner_id, o.status
+        INTO v_voucher_partner_id, v_order_status
         FROM order_items oi
         JOIN vouchers v ON oi.voucher_id = v.voucher_id
+        JOIN orders o ON o.order_id = oi.order_id
         WHERE oi.order_item_id = NEW.order_item_id;
 
         SELECT partner_id
@@ -303,7 +337,11 @@ BEGIN
         FROM branches
         WHERE branch_id = NEW.used_at_branch_id;
 
-        IF v_voucher_partner_id <> v_branch_partner_id THEN
+        IF v_order_status <> 'Paid' THEN
+            RAISE EXCEPTION 'Only vouchers from paid orders can be redeemed.';
+        END IF;
+
+        IF v_voucher_partner_id IS DISTINCT FROM v_branch_partner_id THEN
             RAISE EXCEPTION 'Branch does not belong to the partner that issued this voucher.';
         END IF;
 
@@ -327,6 +365,7 @@ BEGIN
         JOIN order_items oi ON o.order_id = oi.order_id
         WHERE o.customer_id = NEW.customer_id
           AND oi.voucher_id = NEW.voucher_id
+          AND o.status = 'Paid'
     ) THEN
         RAISE EXCEPTION 'Customer can only review purchased vouchers.';
     END IF;
@@ -338,6 +377,26 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_validate_review
 BEFORE INSERT ON reviews
 FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
+
+CREATE OR REPLACE FUNCTION enforce_complaint_order_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.order_id IS NOT NULL THEN
+        PERFORM pg_advisory_xact_lock(NEW.order_id);
+        IF (
+            SELECT COUNT(*) FROM complaints
+            WHERE order_id = NEW.order_id AND customer_id = NEW.customer_id
+        ) >= 2 THEN
+            RAISE EXCEPTION 'This order has exceeded the allowed number of complaints.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_enforce_complaint_order_limit
+BEFORE INSERT ON complaints
+FOR EACH ROW EXECUTE FUNCTION enforce_complaint_order_limit();
 
 -- ============================================================
 -- 4. DEMO SEED DATA
@@ -516,6 +575,18 @@ INSERT INTO system_logs (user_id, action, table_name, record_id) VALUES
 ((SELECT user_id FROM users WHERE username = 'admin'), 'Approve demo vouchers', 'vouchers', NULL),
 ((SELECT user_id FROM users WHERE username = 'admin'), 'Verify e-voucher consistency', 'e_vouchers', NULL);
 
+WITH reserved AS (
+    SELECT oi.voucher_id, SUM(oi.quantity)::int AS quantity
+    FROM order_items oi
+    JOIN orders o ON o.order_id = oi.order_id
+    WHERE o.status IN ('Pending', 'Paid')
+    GROUP BY oi.voucher_id
+)
+UPDATE vouchers v
+SET quantity_stock = GREATEST(0, v.total_quantity - COALESCE(r.quantity, 0))
+FROM reserved r
+WHERE r.voucher_id = v.voucher_id;
+
 -- ============================================================
 -- 5. ORDER / E-VOUCHER CONSISTENCY MAINTENANCE
 -- Same intent as 20260609_fix_order_evoucher_consistency.sql.
@@ -573,6 +644,17 @@ SELECT setval('complaints_complaint_id_seq', COALESCE((SELECT MAX(complaint_id) 
 SELECT setval('complaint_responses_response_id_seq', COALESCE((SELECT MAX(response_id) FROM complaint_responses), 1), EXISTS (SELECT 1 FROM complaint_responses));
 
 COMMIT;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        REVOKE ALL ON TABLE users, orders, order_items, e_vouchers, vouchers, voucher_branches, reviews, complaints FROM anon;
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        REVOKE ALL ON TABLE users, orders, order_items, e_vouchers, vouchers, voucher_branches, reviews, complaints FROM authenticated;
+    END IF;
+END;
+$$;
 
 -- ============================================================
 -- 6. POST-RUN VERIFICATION QUERIES

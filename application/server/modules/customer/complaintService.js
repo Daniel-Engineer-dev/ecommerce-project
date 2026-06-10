@@ -5,26 +5,9 @@ const MAX_COMPLAINTS_PER_ORDER = Number(process.env.MAX_COMPLAINTS_PER_ORDER || 
 const COMPLAINABLE_ORDER_STATUSES = ['Paid', 'Refunded'];
 
 class ComplaintService {
-    async ensureComplaintWorkflowColumns() {
-        await pool.query(`
-            ALTER TABLE Complaints
-                ADD COLUMN IF NOT EXISTS admin_note TEXT,
-                ADD COLUMN IF NOT EXISTS resolution_type VARCHAR(40) DEFAULT 'none',
-                ADD COLUMN IF NOT EXISTS resolution_note TEXT,
-                ADD COLUMN IF NOT EXISTS refund_status VARCHAR(40) DEFAULT 'none',
-                ADD COLUMN IF NOT EXISTS refund_amount NUMERIC DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS voucher_id INTEGER,
-                ADD COLUMN IF NOT EXISTS attempt_no INTEGER DEFAULT 1,
-                ADD COLUMN IF NOT EXISTS reviewed_by INTEGER,
-                ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        `);
-    }
-
-    async assertOrderBelongsToCustomer(orderId, customerId) {
-        const { rows } = await pool.query(
-            'SELECT order_id, status FROM Orders WHERE order_id = $1 AND customer_id = $2',
+    async assertOrderBelongsToCustomer(orderId, customerId, client = pool, lock = false) {
+        const { rows } = await client.query(
+            `SELECT order_id, status FROM Orders WHERE order_id = $1 AND customer_id = $2${lock ? ' FOR UPDATE' : ''}`,
             [orderId, customerId]
         );
         if (rows.length === 0) {
@@ -33,13 +16,13 @@ class ComplaintService {
         return rows[0];
     }
 
-    async assertOrderCanReceiveComplaint(orderId, customerId) {
-        const order = await this.assertOrderBelongsToCustomer(orderId, customerId);
+    async assertOrderCanReceiveComplaint(orderId, customerId, client = pool) {
+        const order = await this.assertOrderBelongsToCustomer(orderId, customerId, client, true);
         if (!COMPLAINABLE_ORDER_STATUSES.includes(order.status)) {
             throw new Error('Only paid or refunded orders can be complained.');
         }
 
-        const { rows } = await pool.query(
+        const { rows } = await client.query(
             `
                 SELECT
                     COUNT(*)::int AS total_count,
@@ -63,23 +46,25 @@ class ComplaintService {
         return { order, attemptNo: totalCount + 1 };
     }
 
-    async assertVouchersBelongToCustomer(voucherIds, customerId) {
+    async assertVouchersBelongToOrder(voucherIds, customerId, orderId, client = pool) {
         const normalizedIds = [...new Set((voucherIds || [])
             .map((id) => Number.parseInt(id, 10))
             .filter((id) => Number.isInteger(id) && id > 0))];
 
         if (normalizedIds.length === 0) return [];
+        if (!orderId) throw new Error('An order is required when selecting complaint vouchers.');
 
-        const { rows } = await pool.query(
+        const { rows } = await client.query(
             `
                 SELECT DISTINCT oi.voucher_id
                 FROM Orders o
                 JOIN Order_Items oi ON o.order_id = oi.order_id
                 WHERE o.customer_id = $1
-                    AND o.status = 'Paid'
-                    AND oi.voucher_id = ANY($2::int[])
+                    AND o.order_id = $2
+                    AND o.status = ANY($3::varchar[])
+                    AND oi.voucher_id = ANY($4::int[])
             `,
-            [customerId, normalizedIds]
+            [customerId, orderId, COMPLAINABLE_ORDER_STATUSES, normalizedIds]
         );
         const ownedIds = new Set(rows.map((row) => Number(row.voucher_id)));
         const invalidIds = normalizedIds.filter((id) => !ownedIds.has(id));
@@ -91,7 +76,6 @@ class ComplaintService {
     }
 
     async createComplaint(customerId, data) {
-        await this.ensureComplaintWorkflowColumns();
         const client = await pool.connect();
         try {
             const { title, content, priority = 'Normal', voucherIds = [], orderId } = data;
@@ -99,14 +83,15 @@ class ComplaintService {
             if (!content || !content.trim()) {
                 throw new Error('Complaint content is required.');
             }
+            await client.query('BEGIN');
+
             let attemptNo = 1;
             if (orderId) {
-                const complaintGuard = await this.assertOrderCanReceiveComplaint(orderId, customerId);
+                const complaintGuard = await this.assertOrderCanReceiveComplaint(orderId, customerId, client);
                 attemptNo = complaintGuard.attemptNo;
             }
-            const normalizedVoucherIds = await this.assertVouchersBelongToCustomer(voucherIds, customerId);
+            const normalizedVoucherIds = await this.assertVouchersBelongToOrder(voucherIds, customerId, orderId, client);
 
-            await client.query('BEGIN');
             const complaintRes = await client.query(
                 `
                     INSERT INTO Complaints (customer_id, order_id, title, content, status, priority, attempt_no, updated_at)

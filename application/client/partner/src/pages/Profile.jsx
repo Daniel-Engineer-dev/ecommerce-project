@@ -61,6 +61,10 @@ const Profile = () => {
     };
 
     const handleRemoveBranch = (index) => {
+        if (profile.branches[index]?.is_protected) {
+            setError('Chi nhánh này đang áp dụng cho voucher đã duyệt hoặc tạm ngừng nên không thể xóa.');
+            return;
+        }
         const newBranches = profile.branches.filter((_, i) => i !== index);
         setProfile({ ...profile, branches: newBranches });
     };
@@ -362,7 +366,15 @@ const Profile = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100%, 1fr))', gap: '1.5rem' }}>
                                             {profile.branches && profile.branches.map((branch, index) => (
                                                 <div key={index} style={{ padding: '1.5rem', background: 'white', borderRadius: 'var(--radius-lg, 12px)', border: '1px solid var(--border-color, #e4e4e7)', boxShadow: 'var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05))', position: 'relative', transition: '0.3s' }}>
-                                                    <button type="button" onClick={() => handleRemoveBranch(index)} style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: 'var(--error-light, #fef2f2)', color: 'var(--error-dark, #991b1b)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: '0.3s' }}><X size={18} /></button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveBranch(index)}
+                                                        disabled={branch.is_protected}
+                                                        title={branch.is_protected ? 'Chi nhánh đang áp dụng cho voucher đã duyệt nên không thể xóa' : 'Xóa chi nhánh'}
+                                                        style={{ position: 'absolute', top: '20px', right: '20px', border: 'none', background: branch.is_protected ? '#e2e8f0' : 'var(--error-light, #fef2f2)', color: branch.is_protected ? '#64748b' : 'var(--error-dark, #991b1b)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: branch.is_protected ? 'not-allowed' : 'pointer', opacity: branch.is_protected ? 0.75 : 1, transition: '0.3s' }}
+                                                    >
+                                                        {branch.is_protected ? <Lock size={18} /> : <X size={18} />}
+                                                    </button>
 
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                                         <div style={{ gridColumn: 'span 2' }}>
@@ -390,6 +402,11 @@ const Profile = () => {
                                                             }} className="auth-input" placeholder="SĐT chi nhánh..." required /></div>
                                                         </div>
                                                     </div>
+                                                    {branch.is_protected && (
+                                                        <div style={{ marginTop: '1rem', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '0.75rem 1rem', fontSize: '0.8rem', fontWeight: 700 }}>
+                                                            Chi nhánh đang được dùng bởi voucher đã duyệt hoặc tạm ngừng. Hãy liên hệ Admin trước khi xóa.
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

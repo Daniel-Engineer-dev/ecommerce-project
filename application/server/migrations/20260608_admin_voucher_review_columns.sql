@@ -1,3 +1,0 @@
-ALTER TABLE Vouchers
-    ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP,
-    ADD COLUMN IF NOT EXISTS rejected_reason TEXT;

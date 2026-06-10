@@ -13,6 +13,7 @@ const adminOrderRoutes = require('./modules/admin/Order/adminOrderRoute');
 const chatbotRoutes = require('./modules/shared/chatbotRoutes');
 const eventRoutes = require('./modules/shared/eventRoutes');
 const contentRoutes = require('./modules/shared/contentRoutes');
+const orderService = require('./modules/customer/orderService');
 const pool = require('./config/db');
 
 const helmet = require('helmet');
@@ -111,4 +112,14 @@ app.get('/health/db', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
+const expiryIntervalMs = Number(process.env.PENDING_ORDER_EXPIRY_SCAN_MS || 60000);
+const expiryTimer = setInterval(() => {
+  orderService.expirePendingOrders().catch((error) => {
+    console.error('Pending order expiry failed:', error);
+  });
+}, expiryIntervalMs);
+expiryTimer.unref();
+
+module.exports = { app, server };

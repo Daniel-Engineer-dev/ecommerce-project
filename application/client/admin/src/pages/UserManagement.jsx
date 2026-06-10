@@ -82,6 +82,12 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
 
     const handleLockToggle = async () => {
         if (!user) return;
+        if (user.is_active && user.role === 'Partner') {
+            const confirmed = window.confirm(
+                `Khóa Partner này sẽ đăng xuất tài khoản và tự động tạm ngừng các voucher đang Approved. Tiếp tục?`
+            );
+            if (!confirmed) return;
+        }
         setActionLoading(true);
         try {
             const currentLockState = user.is_active;
@@ -92,8 +98,8 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
             });
             const data = await res.json();
             if (res.ok) {
-                setUser(prev => ({ ...prev, is_active: !prev.is_active }));
-                onLockToggle(userId, !user.is_active);
+                setUser(prev => ({ ...prev, is_active: data.is_active }));
+                onLockToggle(userId, data.is_active, data.suspendedVoucherCount || 0);
             } else {
                 alert(data.error || "Thao tác thất bại");
             }
@@ -212,6 +218,12 @@ const UserDetailModal = ({ userId, onClose, onLockToggle }) => {
                                     <ArrowRight size={16} className="text-slate-400 group-hover:translate-x-1 group-hover:text-[#1a3a5c] transition-all" />
                                 </div>
                             </button>
+                            {user.is_active && (
+                                <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold leading-relaxed text-amber-800">
+                                    <AlertTriangle size={17} className="shrink-0 mt-0.5" />
+                                    Khóa Partner sẽ đăng xuất tài khoản và tự động chuyển toàn bộ voucher đang Approved sang Tạm ngừng.
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -278,9 +290,10 @@ const UserManagement = () => {
     useEffect(() => { fetchUsers(); }, [fetchUsers]);
     useEffect(() => { fetchStats(); }, []);
 
-    const handleLockToggleOnUI = (id, newActiveState) => {
+    const handleLockToggleOnUI = (id, newActiveState, suspendedVoucherCount = 0) => {
         setUsers(prev => prev.map(u => u.user_id === id ? { ...u, is_active: newActiveState } : u));
-        setToast({ type: 'success', message: newActiveState ? 'Đã mở khóa tài khoản thành công!' : 'Đã khóa tài khoản thành công!' });
+        const suspensionNote = suspendedVoucherCount > 0 ? ` ${suspendedVoucherCount} voucher đã được tạm ngừng.` : '';
+        setToast({ type: 'success', message: newActiveState ? 'Đã mở khóa tài khoản thành công!' : `Đã khóa tài khoản thành công!${suspensionNote}` });
     };
 
     return (

@@ -74,6 +74,11 @@ class AdminOrderService {
     }
 
     async confirmPayment(orderId, adminId) {
+        const order = await pool.query('SELECT payment_method FROM Orders WHERE order_id = $1', [orderId]);
+        if (order.rowCount === 0) throw new Error('Order not found');
+        if (order.rows[0].payment_method !== 'VietQR') {
+            throw new Error('Manual payment confirmation is only allowed for VietQR orders');
+        }
         await orderService.completeOrder(orderId, `ADMIN_CONFIRM_${Date.now()}`);
         await pool.query(
             `INSERT INTO System_Logs (user_id, action, table_name, record_id) VALUES ($1, $2, $3, $4)`,
@@ -90,7 +95,7 @@ class AdminOrderService {
         try {
             await client.query('BEGIN');
             
-            const orderRes = await client.query("SELECT * FROM Orders WHERE order_id = $1", [orderId]);
+            const orderRes = await client.query("SELECT * FROM Orders WHERE order_id = $1 FOR UPDATE", [orderId]);
             if (orderRes.rowCount === 0) throw new Error("Không tìm thấy đơn hàng");
             
             const order = orderRes.rows[0];
@@ -102,6 +107,20 @@ class AdminOrderService {
             }
 
             // 1. Cập nhật trạng thái cột status thành 'Refunded'
+            const usedVoucher = await client.query(
+                `SELECT 1
+                 FROM E_Vouchers ev
+                 JOIN Order_Items oi ON oi.order_item_id = ev.order_item_id
+                 WHERE oi.order_id = $1 AND ev.status = 'Used'
+                 LIMIT 1`,
+                [orderId]
+            );
+            if (usedVoucher.rows.length > 0) {
+                throw new Error('Khong the hoan tien don hang da su dung voucher');
+            }
+
+            await orderService.restoreStockForOrder(client, orderId);
+
             await client.query(
                 `UPDATE Orders SET status = 'Refunded' WHERE order_id = $1`, 
                 [orderId]

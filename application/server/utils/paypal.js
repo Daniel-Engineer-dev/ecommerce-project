@@ -25,7 +25,7 @@ module.exports = {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
             data: 'grant_type=client_credentials',
-            timeout: 5000
+            timeout: 30000
         });
 
         return response.data.access_token;
@@ -46,8 +46,7 @@ module.exports = {
 
         // Chế độ Demo Giả lập tự động khi chưa cấu hình Client ID / Secret
         if (!clientId || !clientSecret || clientId.trim() === '' || clientSecret.trim() === '') {
-            console.warn('PayPal Client ID/Secret chưa được cấu hình đầy đủ. Kích hoạt URL thanh toán PayPal Demo...');
-            return `${returnUrl}?token=MOCK_PAYPAL_TOKEN&orderId=${orderId}&demo=true`;
+            throw new Error('PayPal is not configured.');
         }
 
         try {
@@ -80,7 +79,7 @@ module.exports = {
                         user_action: 'PAY_NOW'
                     }
                 },
-                timeout: 5000
+                timeout: 30000
             });
 
             if (response.data && response.data.links) {
@@ -92,8 +91,8 @@ module.exports = {
             throw new Error('Không tìm thấy link approve từ PayPal.');
 
         } catch (error) {
-            console.error('Không thể kết nối đến PayPal Sandbox API. Kích hoạt chế độ demo giả lập:', error.message);
-            return `${returnUrl}?token=MOCK_PAYPAL_TOKEN&orderId=${orderId}&demo=true`;
+            console.error('Không thể kết nối đến PayPal Sandbox API:', error.message);
+            throw new Error('Could not create PayPal payment.');
         }
     },
 
@@ -105,6 +104,20 @@ module.exports = {
         
         try {
             const accessToken = await this.getAccessToken();
+            const orderResponse = await axios({
+                url: `${apiUrl}/v2/checkout/orders/${paypalOrderId}`,
+                method: 'get',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                timeout: 30000
+            });
+
+            const internalOrderId = orderResponse.data?.purchase_units?.[0]?.custom_id;
+            if (!internalOrderId) {
+                return { success: false, message: 'PayPal order is missing its internal order reference.' };
+            }
             
             const response = await axios({
                 url: `${apiUrl}/v2/checkout/orders/${paypalOrderId}/capture`,
@@ -114,22 +127,33 @@ module.exports = {
                     'Authorization': `Bearer ${accessToken}`
                 },
                 data: {},
-                timeout: 5000
+                timeout: 30000
             });
 
             const status = response.data.status;
             if (status === 'COMPLETED') {
-                const captureId = response.data.purchase_units[0].payments.captures[0].id;
+                const capture = response.data.purchase_units[0].payments.captures[0];
+                const captureId = capture.id;
+                const amountUsd = Number(capture.amount?.value);
                 return {
                     success: true,
-                    transactionId: captureId
+                    transactionId: captureId,
+                    orderId: internalOrderId,
+                    amountVnd: Math.round(amountUsd * 25000),
                 };
             }
             return { success: false, message: `Trạng thái giao dịch PayPal là: ${status}` };
         } catch (error) {
             const errorMsg = error.response ? JSON.stringify(error.response.data) : error.message;
             console.error('Lỗi capture thanh toán PayPal:', errorMsg);
-            return { success: false, message: error.message };
+            const detail = error.response?.data?.details?.[0];
+            return {
+                success: false,
+                message: detail
+                    ? `${detail.issue}: ${detail.description}`
+                    : error.response?.data?.message || error.message,
+                debugId: error.response?.data?.debug_id || null,
+            };
         }
     }
 };

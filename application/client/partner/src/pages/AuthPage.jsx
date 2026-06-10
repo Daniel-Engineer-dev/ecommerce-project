@@ -27,7 +27,11 @@ const textButtonClass =
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '', email: '', phone: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const message = sessionStorage.getItem('partnerSessionMessage') || '';
+    sessionStorage.removeItem('partnerSessionMessage');
+    return message;
+  });
   const [successMsg, setSuccessMsg] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotMethod, setForgotMethod] = useState('email');

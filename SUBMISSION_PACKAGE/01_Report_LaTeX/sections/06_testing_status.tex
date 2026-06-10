@@ -17,6 +17,9 @@ TC-TECH-01 & Build frontend Khách hàng & Chạy \texttt{npm run build}; quá t
 TC-TECH-02 & Build frontend Đối tác & Chạy \texttt{npm run build}; quá trình build hoàn tất và sinh thư mục đầu ra & Đạt, có cảnh báo \\ \hline
 TC-TECH-03 & Build frontend Quản trị viên & Chạy \texttt{npm run build}; build hoàn tất; cảnh báo chunk lớn không làm dừng quá trình & Đạt, có cảnh báo \\ \hline
 TC-TECH-04 & Kiểm tra cú pháp backend & Chạy \texttt{node --check} cho entry point và service chính; không phát sinh lỗi cú pháp & Đạt \\ \hline
+TC-TECH-05 & Backend regression tests & Chạy \texttt{npm test}; 6 test bảo mật và nhất quán dữ liệu & Đạt \\ \hline
+TC-TECH-06 & Frontend lint & Customer không còn lỗi; Admin còn 25 lỗi; Partner còn 40 lỗi & Chưa đạt \\ \hline
+TC-TECH-07 & Dependency audit & Chạy \texttt{npm audit --omit=dev}; không còn vulnerability & Đạt \\ \hline
 \caption[]{Kết quả kiểm thử kỹ thuật}\\
 \end{longtable}
 
@@ -38,7 +41,7 @@ TC-BIZ-05 & Quản trị viên duyệt voucher & Voucher ở trạng thái Pendi
 TC-BIZ-06 & Khách hàng xem voucher & Tồn tại voucher Approved và voucher chưa Approved & API/giao diện công khai chỉ trả voucher Approved còn hiệu lực & Đạt \\ \hline
 TC-BIZ-07 & Đối tác redeem mã hợp lệ & Mã E-Voucher tồn tại, còn hạn, trạng thái Unused và đúng Đối tác/chi nhánh & Chuyển trạng thái sang Used và ghi nhận thời điểm sử dụng & Đạt \\ \hline
 TC-BIZ-08 & Đối tác redeem mã đã dùng & Mã E-Voucher có trạng thái Used & Từ chối xác nhận sử dụng lần hai & Đạt \\ \hline
-TC-BIZ-09 & Checkout và phát hành E-Voucher & Giỏ hàng hợp lệ, voucher Approved còn tồn kho, thanh toán mô phỏng thành công & Đơn chuyển sang Paid và sinh đủ E-Voucher theo số lượng mua & Đạt \\ \hline
+TC-BIZ-09 & Checkout và phát hành E-Voucher & Giỏ hàng hợp lệ, voucher Approved còn tồn kho, thanh toán qua callback đã xác minh & Đơn chuyển sang Paid và sinh đủ E-Voucher theo số lượng mua & Chưa xác nhận bằng kiểm thử tích hợp \\ \hline
 TC-BIZ-10 & Admin xác nhận thanh toán thủ công & Đơn Pending và Quản trị viên hợp lệ & Cập nhật Paid thông qua service chung và phát hành E-Voucher tương ứng & Đạt \\ \hline
 \caption[]{Kết quả kiểm thử nghiệp vụ cốt lõi}\\
 \end{longtable}

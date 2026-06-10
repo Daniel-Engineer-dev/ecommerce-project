@@ -14,6 +14,7 @@ const PaymentStatus = () => {
   const status = searchParams.get('status'); // 'success' hoặc 'fail'
   const orderId = searchParams.get('orderId');
   const paymentMethod = searchParams.get('payment'); // 'vnpay', 'momo', 'vietqr', 'paypal'
+  const failureReason = searchParams.get('reason');
 
   const [evouchers, setEvouchers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -24,16 +25,6 @@ const PaymentStatus = () => {
     if (!token) {
       navigate('/auth');
       return;
-    }
-
-    if (status === 'fail' && orderId) {
-      apiFetch(`${API_BASE_URL}/api/orders/${orderId}/fail`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ transactionRef: paymentMethod || 'PAYMENT_FAIL' })
-      }).catch(err => console.error(err));
     }
 
     if (status === 'success' && orderId) {
@@ -265,17 +256,48 @@ const PaymentStatus = () => {
               <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '2rem', maxWidth: '500px' }}>
                 Đã có lỗi xảy ra trong quá trình kết nối với cổng thanh toán hoặc giao dịch của bạn đã bị hủy bỏ từ phía ngân hàng.
               </p>
+              {failureReason && (
+                <p style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '0.8rem 1rem', marginTop: '-1rem', marginBottom: '2rem', maxWidth: '600px' }}>
+                  {failureReason}
+                </p>
+              )}
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <Link to="/cart">
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Link to="/cart" style={{ textDecoration: 'none' }}>
                   <button className="btn-primary" style={{ padding: '1rem 2rem', gap: '8px', display: 'flex', alignItems: 'center' }}>
                     <ShoppingCart size={18} /> Quay lại Giỏ hàng
                   </button>
                 </Link>
-                <Link to="/">
-                  <button className="btn-secondary" style={{ padding: '1rem 2rem', gap: '8px', display: 'flex', alignItems: 'center', background: 'white', border: '1px solid #cbd5e1', color: '#475569' }}>
+                <Link to="/" style={{ textDecoration: 'none' }}>
+                  <motion.button
+                    type="button"
+                    whileHover={{
+                      y: -2,
+                      backgroundColor: '#f0fdfa',
+                      borderColor: '#0f766e',
+                      boxShadow: '0 12px 26px rgba(15, 118, 110, 0.14)',
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      minHeight: '56px',
+                      padding: '0 1.75rem',
+                      gap: '10px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: '#ffffff',
+                      border: '1.5px solid #99c9c4',
+                      borderRadius: 'var(--radius-md)',
+                      color: '#0f5f59',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 6px 18px rgba(15, 118, 110, 0.06)',
+                      transition: 'color 0.2s ease',
+                    }}
+                  >
+                    <Home size={19} strokeWidth={2.2} />
                     Quay về Trang chủ
-                  </button>
+                  </motion.button>
                 </Link>
               </div>
 

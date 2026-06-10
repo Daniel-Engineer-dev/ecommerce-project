@@ -370,6 +370,10 @@ function VoucherManagement() {
   };
 
   const editVoucher = (voucher) => {
+    if (!['Pending', 'Rejected', 'Draft'].includes(voucher.status)) {
+      setError('Voucher đã được duyệt hoặc tạm ngừng nên không thể chỉnh sửa trực tiếp.');
+      return;
+    }
     setEditing(voucher);
     setForm({
       category_id: voucher.category_id || '',
@@ -623,13 +627,20 @@ function VoucherManagement() {
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}><StatusPill status={voucher.status} /></td>
                   <td style={{ padding: '16px', verticalAlign: 'middle' }}>
                     <div className="voucher-action-group">
-                      {voucher.status !== 'Approved' && (
+                      {['Pending', 'Rejected', 'Draft'].includes(voucher.status) && (
                         <>
                           <button className="btn-table-edit" onClick={() => editVoucher(voucher)} title="Sửa thông tin voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><Edit3 size={13} /> Sửa</button>
                           <button className="btn-table-submit" onClick={() => action(voucher.voucher_id, 'submit')} title="Gửi duyệt voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><ClipboardCheck size={13} /> Gửi duyệt</button>
                         </>
                       )}
-                      <button className="btn-table-disable" onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
+                      {voucher.status === 'Approved' && (
+                        <button className="btn-table-disable" onClick={() => action(voucher.voucher_id, 'disable')} title="Ngưng voucher" style={{ ...shell.button, minHeight: '32px', padding: '6px 8px', whiteSpace: 'nowrap', fontSize: '0.78rem', gap: '4px', flex: '0 0 auto' }}><XCircle size={13} /> Ngưng</button>
+                      )}
+                      {voucher.status === 'Suspended' && (
+                        <span title="Voucher tạm ngừng chỉ có thể được Admin thay đổi trạng thái" style={{ color: '#991b1b', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '999px', padding: '6px 9px', fontSize: '0.72rem', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                          Đã khóa chỉnh sửa
+                        </span>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -1029,6 +1040,15 @@ function SettingsPage() {
     setProfile({ ...profile, branches });
   };
 
+  const removeBranch = (index) => {
+    const branch = profile.branches[index];
+    if (branch?.is_protected) {
+      setError('Chi nhánh này đang áp dụng cho voucher đã duyệt hoặc tạm ngừng nên không thể xóa.');
+      return;
+    }
+    setProfile({ ...profile, branches: profile.branches.filter((_, i) => i !== index) });
+  };
+
   const save = async (event) => {
     event.preventDefault();
     try {
@@ -1068,7 +1088,20 @@ function SettingsPage() {
                   <input style={shell.input} value={branch.branch_name || ''} onChange={(e) => updateBranch(index, 'branch_name', e.target.value)} placeholder="Tên chi nhánh" />
                   <input style={shell.input} value={branch.address || ''} onChange={(e) => updateBranch(index, 'address', e.target.value)} placeholder="Địa chỉ" />
                   <input style={shell.input} value={branch.phone || ''} onChange={(e) => updateBranch(index, 'phone', e.target.value)} placeholder="SĐT" />
-                  <button type="button" onClick={() => setProfile({ ...profile, branches: profile.branches.filter((_, i) => i !== index) })} style={{ ...shell.button, background: '#fee2e2', color: '#991b1b' }}><XCircle size={16} /></button>
+                  <button
+                    type="button"
+                    onClick={() => removeBranch(index)}
+                    disabled={branch.is_protected}
+                    title={branch.is_protected ? 'Chi nhánh đang áp dụng cho voucher đã duyệt nên không thể xóa' : 'Xóa chi nhánh'}
+                    style={{ ...shell.button, background: branch.is_protected ? '#e2e8f0' : '#fee2e2', color: branch.is_protected ? '#64748b' : '#991b1b', cursor: branch.is_protected ? 'not-allowed' : 'pointer', opacity: branch.is_protected ? 0.75 : 1 }}
+                  >
+                    {branch.is_protected ? <Lock size={16} /> : <XCircle size={16} />}
+                  </button>
+                  {branch.is_protected && (
+                    <div style={{ gridColumn: '1 / -1', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '8px 10px', fontSize: '0.76rem', fontWeight: 750 }}>
+                      Chi nhánh đang được dùng bởi voucher đã duyệt hoặc tạm ngừng. Hãy liên hệ Admin trước khi xóa.
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

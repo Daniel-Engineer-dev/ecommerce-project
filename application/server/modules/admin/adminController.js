@@ -48,9 +48,11 @@ const getUserById = async (req, res) => {
 
 const toggleUserLock = async (req, res) => {
     try {
-        const { lock } = req.body;
-        const result = await adminService.toggleUserLock(req.params.id, lock, req.user?.id);
-        res.json({ message: lock ? 'User locked successfully' : 'User unlocked successfully', ...result });
+        const result = await adminService.toggleUserLock(req.params.id, req.body?.lock, req.user?.id);
+        res.json({
+            message: result.is_active ? 'User unlocked successfully' : 'User locked successfully',
+            ...result,
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -4,10 +4,10 @@ import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import { apiFetch } from '../apiClient';
-import { ArrowLeft, Wallet, QrCode, ShieldCheck, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Wallet, QrCode, ShieldCheck, Clock } from 'lucide-react';
 
 const Checkout = () => {
-  const { cartItems, totalPrice, totalItems, clearCart } = useCart();
+  const { cartItems, totalPrice, totalItems } = useCart();
   const navigate = useNavigate();
   
   const [shippingInfo, setShippingInfo] = useState({
@@ -30,8 +30,8 @@ const Checkout = () => {
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [countdown, setCountdown] = useState(600); // 10 phút đếm ngược
-  const [confirmingQr, setConfirmingQr] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(null);
+  const [vietQrStatus, setVietQrStatus] = useState('Pending');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -83,6 +83,43 @@ const Checkout = () => {
     }
     return () => clearInterval(timer);
   }, [showQrModal, countdown]);
+
+  useEffect(() => {
+    if (!showQrModal || !activeOrderId) return undefined;
+
+    let stopped = false;
+    const checkOrderStatus = async () => {
+      try {
+        const res = await apiFetch(`${API_BASE_URL}/api/orders/${activeOrderId}`);
+        const data = await res.json();
+        if (!res.ok || stopped) return;
+
+        const nextStatus = data.order?.status || 'Pending';
+        setVietQrStatus(nextStatus);
+
+        if (nextStatus === 'Paid') {
+          stopped = true;
+          navigate(`/payment/status?status=success&orderId=${activeOrderId}&payment=vietqr`, {
+            replace: true,
+          });
+        } else if (['Cancelled', 'Failed', 'Expired'].includes(nextStatus)) {
+          stopped = true;
+          setShowQrModal(false);
+          setActiveOrderId(null);
+          setError(`Đơn VietQR đã chuyển sang trạng thái ${nextStatus}.`);
+        }
+      } catch (pollError) {
+        console.error('Không thể kiểm tra trạng thái thanh toán VietQR:', pollError);
+      }
+    };
+
+    checkOrderStatus();
+    const pollTimer = setInterval(checkOrderStatus, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(pollTimer);
+    };
+  }, [showQrModal, activeOrderId, navigate]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -151,6 +188,7 @@ const Checkout = () => {
         setActiveOrderId(data.orderId);
         setQrData(data);
         setCountdown(600);
+        setVietQrStatus('Pending');
         setShowQrModal(true);
       }
       
@@ -158,34 +196,6 @@ const Checkout = () => {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Giả lập khách hàng bấm xác nhận chuyển khoản cho VietQR
-  const handleConfirmVietQR = async () => {
-    setConfirmingQr(true);
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/api/orders/confirm-vietqr`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ orderId: qrData.orderId })
-      });
-      
-      if (res.ok) {
-        clearCart();
-        setShowQrModal(false);
-        navigate(`/payment/status?status=success&orderId=${qrData.orderId}&payment=vietqr`);
-      } else {
-        const errorData = await res.json();
-        alert(errorData.message || 'Xác nhận chuyển khoản thất bại.');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Lỗi kết nối server xác nhận thanh toán.');
-    } finally {
-      setConfirmingQr(false);
     }
   };
 
@@ -205,6 +215,8 @@ const Checkout = () => {
       }
     }
     setShowQrModal(false);
+    setActiveOrderId(null);
+    setQrData(null);
     setError(reason === 'expired' ? 'VietQR payment time expired. Please try again.' : 'Order cancelled.');
   };
 
@@ -680,8 +692,8 @@ const Checkout = () => {
                   Hủy đơn
                 </button>
                 <button
-                  onClick={handleConfirmVietQR}
-                  disabled={confirmingQr}
+                  type="button"
+                  disabled
                   style={{
                     flex: 2,
                     height: '48px',
@@ -690,18 +702,15 @@ const Checkout = () => {
                     color: 'white',
                     borderRadius: '12px',
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: 'wait',
+                    opacity: 0.9,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '6px'
                   }}
                 >
-                  {confirmingQr ? 'Đang xác nhận...' : (
-                    <>
-                      <CheckCircle2 size={18} /> Xác nhận thanh toán mô phỏng
-                    </>
-                  )}
+                  <Clock size={18} /> {vietQrStatus === 'Pending' ? 'Đang chờ Admin xác nhận' : `Trạng thái: ${vietQrStatus}`}
                 </button>
               </div>
 

@@ -235,7 +235,7 @@ class OrderService {
         return rows[0];
     }
 
-    async completeOrder(orderId, transactionRef, customerId = null) {
+    async completeOrder(orderId, transactionRef, customerId = null, paymentProof = null) {
         const client = await pool.connect();
         let committed = false;
         try {
@@ -243,8 +243,8 @@ class OrderService {
 
             const params = customerId ? [orderId, customerId] : [orderId];
             const orderQuery = customerId
-                ? 'SELECT status FROM Orders WHERE order_id = $1 AND customer_id = $2 FOR UPDATE'
-                : 'SELECT status FROM Orders WHERE order_id = $1 FOR UPDATE';
+                ? 'SELECT status, total_amount, payment_method, transaction_reference FROM Orders WHERE order_id = $1 AND customer_id = $2 FOR UPDATE'
+                : 'SELECT status, total_amount, payment_method, transaction_reference FROM Orders WHERE order_id = $1 FOR UPDATE';
             const orderRes = await client.query(orderQuery, params);
 
             if (orderRes.rows.length === 0) {
@@ -254,7 +254,24 @@ class OrderService {
             }
 
             const order = orderRes.rows[0];
+            if (paymentProof && !transactionRef) {
+                throw new Error('Verified payment transaction reference is required.');
+            }
+            if (paymentProof?.method && order.payment_method !== paymentProof.method) {
+                throw new Error('Payment method does not match the order.');
+            }
+            const amountTolerance = Number(paymentProof?.amountTolerance || 0);
+            if (paymentProof) {
+                const paidAmount = Number(paymentProof.amount);
+                if (!Number.isFinite(paidAmount)
+                    || Math.abs(Number(order.total_amount) - paidAmount) > amountTolerance) {
+                    throw new Error('Payment amount does not match the order total.');
+                }
+            }
             if (order.status === ORDER_STATUS.PAID) {
+                if (transactionRef && order.transaction_reference !== transactionRef) {
+                    throw new Error('Order was already paid with a different transaction.');
+                }
                 await client.query('COMMIT');
                 committed = true;
                 return true;
@@ -410,12 +427,50 @@ class OrderService {
         await client.query(
             `
                 UPDATE Vouchers v
-                SET quantity_stock = LEAST(v.total_quantity, v.quantity_stock + oi.quantity)
-                FROM Order_Items oi
-                WHERE oi.order_id = $1 AND oi.voucher_id = v.voucher_id
+                SET quantity_stock = LEAST(v.total_quantity, v.quantity_stock + reserved.quantity)
+                FROM (
+                    SELECT voucher_id, SUM(quantity)::int AS quantity
+                    FROM Order_Items
+                    WHERE order_id = $1
+                    GROUP BY voucher_id
+                ) reserved
+                WHERE reserved.voucher_id = v.voucher_id
             `,
             [orderId]
         );
+    }
+
+    async expirePendingOrders(maxAgeMinutes = Number(process.env.PENDING_ORDER_EXPIRY_MINUTES || 30)) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const { rows } = await client.query(
+                `
+                    SELECT order_id
+                    FROM Orders
+                    WHERE status = $1
+                        AND order_date < NOW() - ($2::int * INTERVAL '1 minute')
+                    FOR UPDATE SKIP LOCKED
+                `,
+                [ORDER_STATUS.PENDING, maxAgeMinutes]
+            );
+
+            for (const order of rows) {
+                await this.restoreStockForOrder(client, order.order_id);
+                await client.query(
+                    `UPDATE Orders SET status = $1, transaction_reference = COALESCE(transaction_reference, 'SYSTEM_EXPIRED') WHERE order_id = $2`,
+                    [ORDER_STATUS.EXPIRED, order.order_id]
+                );
+            }
+
+            await client.query('COMMIT');
+            return rows.length;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     async cancelOrder(orderId, customerId, reason = null) {

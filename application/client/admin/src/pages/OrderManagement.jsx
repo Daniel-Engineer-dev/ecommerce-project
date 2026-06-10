@@ -13,6 +13,15 @@ const getToken = () => localStorage.getItem('adminToken');
 const statuses = ['', 'Pending', 'Paid', 'Cancelled', 'Failed', 'Expired', 'Refunded'];
 
 const money = (value) => Number(value || 0).toLocaleString('vi-VN');
+const formatDateTime = (value) => new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+}).format(new Date(value));
 
 const OrderManagement = () => {
   const [orders, setOrders] = useState([]);
@@ -169,7 +178,7 @@ const OrderManagement = () => {
                   <tr key={order.order_id} className={`hover:bg-slate-50/50 transition-colors cursor-pointer ${selected?.order?.order_id === order.order_id ? 'bg-[#f5f7fa]' : ''}`} onClick={() => fetchDetail(order.order_id)}>
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-800">#{order.order_id}</div>
-                      <div className="text-[11px] text-slate-400 mt-1 font-medium">{new Date(order.order_date).toLocaleString('vi-VN')}</div>
+                      <div className="text-[11px] text-slate-400 mt-1 font-medium">{formatDateTime(order.order_date)}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-800">{order.customer_name || order.shipping_name || order.username}</div>
@@ -210,7 +219,7 @@ const OrderManagement = () => {
                 <div>
                   <h2 className="text-xl font-extrabold text-[#1a3a5c]">Đơn hàng #{selected.order.order_id}</h2>
                   <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5 font-medium">
-                    <Calendar size={13} className="text-slate-400"/> {new Date(selected.order.order_date).toLocaleString('vi-VN')}
+                    <Calendar size={13} className="text-slate-400"/> {formatDateTime(selected.order.order_date)}
                   </p>
                 </div>
                 <span className={`text-[11px] font-bold px-3 py-1.5 rounded-lg uppercase tracking-wide

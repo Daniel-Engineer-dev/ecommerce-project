@@ -86,12 +86,12 @@ class AdminVoucherService {
             `
                 UPDATE Vouchers
                 SET ${setClauses.join(', ')}
-                WHERE voucher_id = $1
+                WHERE voucher_id = $1 AND status = 'Pending'
                 RETURNING *
             `,
             [voucherId]
         );
-        if (result.rowCount === 0) throw new Error('Voucher not found');
+        if (result.rowCount === 0) throw new Error('Only pending vouchers can be approved');
 
         await logAction(adminId, 'APPROVE_VOUCHER', 'Vouchers', voucherId);
         eventBus.emit('voucher.status_changed', {
@@ -121,12 +121,12 @@ class AdminVoucherService {
             `
                 UPDATE Vouchers
                 SET ${setClauses.join(', ')}
-                WHERE voucher_id = ${voucherIdParam}
+                WHERE voucher_id = ${voucherIdParam} AND status = 'Pending'
                 RETURNING *
             `,
             values
         );
-        if (result.rowCount === 0) throw new Error('Voucher not found');
+        if (result.rowCount === 0) throw new Error('Only pending vouchers can be rejected');
 
         await logAction(adminId, 'REJECT_VOUCHER', 'Vouchers', voucherId);
         eventBus.emit('voucher.status_changed', {
@@ -138,13 +138,18 @@ class AdminVoucherService {
         return result.rows[0];
     }
 
-    async toggleVisibility(voucherId, currentStatus, adminId = null) {
-        const nextStatus = currentStatus === 'Suspended' ? 'Approved' : 'Suspended';
+    async toggleVisibility(voucherId, _currentStatus, adminId = null) {
         const result = await pool.query(
-            'UPDATE Vouchers SET status = $1 WHERE voucher_id = $2 RETURNING *',
-            [nextStatus, voucherId]
+            `
+                UPDATE Vouchers
+                SET status = CASE WHEN status = 'Approved' THEN 'Suspended' ELSE 'Approved' END
+                WHERE voucher_id = $1 AND status IN ('Approved', 'Suspended')
+                RETURNING *
+            `,
+            [voucherId]
         );
-        if (result.rowCount === 0) throw new Error('Voucher not found');
+        if (result.rowCount === 0) throw new Error('Only approved or suspended vouchers can change visibility');
+        const nextStatus = result.rows[0].status;
 
         await logAction(adminId, `TOGGLE_VOUCHER_VISIBILITY:${nextStatus}`, 'Vouchers', voucherId);
         eventBus.emit('voucher.status_changed', {

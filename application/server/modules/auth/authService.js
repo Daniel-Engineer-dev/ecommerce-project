@@ -4,9 +4,11 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendEmail } = require('../../utils/sendEmail');
 const sendSms = require('../../utils/sendSms');
+const { getRequiredSecret } = require('../../utils/jwtSecrets');
 
 const registrationOtps = new Map();
 const PASSWORD_RESET_ROLES = new Set(['Customer', 'Partner']);
+const PUBLIC_REGISTRATION_ROLES = new Set(['Customer', 'Partner']);
 
 class AuthService {
     normalizePasswordResetRole(role) {
@@ -58,7 +60,7 @@ class AuthService {
     createAccessToken(user) {
         return jwt.sign(
             { id: user.user_id, role: user.role },
-            process.env.JWT_SECRET || 'secretkey_tmdt',
+            getRequiredSecret('JWT_SECRET'),
             { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m' }
         );
     }
@@ -66,7 +68,7 @@ class AuthService {
     createRefreshToken(user) {
         return jwt.sign(
             { id: user.user_id, role: user.role, type: 'refresh' },
-            process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt',
+            getRequiredSecret('JWT_REFRESH_SECRET'),
             { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
         );
     }
@@ -74,7 +76,7 @@ class AuthService {
     createPasswordResetToken(user) {
         return jwt.sign(
             { id: user.user_id, role: user.role, type: 'password_reset' },
-            process.env.JWT_RESET_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt',
+            getRequiredSecret('JWT_RESET_SECRET'),
             { expiresIn: '10m' }
         );
     }
@@ -98,6 +100,10 @@ class AuthService {
                 branches,
                 otp,
             } = data;
+
+            if (!PUBLIC_REGISTRATION_ROLES.has(role)) {
+                throw new Error('Vai tro dang ky khong hop le');
+            }
 
             if (role === 'Customer') {
                 const identifier = email || phone;
@@ -146,7 +152,7 @@ class AuthService {
 
             const newUser = await client.query(
                 'INSERT INTO Users (username, password, email, phone, role) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, username, role',
-                [username, hashedPassword, email || null, phone || null, role || 'Customer']
+                [username, hashedPassword, email || null, phone || null, role]
             );
 
             const userId = newUser.rows[0].user_id;
@@ -239,17 +245,30 @@ class AuthService {
 
         const decoded = jwt.verify(
             refreshToken,
-            process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt'
+            getRequiredSecret('JWT_REFRESH_SECRET')
         );
         if (decoded.type !== 'refresh') throw new Error('Invalid refresh token.');
 
         const { rows } = await pool.query(
-            'SELECT user_id, username, role FROM Users WHERE user_id = $1',
+            `SELECT u.user_id, u.username, u.role,
+                    c.is_active AS customer_active,
+                    p.is_active AS partner_active,
+                    p.status AS partner_status
+             FROM Users u
+             LEFT JOIN Customers c ON c.user_id = u.user_id
+             LEFT JOIN Partners p ON p.user_id = u.user_id
+             WHERE u.user_id = $1`,
             [decoded.id]
         );
         if (rows.length === 0) throw new Error('User not found.');
 
         const user = rows[0];
+        if (user.role === 'Customer' && user.customer_active === false) {
+            throw new Error('User account is locked.');
+        }
+        if (user.role === 'Partner' && (user.partner_active === false || user.partner_status !== 'Approved')) {
+            throw new Error('Partner account is not approved or is locked.');
+        }
         const accessToken = this.createAccessToken(user);
         const nextRefreshToken = this.createRefreshToken(user);
         return {
@@ -270,7 +289,20 @@ class AuthService {
                  WHERE u.user_id = $1`,
                 [userId]
             );
-            const branchesRes = await pool.query('SELECT * FROM Branches WHERE partner_id = $1', [userId]);
+            const branchesRes = await pool.query(
+                `SELECT b.*,
+                        EXISTS (
+                            SELECT 1
+                            FROM Voucher_Branches vb
+                            JOIN Vouchers v ON v.voucher_id = vb.voucher_id
+                            WHERE vb.branch_id = b.branch_id
+                              AND v.status IN ('Approved', 'Suspended')
+                        ) AS is_protected
+                 FROM Branches b
+                 WHERE b.partner_id = $1
+                 ORDER BY b.branch_id`,
+                [userId]
+            );
             return { ...profileRes.rows[0], branches: branchesRes.rows };
         }
 
@@ -321,6 +353,21 @@ class AuthService {
                     const keptBranchIds = data.branches
                         .map((branch) => Number(branch.branch_id))
                         .filter(Boolean);
+
+                    const protectedBranch = await client.query(
+                        `SELECT b.branch_id
+                         FROM Branches b
+                         JOIN Voucher_Branches vb ON vb.branch_id = b.branch_id
+                         JOIN Vouchers v ON v.voucher_id = vb.voucher_id
+                         WHERE b.partner_id = $1
+                           AND v.status IN ('Approved', 'Suspended')
+                           AND NOT (b.branch_id = ANY($2::int[]))
+                         LIMIT 1`,
+                        [userId, keptBranchIds]
+                    );
+                    if (protectedBranch.rows.length > 0) {
+                        throw new Error('Khong the xoa chi nhanh dang ap dung cho voucher da duyet');
+                    }
 
                     if (keptBranchIds.length > 0) {
                         await client.query(
@@ -421,14 +468,14 @@ class AuthService {
         if (!sent) {
             throw new Error('Không thể gửi tin nhắn SMS khôi phục mật khẩu. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.');
         }
-        return { message: 'Ma OTP da duoc gui den SDT', otp };
+        return { message: 'Ma OTP da duoc gui den SDT' };
     }
 
     async resetPassword(token, password) {
         try {
             const decoded = jwt.verify(
                 token,
-                process.env.JWT_RESET_SECRET || process.env.JWT_SECRET || 'secretkey_tmdt'
+                getRequiredSecret('JWT_RESET_SECRET')
             );
             if (decoded.type !== 'password_reset') throw new Error('Invalid reset token');
 
@@ -536,7 +583,7 @@ class AuthService {
         if (!sent) {
             throw new Error('Không thể gửi tin nhắn SMS xác thực. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.');
         }
-        return { message: 'Mã xác minh đã được gửi đến SĐT', otp };
+        return { message: 'Mã xác minh đã được gửi đến SĐT' };
     }
 }
 

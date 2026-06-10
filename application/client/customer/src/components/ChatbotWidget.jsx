@@ -27,6 +27,8 @@ const ChatbotWidget = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const messagesEndRef = useRef(null);
+    const messageIdRef = useRef(0);
+    const nextMessageId = () => `msg-${++messageIdRef.current}`;
 
     const quickQuestions = [
         'Làm sao mua voucher?',
@@ -48,7 +50,7 @@ const ChatbotWidget = () => {
         if (!text || !text.trim()) return;
 
         const userMsg = {
-            id: `msg-${Date.now()}`,
+            id: nextMessageId(),
             sender: 'user',
             text: text.trim(),
             time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
@@ -79,7 +81,7 @@ const ChatbotWidget = () => {
             if (res.ok) {
                 const data = await res.json();
                 const botMsg = {
-                    id: `msg-${Date.now() + 1}`,
+                    id: nextMessageId(),
                     sender: 'bot',
                     text: data.response || 'Tôi không hiểu ý bạn lắm. Bạn có thể hỏi rõ hơn được không?',
                     time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
@@ -91,7 +93,7 @@ const ChatbotWidget = () => {
         } catch (err) {
             console.error('Chat error:', err);
             const errorMsg = {
-                id: `msg-${Date.now() + 2}`,
+                id: nextMessageId(),
                 sender: 'bot',
                 text: 'Có lỗi kết nối đến trợ lý ảo. Bạn vui lòng thử lại sau nhé!',
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })

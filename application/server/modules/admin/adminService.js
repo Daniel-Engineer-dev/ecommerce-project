@@ -19,20 +19,7 @@ const sendNotificationEmail = async (mailOptions) => {
 
 class AdminService {
     async ensureComplaintWorkflowColumns() {
-        await pool.query(`
-            ALTER TABLE Complaints
-                ADD COLUMN IF NOT EXISTS admin_note TEXT,
-                ADD COLUMN IF NOT EXISTS resolution_type VARCHAR(40) DEFAULT 'none',
-                ADD COLUMN IF NOT EXISTS resolution_note TEXT,
-                ADD COLUMN IF NOT EXISTS refund_status VARCHAR(40) DEFAULT 'none',
-                ADD COLUMN IF NOT EXISTS refund_amount NUMERIC DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS voucher_id INTEGER,
-                ADD COLUMN IF NOT EXISTS attempt_no INTEGER DEFAULT 1,
-                ADD COLUMN IF NOT EXISTS reviewed_by INTEGER,
-                ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        `);
+        return;
     }
 
     async assertOpenComplaint(complaintId, client = pool) {
@@ -72,7 +59,11 @@ class AdminService {
     }
 
     async approvePartner(id, adminId = null) {
-        await pool.query("UPDATE Partners SET status = 'Approved' WHERE user_id = $1", [id]);
+        const approval = await pool.query(
+            "UPDATE Partners SET status = 'Approved' WHERE user_id = $1 AND status = 'Pending' RETURNING user_id",
+            [id]
+        );
+        if (approval.rowCount === 0) throw new Error('Chi ho so dang cho duyet moi co the duoc phe duyet');
         const userRes = await pool.query(
             `SELECT u.email, u.username, p.company_name
              FROM Users u
@@ -117,7 +108,11 @@ class AdminService {
     }
 
     async rejectPartner(id, adminId = null) {
-        await pool.query("UPDATE Partners SET status = 'Rejected' WHERE user_id = $1", [id]);
+        const rejection = await pool.query(
+            "UPDATE Partners SET status = 'Rejected' WHERE user_id = $1 AND status = 'Pending' RETURNING user_id",
+            [id]
+        );
+        if (rejection.rowCount === 0) throw new Error('Chi ho so dang cho duyet moi co the bi tu choi');
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
         let emailResult = { sent: false, error: null };
@@ -249,7 +244,11 @@ class AdminService {
         if (!['Customer', 'Partner', 'Admin'].includes(newRole)) {
             throw new Error('Role khong hop le');
         }
-        await pool.query('UPDATE Users SET role = $1 WHERE user_id = $2', [newRole, id]);
+        const { rows } = await pool.query('SELECT role FROM Users WHERE user_id = $1', [id]);
+        if (rows.length === 0) throw new Error('Nguoi dung khong ton tai');
+        if (rows[0].role !== newRole) {
+            throw new Error('Khong the doi role truc tiep vi se lam mat nhat quan ho so va du lieu giao dich');
+        }
         await logAction(adminId, `CHANGE_USER_ROLE:${newRole}`, 'Users', id);
         return { success: true };
     }
@@ -272,22 +271,40 @@ class AdminService {
         return { ...result.rows[0], ...partnerStats.rows[0] };
     }
 
-    async toggleUserLock(id, currentLockState, adminId = null) {
-        const userRes = await pool.query('SELECT role FROM Users WHERE user_id = $1', [id]);
-        if (userRes.rowCount === 0) throw new Error('Nguoi dung khong ton tai');
-        const { role } = userRes.rows[0];
+    async toggleUserLock(id, _currentLockState, adminId = null) {
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const userRes = await client.query('SELECT role FROM Users WHERE user_id = $1 FOR UPDATE', [id]);
+            if (userRes.rowCount === 0) throw new Error('Nguoi dung khong ton tai');
+            const { role } = userRes.rows[0];
+            if (!['Partner', 'Customer'].includes(role)) throw new Error('Khong the khoa tai khoan nay');
 
-        const targetTable = role === 'Partner' ? 'Partners' : 'Customers';
-        const newActiveState = !currentLockState;
+            const targetTable = role === 'Partner' ? 'Partners' : 'Customers';
+            const res = await client.query(
+                `UPDATE ${targetTable} SET is_active = NOT COALESCE(is_active, true) WHERE user_id = $1 RETURNING is_active`,
+                [id]
+            );
+            if (res.rowCount === 0) throw new Error(`Khong the cap nhat trang thai cho ${role}`);
 
-        const res = await pool.query(
-            `UPDATE ${targetTable} SET is_active = $1 WHERE user_id = $2 RETURNING user_id`,
-            [newActiveState, id]
-        );
-
-        if (res.rowCount === 0) throw new Error(`Khong the cap nhat trang thai cho ${role}`);
-        await logAction(adminId, newActiveState ? 'UNLOCK_USER' : 'LOCK_USER', targetTable, id);
-        return { success: true, is_active: newActiveState, role };
+            const newActiveState = res.rows[0].is_active;
+            let suspendedVoucherCount = 0;
+            if (role === 'Partner' && !newActiveState) {
+                const suspended = await client.query(
+                    "UPDATE Vouchers SET status = 'Suspended' WHERE partner_id = $1 AND status = 'Approved'",
+                    [id]
+                );
+                suspendedVoucherCount = suspended.rowCount;
+            }
+            await client.query('COMMIT');
+            await logAction(adminId, newActiveState ? 'UNLOCK_USER' : 'LOCK_USER', targetTable, id);
+            return { success: true, is_active: newActiveState, role, suspendedVoucherCount };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     async getOrders({ status, search, page = 1, limit = 10 }) {
@@ -426,6 +443,11 @@ class AdminService {
         if (!allowed.includes(status)) throw new Error('Trang thai don hang khong hop le');
 
         if (status === 'Paid') {
+            const order = await pool.query('SELECT payment_method FROM Orders WHERE order_id = $1', [orderId]);
+            if (order.rowCount === 0) throw new Error('Don hang khong ton tai');
+            if (order.rows[0].payment_method !== 'VietQR') {
+                throw new Error('Chi don VietQR moi duoc Admin xac nhan thanh toan thu cong');
+            }
             await orderService.completeOrder(orderId, note || `ADMIN_PAID_${Date.now()}`);
             await logAction(adminId, 'MARK_ORDER_PAID', 'Orders', orderId);
             return this.getOrderDetail(orderId);
@@ -454,12 +476,26 @@ class AdminService {
             if (status === 'Refunded' && currentStatus !== 'Paid') {
                 throw new Error('Chi don hang da thanh toan moi co the hoan tien');
             }
+            if (status === 'Refunded') {
+                const usedVoucher = await client.query(
+                    `SELECT 1
+                     FROM E_Vouchers ev
+                     JOIN Order_Items oi ON oi.order_item_id = ev.order_item_id
+                     WHERE oi.order_id = $1 AND ev.status = 'Used'
+                     LIMIT 1`,
+                    [orderId]
+                );
+                if (usedVoucher.rows.length > 0) {
+                    throw new Error('Khong the hoan tien don hang da su dung voucher');
+                }
+            }
 
             if (currentStatus === 'Pending' && ['Cancelled', 'Failed', 'Expired'].includes(status)) {
                 await orderService.restoreStockForOrder(client, orderId);
             }
 
             if (status === 'Refunded') {
+                await orderService.restoreStockForOrder(client, orderId);
                 await client.query(
                     `
                         UPDATE E_Vouchers ev
@@ -599,8 +635,9 @@ class AdminService {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
+            await this.assertOpenComplaint(complaintId, client);
 
-            await client.query(
+            const updateResult = await client.query(
                 `
                     UPDATE Complaints
                     SET status = $1::varchar,
@@ -621,9 +658,14 @@ class AdminService {
                         resolved_at = CASE WHEN $1::varchar IN ('Resolved', 'Rejected') THEN NOW() ELSE resolved_at END,
                         updated_at = NOW()
                     WHERE complaint_id = $5
+                      AND status NOT IN ('Resolved', 'Rejected')
+                    RETURNING complaint_id
                 `,
                 [status, actionType || null, responseContent?.trim() || null, adminId, complaintId]
             );
+            if (updateResult.rowCount === 0) {
+                throw new Error('Khong the cap nhat khieu nai da dong');
+            }
 
             // 4. Lưu phản hồi và action_type vào Complaint_Responses
             if (responseContent?.trim()) {
@@ -671,24 +713,24 @@ class AdminService {
             if (itemRes.rowCount === 0) throw new Error('Không tìm thấy voucher trong đơn hàng liên quan');
 
             const item = itemRes.rows[0];
-            if (payload.lockOldCode !== false) {
-                await client.query(
-                    `
-                        UPDATE E_Vouchers
-                        SET status = 'Locked'
-                        WHERE order_item_id = $1 AND status = 'Unused'
-                    `,
-                    [item.order_item_id]
-                );
-            }
 
             let issued;
             for (let attempts = 0; attempts < 5; attempts++) {
                 try {
-                    const insertRes = await client.query(
+                    const replacementRes = await client.query(
                         `
-                            INSERT INTO E_Vouchers (order_item_id, unique_code, status, expiry_date)
-                            VALUES ($1, $2, 'Unused', COALESCE($3::timestamp, $4::timestamp))
+                            UPDATE E_Vouchers
+                            SET unique_code = $2,
+                                expiry_date = COALESCE($3::timestamp, $4::timestamp),
+                                issued_at = NOW()
+                            WHERE evoucher_id = (
+                                SELECT evoucher_id
+                                FROM E_Vouchers
+                                WHERE order_item_id = $1 AND status = 'Unused'
+                                ORDER BY evoucher_id
+                                LIMIT 1
+                                FOR UPDATE
+                            )
                             RETURNING *
                         `,
                         [
@@ -698,13 +740,13 @@ class AdminService {
                             item.expiry_date,
                         ]
                     );
-                    issued = insertRes.rows[0];
+                    issued = replacementRes.rows[0];
                     break;
                 } catch (error) {
                     if (error.code !== '23505') throw error;
                 }
             }
-            if (!issued) throw new Error('Không thể tạo mã e-voucher mới');
+            if (!issued) throw new Error('Không có mã e-voucher chưa sử dụng để thay thế');
 
             await client.query(
                 `
@@ -757,7 +799,10 @@ class AdminService {
             await client.query('BEGIN');
             const complaint = await this.assertOpenComplaint(complaintId, client);
             const amount = Number(payload.refund_amount ?? payload.refundAmount ?? complaint.order_total_amount ?? 0);
-            if (!Number.isFinite(amount) || amount < 0) throw new Error('Số tiền hoàn không hợp lệ');
+            const orderTotal = Number(complaint.order_total_amount || 0);
+            if (!Number.isFinite(amount) || amount <= 0 || (complaint.order_id && amount > orderTotal)) {
+                throw new Error('So tien hoan khong hop le hoac vuot qua tong don hang');
+            }
             const note = payload.note || 'Đã duyệt hoàn tiền thủ công, chờ xử lý bên ngoài hệ thống';
 
             const result = await client.query(
@@ -800,8 +845,43 @@ class AdminService {
             await client.query('BEGIN');
             const complaint = await this.assertOpenComplaint(complaintId, client);
             const amount = Number(payload.refund_amount ?? payload.refundAmount ?? complaint.refund_amount ?? complaint.order_total_amount ?? 0);
-            if (!Number.isFinite(amount) || amount < 0) throw new Error('Số tiền hoàn không hợp lệ');
+            const orderTotal = Number(complaint.order_total_amount || 0);
+            if (!Number.isFinite(amount) || amount <= 0 || (complaint.order_id && amount > orderTotal)) {
+                throw new Error('So tien hoan khong hop le hoac vuot qua tong don hang');
+            }
             const note = payload.note || 'Đã hoàn tiền thủ công';
+
+            if (complaint.order_id && amount === orderTotal) {
+                const order = await client.query(
+                    'SELECT status FROM Orders WHERE order_id = $1 FOR UPDATE',
+                    [complaint.order_id]
+                );
+                if (order.rows[0]?.status !== 'Paid') {
+                    throw new Error('Chi don hang Paid moi co the hoan toan bo');
+                }
+                const usedVoucher = await client.query(
+                    `SELECT 1
+                     FROM E_Vouchers ev
+                     JOIN Order_Items oi ON oi.order_item_id = ev.order_item_id
+                     WHERE oi.order_id = $1 AND ev.status = 'Used'
+                     LIMIT 1`,
+                    [complaint.order_id]
+                );
+                if (usedVoucher.rows.length > 0) {
+                    throw new Error('Khong the hoan toan bo don hang da su dung voucher');
+                }
+                await orderService.restoreStockForOrder(client, complaint.order_id);
+                await client.query(
+                    `UPDATE E_Vouchers ev
+                     SET status = 'Locked'
+                     FROM Order_Items oi
+                     WHERE ev.order_item_id = oi.order_item_id
+                       AND oi.order_id = $1
+                       AND ev.status <> 'Locked'`,
+                    [complaint.order_id]
+                );
+                await client.query("UPDATE Orders SET status = 'Refunded' WHERE order_id = $1", [complaint.order_id]);
+            }
 
             const result = await client.query(
                 `
@@ -899,86 +979,7 @@ class AdminService {
     }
 
     async ensureContentTable() {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS Content_Items (
-                content_id SERIAL PRIMARY KEY,
-                content_key VARCHAR(80) UNIQUE NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                type VARCHAR(30) NOT NULL DEFAULT 'policy',
-                body TEXT,
-                is_active BOOLEAN DEFAULT TRUE,
-                slug VARCHAR(120),
-                summary TEXT,
-                thumbnail_url TEXT,
-                status VARCHAR(30) DEFAULT 'published',
-                published_at TIMESTAMP,
-                created_by INTEGER,
-                updated_by INTEGER,
-                template VARCHAR(50),
-                data JSONB DEFAULT '{}'::jsonb,
-                version INTEGER DEFAULT 1,
-                last_action VARCHAR(50),
-                published_title VARCHAR(255),
-                published_summary TEXT,
-                published_body TEXT,
-                published_template VARCHAR(50),
-                published_data JSONB,
-                published_version INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        await pool.query(`
-            ALTER TABLE Content_Items
-                ADD COLUMN IF NOT EXISTS slug VARCHAR(120),
-                ADD COLUMN IF NOT EXISTS summary TEXT,
-                ADD COLUMN IF NOT EXISTS thumbnail_url TEXT,
-                ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'published',
-                ADD COLUMN IF NOT EXISTS published_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS created_by INTEGER,
-                ADD COLUMN IF NOT EXISTS updated_by INTEGER,
-                ADD COLUMN IF NOT EXISTS template VARCHAR(50),
-                ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}'::jsonb,
-                ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1,
-                ADD COLUMN IF NOT EXISTS last_action VARCHAR(50),
-                ADD COLUMN IF NOT EXISTS published_title VARCHAR(255),
-                ADD COLUMN IF NOT EXISTS published_summary TEXT,
-                ADD COLUMN IF NOT EXISTS published_body TEXT,
-                ADD COLUMN IF NOT EXISTS published_template VARCHAR(50),
-                ADD COLUMN IF NOT EXISTS published_data JSONB,
-                ADD COLUMN IF NOT EXISTS published_version INTEGER,
-                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        `);
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS Content_Item_Revisions (
-                revision_id SERIAL PRIMARY KEY,
-                content_id INTEGER REFERENCES Content_Items(content_id) ON DELETE CASCADE,
-                content_key VARCHAR(80) NOT NULL,
-                action VARCHAR(50) NOT NULL,
-                before_data JSONB,
-                after_data JSONB,
-                before_status VARCHAR(30),
-                after_status VARCHAR(30),
-                changed_by INTEGER REFERENCES Users(user_id),
-                changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        await pool.query(`
-            UPDATE Content_Items
-            SET slug = COALESCE(slug, content_key),
-                status = CASE WHEN is_active THEN COALESCE(status, 'published') ELSE 'archived' END,
-                published_at = COALESCE(published_at, updated_at, NOW()),
-                data = COALESCE(data, '{}'::jsonb),
-                version = COALESCE(version, 1),
-                published_title = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_title, title) ELSE published_title END,
-                published_summary = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_summary, summary) ELSE published_summary END,
-                published_body = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_body, body) ELSE published_body END,
-                published_template = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_template, template) ELSE published_template END,
-                published_data = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_data, data) ELSE published_data END,
-                published_version = CASE WHEN status = 'published' AND is_active = TRUE THEN COALESCE(published_version, version, 1) ELSE published_version END
-            WHERE slug IS NULL OR published_at IS NULL OR data IS NULL OR version IS NULL
-                OR (status = 'published' AND is_active = TRUE AND published_data IS NULL)
-        `);
+        return;
     }
 
     getContentTemplates() {
