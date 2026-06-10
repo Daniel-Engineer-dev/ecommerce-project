@@ -71,6 +71,15 @@ const stripHtml = (html) =>
 
 let testAccount = null;
 let etherealTransporter = null;
+const EMAIL_SEND_TIMEOUT_MS = Number(process.env.EMAIL_SEND_TIMEOUT_MS || 20000);
+
+const withTimeout = (promise, timeoutMs, message) => {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 const getEtherealTransporter = async () => {
   if (!etherealTransporter) {
@@ -79,6 +88,9 @@ const getEtherealTransporter = async () => {
       host: "smtp.ethereal.email",
       port: 587,
       secure: false,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
       auth: {
         user: testAccount.user,
         pass: testAccount.pass,
@@ -92,7 +104,7 @@ const getEtherealTransporter = async () => {
 const sendEtherealEmail = async (mailOptions) => {
   try {
     const transport = await getEtherealTransporter();
-    const info = await transport.sendMail(mailOptions);
+    const info = await withTimeout(transport.sendMail(mailOptions), EMAIL_SEND_TIMEOUT_MS, "Email test delivery timed out");
     const previewUrl = nodemailer.getTestMessageUrl(info);
     console.log(`\n========================================`);
     console.log(`[EMAIL MOCK] Email đã được gửi thành công qua Ethereal!`);
@@ -136,15 +148,22 @@ const sendEmail = async (options) => {
 
   if (useRealEmail) {
     try {
-      await transporter.sendMail(mailOptions);
+      await withTimeout(transporter.sendMail(mailOptions), EMAIL_SEND_TIMEOUT_MS, "Email delivery timed out");
       console.log(`[EMAIL] Đã gửi email thực tế đến: ${email}`);
     } catch (error) {
+      if (process.env.NODE_ENV === "production") {
+        console.error(`[EMAIL] Lỗi gửi email thực tế: ${error.message}`);
+        throw new Error("Khong the gui email OTP. Vui long thu lai sau.");
+      }
       console.error(`[EMAIL] Lỗi gửi email thực tế: ${error.message}. Chuyển hướng sang Ethereal...`);
-      await sendEtherealEmail(mailOptions);
+      await withTimeout(sendEtherealEmail(mailOptions), EMAIL_SEND_TIMEOUT_MS, "Email fallback timed out");
     }
   } else {
     console.log(`[EMAIL] EMAIL_USER/EMAIL_PASS chưa cấu hình. Gửi email qua Ethereal...`);
-    await sendEtherealEmail(mailOptions);
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Email service is not configured.");
+    }
+    await withTimeout(sendEtherealEmail(mailOptions), EMAIL_SEND_TIMEOUT_MS, "Email fallback timed out");
   }
 };
 

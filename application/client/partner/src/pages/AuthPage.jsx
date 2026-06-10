@@ -24,6 +24,16 @@ const primaryButtonClass =
 const textButtonClass =
   'rounded-full px-2 py-1 text-sm font-bold text-slate-600 hover:bg-sky-50 hover:text-sky-800 active:scale-95 transition-all duration-200 disabled:opacity-60';
 
+const fetchWithTimeout = async (url, options, timeoutMs = 25000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const AuthPage = () => {
   const [formData, setFormData] = useState({ username: '', password: '', email: '', phone: '' });
   const [loading, setLoading] = useState(false);
@@ -107,7 +117,7 @@ const AuthPage = () => {
 
       setLoading(true);
       try {
-        const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        const response = await fetchWithTimeout(`${API_URL}/api/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -126,8 +136,10 @@ const AuthPage = () => {
         } else {
           setError(data.message || 'Không thể gửi mã OTP.');
         }
-      } catch {
-        setError('Không thể kết nối đến server');
+      } catch (err) {
+        setError(err.name === 'AbortError'
+          ? 'Yêu cầu gửi OTP quá thời gian chờ. Vui lòng thử lại sau.'
+          : 'Không thể kết nối đến server');
       } finally {
         setLoading(false);
       }
@@ -143,7 +155,7 @@ const AuthPage = () => {
       setLoading(true);
       try {
         const isEmail = forgotIdentifier.includes('@');
-        const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+        const response = await fetchWithTimeout(`${API_URL}/api/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -162,8 +174,10 @@ const AuthPage = () => {
         } else {
           setError(data.message || 'Mã OTP không chính xác hoặc đã hết hạn');
         }
-      } catch {
-        setError('Không thể kết nối đến server');
+      } catch (err) {
+        setError(err.name === 'AbortError'
+          ? 'Yêu cầu xác thực OTP quá thời gian chờ. Vui lòng thử lại sau.'
+          : 'Không thể kết nối đến server');
       } finally {
         setLoading(false);
       }
@@ -181,7 +195,7 @@ const AuthPage = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password/${tempToken}`, {
+      const response = await fetchWithTimeout(`${API_URL}/api/auth/reset-password/${tempToken}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPassword }),
@@ -197,8 +211,10 @@ const AuthPage = () => {
         localStorage.removeItem('partnerUser');
         setError(data.message || 'Yêu cầu hết hạn hoặc không hợp lệ. Vui lòng thử lại.');
       }
-    } catch {
-      setError('Không thể kết nối đến server');
+    } catch (err) {
+      setError(err.name === 'AbortError'
+        ? 'Yêu cầu đặt lại mật khẩu quá thời gian chờ. Vui lòng thử lại sau.'
+        : 'Không thể kết nối đến server');
     } finally {
       setLoading(false);
     }
