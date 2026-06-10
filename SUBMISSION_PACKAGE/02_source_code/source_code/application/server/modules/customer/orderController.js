@@ -1,0 +1,257 @@
+const orderService = require('./orderService');
+const momo = require('../../utils/momo');
+const vietqr = require('../../utils/vietqr');
+const paypal = require('../../utils/paypal');
+
+const orderOrigins = new Map();
+
+class OrderController {
+    async validateCart(req, res) {
+        try {
+            const result = await orderService.validateCart(req.body.items || []);
+            return res.status(result.valid ? 200 : 400).json(result);
+        } catch (error) {
+            return res.status(400).json({ valid: false, message: error.message });
+        }
+    }
+
+    async checkout(req, res) {
+        let createdOrderId = null;
+        try {
+            const customerId = req.user.id;
+            const { shippingInfo, items, paymentMethod, frontendUrl } = req.body;
+            const allowedPaymentMethods = new Set(['MoMo', 'VietQR', 'PayPal']);
+
+            if (!shippingInfo || !items || items.length === 0 || !paymentMethod) {
+                return res.status(400).json({ message: 'Missing order or payment information.' });
+            }
+            if (!allowedPaymentMethods.has(paymentMethod)) {
+                return res.status(400).json({ message: 'Invalid payment method.' });
+            }
+
+            const { orderId, totalAmount } = await orderService.createOrder(
+                customerId,
+                shippingInfo,
+                items,
+                paymentMethod
+            );
+            createdOrderId = orderId;
+
+            if (frontendUrl) {
+                // Ring buffer cleanup to keep memory usage bounded
+                if (orderOrigins.size > 1000) {
+                    const keys = Array.from(orderOrigins.keys());
+                    for (let i = 0; i < 100; i++) {
+                        orderOrigins.delete(keys[i]);
+                    }
+                }
+                orderOrigins.set(String(orderId), frontendUrl);
+            }
+
+            if (paymentMethod === 'MoMo') {
+                const paymentUrl = await momo.createPaymentUrl(orderId, totalAmount);
+                return res.json({ success: true, orderId, totalAmount, paymentUrl });
+            }
+
+            if (paymentMethod === 'VietQR') {
+                const qrUrl = vietqr.generateQrUrl(orderId, totalAmount);
+                return res.json({
+                    success: true,
+                    orderId,
+                    totalAmount,
+                    qrUrl,
+                    bankInfo: {
+                        bankId: 'MB',
+                        accountNo: '999918059999',
+                        accountName: 'CONG TY DEALZY',
+                        content: `DEALZY ORDER ${orderId}`,
+                    },
+                });
+            }
+
+            if (paymentMethod === 'PayPal') {
+                const paymentUrl = await paypal.createPaymentUrl(orderId, totalAmount);
+                return res.json({ success: true, orderId, totalAmount, paymentUrl });
+            }
+
+            return res.status(400).json({ message: 'Invalid payment method.' });
+        } catch (error) {
+            console.error('Checkout error:', error);
+            if (createdOrderId) {
+                try {
+                    await orderService.markOrderFailed(createdOrderId, req.user.id, 'PAYMENT_URL_CREATION_FAILED');
+                } catch (cleanupError) {
+                    console.error('Checkout cleanup error:', cleanupError);
+                }
+            }
+            return res.status(400).json({
+                message: error.message || 'Could not process checkout.',
+            });
+        }
+    }
+
+    async paypalReturn(req, res) {
+        const { token, orderId } = req.query;
+        const frontendUrl = orderOrigins.get(String(orderId)) || process.env.FRONTEND_URL || 'http://localhost:5174';
+        orderOrigins.delete(String(orderId));
+        const failureUrl = (reason) => (
+            `${frontendUrl}/payment/status?status=fail&orderId=${encodeURIComponent(orderId || '')}&payment=paypal&reason=${encodeURIComponent(reason)}`
+        );
+
+        try {
+            if (!orderId) {
+                return res.redirect(failureUrl('Missing internal order id.'));
+            }
+
+            if (!token) {
+                return res.redirect(failureUrl('Missing PayPal order token.'));
+            }
+
+            const captureResult = await paypal.capturePayment(token);
+            if (captureResult.success && String(captureResult.orderId) === String(orderId)) {
+                await orderService.completeOrder(orderId, captureResult.transactionId, null, {
+                    method: 'PayPal',
+                    amount: captureResult.amountVnd,
+                    amountTolerance: 125,
+                });
+                return res.redirect(`${frontendUrl}/payment/status?status=success&orderId=${orderId}&payment=paypal`);
+            }
+
+            if (captureResult.success) {
+                console.error('PayPal order reference mismatch:', { orderId, paypalOrderId: captureResult.orderId });
+                return res.redirect(failureUrl('PayPal order reference mismatch.'));
+            }
+
+            const reason = captureResult.debugId
+                ? `${captureResult.message} (PayPal debug id: ${captureResult.debugId})`
+                : captureResult.message;
+            return res.redirect(failureUrl(reason || 'PayPal capture failed.'));
+        } catch (error) {
+            console.error('paypalReturn error:', error);
+            return res.redirect(failureUrl(error.message || 'PayPal callback failed.'));
+        }
+    }
+
+    async momoIpn(req, res) {
+        const body = req.body;
+
+        try {
+            const isValid = momo.verifySignature(body);
+            if (isValid && Number(body.resultCode) === 0) {
+                await orderService.completeOrder(momo.getInternalOrderId(body), body.transId, null, {
+                    method: 'MoMo',
+                    amount: body.amount,
+                });
+                return res.status(204).send();
+            }
+            return res.status(400).json({ message: 'Signature verification failed or payment unsuccessful.' });
+        } catch (error) {
+            console.error('momoIpn error:', error);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
+
+    async momoReturn(req, res) {
+        const queryParams = req.query;
+        const orderId = momo.getInternalOrderId(queryParams);
+        const frontendUrl = orderOrigins.get(String(orderId)) || process.env.FRONTEND_URL || 'http://localhost:5174';
+        orderOrigins.delete(String(orderId));
+
+        try {
+            const isValid = momo.verifySignature(queryParams);
+            if (isValid && Number(queryParams.resultCode) === 0) {
+                await orderService.completeOrder(orderId, queryParams.transId, null, {
+                    method: 'MoMo',
+                    amount: queryParams.amount,
+                });
+            }
+
+            const status = (isValid && Number(queryParams.resultCode) === 0) ? 'success' : 'fail';
+            return res.redirect(`${frontendUrl}/payment/status?status=${status}&orderId=${encodeURIComponent(orderId)}&payment=momo`);
+        } catch (error) {
+            console.error('momoReturn error:', error);
+            return res.redirect(`${frontendUrl}/payment/status?status=fail&orderId=${encodeURIComponent(orderId)}&payment=momo`);
+        }
+    }
+
+    async confirmVietQR(req, res) {
+        return res.status(501).json({
+            message: 'VietQR payment confirmation requires a verified bank webhook or admin review.',
+        });
+    }
+
+    async cancelOrder(req, res) {
+        try {
+            await orderService.cancelOrder(req.params.orderId, req.user.id, req.body?.reason);
+            return res.json({ success: true, message: 'Order cancelled.' });
+        } catch (error) {
+            return res.status(error.statusCode || 400).json({ message: error.message || 'Cannot cancel order.' });
+        }
+    }
+
+    async markOrderFailed(req, res) {
+        try {
+            await orderService.markOrderFailed(req.params.orderId, req.user.id, req.body?.transactionRef);
+            return res.json({ success: true, message: 'Order marked as failed.' });
+        } catch (error) {
+            return res.status(error.statusCode || 400).json({ message: error.message || 'Cannot mark order as failed.' });
+        }
+    }
+
+    async getOrderEVouchers(req, res) {
+        try {
+            const evouchers = await orderService.getOrderEVouchers(req.params.orderId, req.user.id);
+            return res.json({ success: true, evouchers });
+        } catch (error) {
+            console.error('getOrderEVouchers error:', error);
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Could not load e-vouchers.' });
+        }
+    }
+
+    async getCustomerEVouchers(req, res) {
+        try {
+            const evouchers = await orderService.getCustomerEVouchers(req.user.id);
+            return res.json({ success: true, evouchers });
+        } catch (error) {
+            console.error('getCustomerEVouchers error:', error);
+            return res.status(500).json({ message: 'Could not load e-vouchers.' });
+        }
+    }
+
+    async getMyOrders(req, res) {
+        try {
+            const orders = await orderService.getCustomerOrders(req.user.id);
+            return res.json({ success: true, orders });
+        } catch (error) {
+            return res.status(500).json({ message: error.message || 'Could not load orders.' });
+        }
+    }
+
+    async getOrderDetail(req, res) {
+        try {
+            const order = await orderService.getCustomerOrderDetail(req.params.orderId, req.user.id);
+            return res.json({ success: true, order });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Could not load order.' });
+        }
+    }
+
+    async createReview(req, res) {
+        try {
+            const { voucherId, rating, comment } = req.body;
+            const ratingVal = Number(rating);
+
+            if (!voucherId || !Number.isInteger(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+                return res.status(400).json({ message: 'Rating must be from 1 to 5.' });
+            }
+
+            const review = await orderService.createReview(req.user.id, voucherId, ratingVal, comment);
+            return res.json({ success: true, message: 'Review submitted.', review });
+        } catch (error) {
+            console.error('createReview error:', error);
+            return res.status(400).json({ message: error.message || 'Could not submit review.' });
+        }
+    }
+}
+
+module.exports = new OrderController();

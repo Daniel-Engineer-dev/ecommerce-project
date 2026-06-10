@@ -1,385 +1,154 @@
--- ============================================================
--- DEALZY DATABASE SCRIPT
--- Updated: 2026-06-09
--- Purpose: recreate the current Supabase schema and a clean demo seed.
 --
--- Notes:
--- - This script is intended for a fresh PostgreSQL/Supabase public schema.
--- - It reflects the current application schema: gift order fields,
---   complaint response action_type, partial unique email/phone indexes,
---   order/e-voucher consistency checks, and current business triggers.
--- - Demo data is intentionally curated instead of dumping all live test rows.
--- ============================================================
+-- PostgreSQL database dump
+--
 
+\restrict OUQ9RStVPIUoWEl5dYrNWjvsQMfIURgu04XRERmOdTtmfs1d7GmgAhgrMaQytsX
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 18.1
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
 
-BEGIN;
+ALTER TABLE IF EXISTS ONLY public.vouchers DROP CONSTRAINT IF EXISTS vouchers_partner_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.vouchers DROP CONSTRAINT IF EXISTS vouchers_category_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.voucher_branches DROP CONSTRAINT IF EXISTS voucher_branches_voucher_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.voucher_branches DROP CONSTRAINT IF EXISTS voucher_branches_branch_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.system_logs DROP CONSTRAINT IF EXISTS system_logs_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.reviews DROP CONSTRAINT IF EXISTS reviews_voucher_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.reviews DROP CONSTRAINT IF EXISTS reviews_customer_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.partners DROP CONSTRAINT IF EXISTS partners_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.orders DROP CONSTRAINT IF EXISTS orders_customer_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.order_items DROP CONSTRAINT IF EXISTS order_items_voucher_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.order_items DROP CONSTRAINT IF EXISTS order_items_order_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.e_vouchers DROP CONSTRAINT IF EXISTS e_vouchers_used_at_branch_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.e_vouchers DROP CONSTRAINT IF EXISTS e_vouchers_order_item_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.customers DROP CONSTRAINT IF EXISTS customers_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.content_item_revisions DROP CONSTRAINT IF EXISTS content_item_revisions_content_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.content_item_revisions DROP CONSTRAINT IF EXISTS content_item_revisions_changed_by_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaints DROP CONSTRAINT IF EXISTS complaints_order_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaints DROP CONSTRAINT IF EXISTS complaints_customer_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_vouchers DROP CONSTRAINT IF EXISTS complaint_vouchers_voucher_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_vouchers DROP CONSTRAINT IF EXISTS complaint_vouchers_complaint_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_responses DROP CONSTRAINT IF EXISTS complaint_responses_responder_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_responses DROP CONSTRAINT IF EXISTS complaint_responses_complaint_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.branches DROP CONSTRAINT IF EXISTS branches_partner_id_fkey;
+DROP TRIGGER IF EXISTS trg_validate_voucher_usage ON public.e_vouchers;
+DROP TRIGGER IF EXISTS trg_validate_voucher_branch_owner ON public.voucher_branches;
+DROP TRIGGER IF EXISTS trg_validate_review ON public.reviews;
+DROP TRIGGER IF EXISTS trg_enforce_complaint_order_limit ON public.complaints;
+DROP INDEX IF EXISTS public.orders_paid_transaction_reference_unique;
+DROP INDEX IF EXISTS public.idx_users_phone_unique_not_null;
+DROP INDEX IF EXISTS public.idx_users_email_unique_not_null;
+DROP INDEX IF EXISTS public.idx_content_items_template;
+DROP INDEX IF EXISTS public.idx_content_items_slug_unique;
+DROP INDEX IF EXISTS public.idx_content_items_public;
+DROP INDEX IF EXISTS public.idx_content_item_revisions_content_id;
+DROP INDEX IF EXISTS public.idx_complaints_order_status;
+DROP INDEX IF EXISTS public.complaints_one_active_per_order;
+ALTER TABLE IF EXISTS ONLY public.vouchers DROP CONSTRAINT IF EXISTS vouchers_pkey;
+ALTER TABLE IF EXISTS ONLY public.voucher_branches DROP CONSTRAINT IF EXISTS voucher_branches_pkey;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_username_key;
+ALTER TABLE IF EXISTS ONLY public.users DROP CONSTRAINT IF EXISTS users_pkey;
+ALTER TABLE IF EXISTS ONLY public.system_logs DROP CONSTRAINT IF EXISTS system_logs_pkey;
+ALTER TABLE IF EXISTS ONLY public.reviews DROP CONSTRAINT IF EXISTS reviews_pkey;
+ALTER TABLE IF EXISTS ONLY public.reviews DROP CONSTRAINT IF EXISTS reviews_customer_voucher_unique;
+ALTER TABLE IF EXISTS ONLY public.partners DROP CONSTRAINT IF EXISTS partners_pkey;
+ALTER TABLE IF EXISTS ONLY public.orders DROP CONSTRAINT IF EXISTS orders_pkey;
+ALTER TABLE IF EXISTS ONLY public.order_items DROP CONSTRAINT IF EXISTS order_items_pkey;
+ALTER TABLE IF EXISTS ONLY public.e_vouchers DROP CONSTRAINT IF EXISTS e_vouchers_unique_code_key;
+ALTER TABLE IF EXISTS ONLY public.e_vouchers DROP CONSTRAINT IF EXISTS e_vouchers_pkey;
+ALTER TABLE IF EXISTS ONLY public.customers DROP CONSTRAINT IF EXISTS customers_pkey;
+ALTER TABLE IF EXISTS ONLY public.content_items DROP CONSTRAINT IF EXISTS content_items_pkey;
+ALTER TABLE IF EXISTS ONLY public.content_items DROP CONSTRAINT IF EXISTS content_items_content_key_key;
+ALTER TABLE IF EXISTS ONLY public.content_item_revisions DROP CONSTRAINT IF EXISTS content_item_revisions_pkey;
+ALTER TABLE IF EXISTS ONLY public.complaints DROP CONSTRAINT IF EXISTS complaints_pkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_vouchers DROP CONSTRAINT IF EXISTS complaint_vouchers_pkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_responses DROP CONSTRAINT IF EXISTS complaint_responses_pkey;
+ALTER TABLE IF EXISTS ONLY public.complaint_overflow_archive DROP CONSTRAINT IF EXISTS complaint_overflow_archive_pkey;
+ALTER TABLE IF EXISTS ONLY public.categories DROP CONSTRAINT IF EXISTS categories_pkey;
+ALTER TABLE IF EXISTS ONLY public.categories DROP CONSTRAINT IF EXISTS categories_category_name_key;
+ALTER TABLE IF EXISTS ONLY public.branches DROP CONSTRAINT IF EXISTS branches_pkey;
+ALTER TABLE IF EXISTS public.vouchers ALTER COLUMN voucher_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.users ALTER COLUMN user_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.system_logs ALTER COLUMN log_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.reviews ALTER COLUMN review_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.orders ALTER COLUMN order_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.order_items ALTER COLUMN order_item_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.e_vouchers ALTER COLUMN evoucher_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.content_items ALTER COLUMN content_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.content_item_revisions ALTER COLUMN revision_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.complaints ALTER COLUMN complaint_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.complaint_responses ALTER COLUMN response_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.categories ALTER COLUMN category_id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.branches ALTER COLUMN branch_id DROP DEFAULT;
+DROP SEQUENCE IF EXISTS public.vouchers_voucher_id_seq;
+DROP TABLE IF EXISTS public.vouchers;
+DROP TABLE IF EXISTS public.voucher_branches;
+DROP SEQUENCE IF EXISTS public.users_user_id_seq;
+DROP TABLE IF EXISTS public.users;
+DROP SEQUENCE IF EXISTS public.system_logs_log_id_seq;
+DROP TABLE IF EXISTS public.system_logs;
+DROP SEQUENCE IF EXISTS public.reviews_review_id_seq;
+DROP TABLE IF EXISTS public.reviews;
+DROP TABLE IF EXISTS public.partners;
+DROP SEQUENCE IF EXISTS public.orders_order_id_seq;
+DROP TABLE IF EXISTS public.orders;
+DROP SEQUENCE IF EXISTS public.order_items_order_item_id_seq;
+DROP TABLE IF EXISTS public.order_items;
+DROP SEQUENCE IF EXISTS public.e_vouchers_evoucher_id_seq;
+DROP TABLE IF EXISTS public.e_vouchers;
+DROP TABLE IF EXISTS public.customers;
+DROP SEQUENCE IF EXISTS public.content_items_content_id_seq;
+DROP TABLE IF EXISTS public.content_items;
+DROP SEQUENCE IF EXISTS public.content_item_revisions_revision_id_seq;
+DROP TABLE IF EXISTS public.content_item_revisions;
+DROP SEQUENCE IF EXISTS public.complaints_complaint_id_seq;
+DROP TABLE IF EXISTS public.complaints;
+DROP TABLE IF EXISTS public.complaint_vouchers;
+DROP SEQUENCE IF EXISTS public.complaint_responses_response_id_seq;
+DROP TABLE IF EXISTS public.complaint_responses;
+DROP TABLE IF EXISTS public.complaint_overflow_archive;
+DROP SEQUENCE IF EXISTS public.categories_category_id_seq;
+DROP TABLE IF EXISTS public.categories;
+DROP SEQUENCE IF EXISTS public.branches_branch_id_seq;
+DROP TABLE IF EXISTS public.branches;
+DROP FUNCTION IF EXISTS public.fn_validate_voucher_usage();
+DROP FUNCTION IF EXISTS public.fn_validate_voucher_branch_owner();
+DROP FUNCTION IF EXISTS public.fn_validate_review();
+DROP FUNCTION IF EXISTS public.fn_log_action();
+DROP FUNCTION IF EXISTS public.enforce_complaint_order_limit();
+DROP SCHEMA IF EXISTS public;
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
 
--- ============================================================
--- 1. DROP OLD TABLES
--- ============================================================
+CREATE SCHEMA public;
 
-DROP TABLE IF EXISTS complaint_responses CASCADE;
-DROP TABLE IF EXISTS complaint_vouchers CASCADE;
-DROP TABLE IF EXISTS complaints CASCADE;
-DROP TABLE IF EXISTS reviews CASCADE;
-DROP TABLE IF EXISTS content_items CASCADE;
-DROP TABLE IF EXISTS system_logs CASCADE;
-DROP TABLE IF EXISTS e_vouchers CASCADE;
-DROP TABLE IF EXISTS order_items CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS voucher_branches CASCADE;
-DROP TABLE IF EXISTS vouchers CASCADE;
-DROP TABLE IF EXISTS categories CASCADE;
-DROP TABLE IF EXISTS branches CASCADE;
-DROP TABLE IF EXISTS partners CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
 
-DROP FUNCTION IF EXISTS fn_validate_voucher_usage() CASCADE;
-DROP FUNCTION IF EXISTS fn_validate_order_item() CASCADE;
-DROP FUNCTION IF EXISTS fn_validate_review() CASCADE;
-DROP FUNCTION IF EXISTS fn_log_action() CASCADE;
-DROP FUNCTION IF EXISTS enforce_complaint_order_limit() CASCADE;
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
 
--- ============================================================
--- 2. TABLES
--- ============================================================
+COMMENT ON SCHEMA public IS 'standard public schema';
 
-CREATE TABLE users (
-    user_id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(100),
-    phone VARCHAR(20),
-    role VARCHAR(20) CHECK (role IN ('Customer', 'Partner', 'Admin')),
-    reset_token VARCHAR(255),
-    reset_token_expiry TIMESTAMP,
-    create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE UNIQUE INDEX idx_users_email_unique_not_null
-    ON users (LOWER(email))
-    WHERE email IS NOT NULL;
+--
+-- Name: enforce_complaint_order_limit(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-CREATE UNIQUE INDEX idx_users_phone_unique_not_null
-    ON users (phone)
-    WHERE phone IS NOT NULL;
-
-CREATE TABLE customers (
-    user_id INT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    full_name VARCHAR(100),
-    dob DATE,
-    address TEXT,
-    is_active BOOLEAN DEFAULT TRUE
-);
-
-CREATE TABLE partners (
-    user_id INT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    company_name VARCHAR(200),
-    representative_name VARCHAR(100),
-    tax_id VARCHAR(50),
-    headquarters TEXT,
-    status VARCHAR(20) DEFAULT 'Pending'
-        CHECK (status IN ('Pending', 'Approved', 'Rejected')),
-    is_active BOOLEAN DEFAULT TRUE
-);
-
-CREATE TABLE branches (
-    branch_id SERIAL PRIMARY KEY,
-    partner_id INT REFERENCES partners(user_id) ON DELETE RESTRICT,
-    branch_name VARCHAR(200),
-    address TEXT,
-    phone VARCHAR(20)
-);
-
-CREATE TABLE categories (
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) UNIQUE NOT NULL
-);
-
-CREATE TABLE vouchers (
-    voucher_id SERIAL PRIMARY KEY,
-    partner_id INT REFERENCES partners(user_id) ON DELETE RESTRICT,
-    category_id INT REFERENCES categories(category_id) ON DELETE SET NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    image_url TEXT,
-    discount_percent INT DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
-    original_price NUMERIC(12,2) NOT NULL,
-    sale_price NUMERIC(12,2) NOT NULL,
-    total_quantity INT NOT NULL DEFAULT 0,
-    quantity_stock INT NOT NULL DEFAULT 0,
-    start_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expiry_date TIMESTAMP NOT NULL,
-    terms_and_conditions TEXT,
-    cancellation_policy TEXT,
-    status VARCHAR(20) DEFAULT 'Pending'
-        CHECK (status IN ('Draft', 'Pending', 'Approved', 'Rejected', 'Suspended', 'Expired')),
-    approved_at TIMESTAMP,
-    rejected_reason TEXT,
-    CONSTRAINT chk_price CHECK (sale_price < original_price),
-    CONSTRAINT chk_stock CHECK (quantity_stock >= 0 AND quantity_stock <= total_quantity),
-    CONSTRAINT chk_dates CHECK (expiry_date > start_date),
-    CONSTRAINT vouchers_price_nonnegative_check CHECK (original_price >= 0 AND sale_price >= 0)
-);
-
-CREATE TABLE voucher_branches (
-    voucher_id INT REFERENCES vouchers(voucher_id) ON DELETE CASCADE,
-    branch_id INT REFERENCES branches(branch_id) ON DELETE CASCADE,
-    PRIMARY KEY (voucher_id, branch_id)
-);
-
-CREATE OR REPLACE FUNCTION fn_validate_voucher_branch_owner()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM vouchers v
-        JOIN branches b ON b.branch_id = NEW.branch_id
-        WHERE v.voucher_id = NEW.voucher_id
-          AND v.partner_id = b.partner_id
-    ) THEN
-        RAISE EXCEPTION 'Voucher and branch must belong to the same partner.';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_validate_voucher_branch_owner
-BEFORE INSERT OR UPDATE ON voucher_branches
-FOR EACH ROW EXECUTE FUNCTION fn_validate_voucher_branch_owner();
-
-CREATE TABLE orders (
-    order_id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(user_id) ON DELETE RESTRICT,
-    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total_amount NUMERIC(12,2),
-    status VARCHAR(20) DEFAULT 'Pending'
-        CHECK (status IN ('Pending', 'Paid', 'Cancelled', 'Failed', 'Expired', 'Refunded')),
-    payment_method VARCHAR(50),
-    transaction_reference VARCHAR(100),
-    shipping_name VARCHAR(100),
-    shipping_phone VARCHAR(20),
-    shipping_email VARCHAR(100),
-    shipping_address TEXT,
-    is_gift BOOLEAN NOT NULL DEFAULT FALSE,
-    gift_recipient_name VARCHAR(255),
-    gift_recipient_phone VARCHAR(50),
-    gift_recipient_email VARCHAR(255),
-    gift_message TEXT,
-    CONSTRAINT orders_total_amount_nonnegative_check
-        CHECK (total_amount IS NULL OR total_amount >= 0)
-);
-
-CREATE TABLE order_items (
-    order_item_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,
-    voucher_id INT REFERENCES vouchers(voucher_id) ON DELETE SET NULL,
-    quantity INT CHECK (quantity > 0),
-    price_at_purchase NUMERIC(12,2),
-    CONSTRAINT order_items_price_nonnegative_check
-        CHECK (price_at_purchase IS NULL OR price_at_purchase >= 0)
-);
-
-CREATE TABLE e_vouchers (
-    evoucher_id SERIAL PRIMARY KEY,
-    order_item_id INT REFERENCES order_items(order_item_id) ON DELETE CASCADE,
-    unique_code VARCHAR(50) UNIQUE NOT NULL,
-    status VARCHAR(20) DEFAULT 'Unused'
-        CHECK (status IN ('Unused', 'Used', 'Expired', 'Locked')),
-    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expiry_date TIMESTAMP,
-    used_at_branch_id INT REFERENCES branches(branch_id) ON DELETE SET NULL,
-    used_date TIMESTAMP
-);
-
-CREATE TABLE system_logs (
-    log_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(user_id) ON DELETE SET NULL,
-    action TEXT NOT NULL,
-    table_name VARCHAR(50),
-    record_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE content_items (
-    content_id SERIAL PRIMARY KEY,
-    content_key VARCHAR(80) UNIQUE NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    type VARCHAR(30) NOT NULL DEFAULT 'policy',
-    body TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE reviews (
-    review_id SERIAL PRIMARY KEY,
-    voucher_id INT REFERENCES vouchers(voucher_id) ON DELETE CASCADE,
-    customer_id INT REFERENCES customers(user_id) ON DELETE CASCADE,
-    rating INT CHECK (rating >= 1 AND rating <= 5),
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT reviews_customer_voucher_unique UNIQUE (customer_id, voucher_id)
-);
-
-CREATE TABLE complaints (
-    complaint_id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(user_id) ON DELETE CASCADE,
-    order_id INT REFERENCES orders(order_id) ON DELETE SET NULL,
-    title VARCHAR(255),
-    content TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'Pending'
-        CHECK (status IN ('Pending', 'Processing', 'Resolved', 'Rejected')),
-    priority VARCHAR(10) DEFAULT 'Normal'
-        CHECK (priority IN ('Low', 'Normal', 'High', 'Urgent')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    admin_note TEXT,
-    resolution_type VARCHAR(40) DEFAULT 'none',
-    resolution_note TEXT,
-    refund_status VARCHAR(40) DEFAULT 'none',
-    refund_amount NUMERIC DEFAULT 0,
-    voucher_id INTEGER,
-    attempt_no INTEGER DEFAULT 1,
-    reviewed_by INTEGER,
-    reviewed_at TIMESTAMP,
-    resolved_at TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE UNIQUE INDEX complaints_one_active_per_order
-ON complaints (order_id, customer_id)
-WHERE status IN ('Pending', 'Processing') AND order_id IS NOT NULL;
-
-CREATE TABLE complaint_vouchers (
-    complaint_id INT REFERENCES complaints(complaint_id) ON DELETE CASCADE,
-    voucher_id INT REFERENCES vouchers(voucher_id) ON DELETE CASCADE,
-    PRIMARY KEY (complaint_id, voucher_id)
-);
-
-CREATE TABLE complaint_responses (
-    response_id SERIAL PRIMARY KEY,
-    complaint_id INT REFERENCES complaints(complaint_id) ON DELETE CASCADE,
-    responder_id INT REFERENCES users(user_id) ON DELETE SET NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    action_type VARCHAR(50)
-);
-
--- ============================================================
--- 3. BUSINESS RULE FUNCTIONS AND TRIGGERS
--- ============================================================
-
-CREATE OR REPLACE FUNCTION fn_log_action()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO system_logs (user_id, action, table_name, record_id)
-    VALUES (
-        NULL,
-        TG_OP || ' on ' || TG_TABLE_NAME,
-        TG_TABLE_NAME,
-        CASE WHEN TG_OP = 'DELETE' THEN OLD.user_id ELSE NEW.user_id END
-    );
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION fn_validate_order_item()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_status VARCHAR(20);
-    v_stock INT;
-    v_start TIMESTAMP;
-    v_expiry TIMESTAMP;
-BEGIN
-    SELECT status, quantity_stock, start_date, expiry_date
-    INTO v_status, v_stock, v_start, v_expiry
-    FROM vouchers
-    WHERE voucher_id = NEW.voucher_id;
-
-    IF v_status <> 'Approved' THEN
-        RAISE EXCEPTION 'Voucher is not approved or is unavailable.';
-    END IF;
-
-    IF CURRENT_TIMESTAMP < v_start OR CURRENT_TIMESTAMP > v_expiry THEN
-        RAISE EXCEPTION 'Voucher is outside the valid selling period.';
-    END IF;
-
-    IF v_stock < NEW.quantity THEN
-        RAISE EXCEPTION 'Voucher stock is not enough. Remaining: %', v_stock;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_validate_order_item
-BEFORE INSERT ON order_items
-FOR EACH ROW EXECUTE FUNCTION fn_validate_order_item();
-
-CREATE OR REPLACE FUNCTION fn_validate_voucher_usage()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_voucher_partner_id INT;
-    v_branch_partner_id INT;
-    v_order_status VARCHAR(20);
-BEGIN
-    IF NEW.status = 'Used' AND OLD.status <> 'Used' THEN
-        SELECT v.partner_id, o.status
-        INTO v_voucher_partner_id, v_order_status
-        FROM order_items oi
-        JOIN vouchers v ON oi.voucher_id = v.voucher_id
-        JOIN orders o ON o.order_id = oi.order_id
-        WHERE oi.order_item_id = NEW.order_item_id;
-
-        SELECT partner_id
-        INTO v_branch_partner_id
-        FROM branches
-        WHERE branch_id = NEW.used_at_branch_id;
-
-        IF v_order_status <> 'Paid' THEN
-            RAISE EXCEPTION 'Only vouchers from paid orders can be redeemed.';
-        END IF;
-
-        IF v_voucher_partner_id IS DISTINCT FROM v_branch_partner_id THEN
-            RAISE EXCEPTION 'Branch does not belong to the partner that issued this voucher.';
-        END IF;
-
-        NEW.used_date := CURRENT_TIMESTAMP;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_validate_voucher_usage
-BEFORE UPDATE ON e_vouchers
-FOR EACH ROW EXECUTE FUNCTION fn_validate_voucher_usage();
-
-CREATE OR REPLACE FUNCTION fn_validate_review()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM orders o
-        JOIN order_items oi ON o.order_id = oi.order_id
-        WHERE o.customer_id = NEW.customer_id
-          AND oi.voucher_id = NEW.voucher_id
-          AND o.status = 'Paid'
-    ) THEN
-        RAISE EXCEPTION 'Customer can only review purchased vouchers.';
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_validate_review
-BEFORE INSERT ON reviews
-FOR EACH ROW EXECUTE FUNCTION fn_validate_review();
-
-CREATE OR REPLACE FUNCTION enforce_complaint_order_limit()
-RETURNS TRIGGER AS $$
+CREATE FUNCTION public.enforce_complaint_order_limit() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
     IF NEW.order_id IS NOT NULL THEN
         PERFORM pg_advisory_xact_lock(NEW.order_id);
@@ -392,308 +161,1449 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trg_enforce_complaint_order_limit
-BEFORE INSERT ON complaints
-FOR EACH ROW EXECUTE FUNCTION enforce_complaint_order_limit();
 
--- ============================================================
--- 4. DEMO SEED DATA
--- Password hash below is the shared demo password used by the project seed.
--- ============================================================
+--
+-- Name: fn_log_action(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-INSERT INTO users (username, password, email, phone, role) VALUES
-('admin', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'admin@dealzy.vn', '0900000000', 'Admin'),
-('sheraton_partner', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'sheraton@dealzy.vn', '0900000001', 'Partner'),
-('fantastic_travel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'travel@dealzy.vn', '0900000002', 'Partner'),
-('glow_spa', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'glowspa@dealzy.vn', '0900000003', 'Partner'),
-('nike_vn', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'nike@dealzy.vn', '0900000004', 'Partner'),
-('hokkaido_sushi', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'hokkaido@dealzy.vn', '0900000005', 'Partner'),
-('cgv_cinemas', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'cgv@dealzy.vn', '0900000006', 'Partner'),
-('customer_daniel', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'daniel@dealzy.vn', '0911000001', 'Customer'),
-('customer_minh', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'minh@dealzy.vn', '0911000002', 'Customer'),
-('customer_lan', '$2b$10$gRg6lG5n1oITOVT5T1ENh.19KbEH0LxlY9B.SI6vbDeCJJlODACA2', 'lan@dealzy.vn', '0911000003', 'Customer');
-
-INSERT INTO partners (user_id, company_name, representative_name, tax_id, headquarters, status)
-SELECT user_id, 'Sheraton Hotel', 'Nguyen Anh', 'TAX-SHE-001', '88 Dong Khoi, District 1, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'sheraton_partner' UNION ALL
-SELECT user_id, 'Fantastic Travel', 'Tran Binh', 'TAX-TRA-001', '12 Nguyen Hue, District 1, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'fantastic_travel' UNION ALL
-SELECT user_id, 'Glow Skin & Spa', 'Le Chi', 'TAX-SPA-001', '45 Vo Van Tan, District 3, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'glow_spa' UNION ALL
-SELECT user_id, 'Nike Vietnam', 'Pham Duy', 'TAX-NIK-001', '72 Le Thanh Ton, District 1, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'nike_vn' UNION ALL
-SELECT user_id, 'Hokkaido Sushi', 'Hoang Emi', 'TAX-SUS-001', '720A Dien Bien Phu, Binh Thanh, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'hokkaido_sushi' UNION ALL
-SELECT user_id, 'CGV Cinemas', 'Vo Gia', 'TAX-CGV-001', '101 Ton Dat Tien, District 7, Ho Chi Minh City', 'Approved' FROM users WHERE username = 'cgv_cinemas';
-
-INSERT INTO customers (user_id, full_name, dob, address)
-SELECT user_id, 'Daniel Nguyen', DATE '1995-05-15', '123 District 1, Ho Chi Minh City' FROM users WHERE username = 'customer_daniel' UNION ALL
-SELECT user_id, 'Nguyen Van Minh', DATE '1998-10-20', '456 District 7, Ho Chi Minh City' FROM users WHERE username = 'customer_minh' UNION ALL
-SELECT user_id, 'Le Thi Lan', DATE '1992-02-12', '789 Hoan Kiem, Ha Noi' FROM users WHERE username = 'customer_lan';
-
-INSERT INTO branches (partner_id, branch_name, address, phone)
-SELECT user_id, 'Sheraton Saigon', '88 Dong Khoi, District 1, Ho Chi Minh City', '02838272828' FROM users WHERE username = 'sheraton_partner' UNION ALL
-SELECT user_id, 'Fantastic Travel HCM', '12 Nguyen Hue, District 1, Ho Chi Minh City', '02839390001' FROM users WHERE username = 'fantastic_travel' UNION ALL
-SELECT user_id, 'Glow Spa District 3', '45 Vo Van Tan, District 3, Ho Chi Minh City', '02839330002' FROM users WHERE username = 'glow_spa' UNION ALL
-SELECT user_id, 'Nike Vincom Dong Khoi', '72 Le Thanh Ton, District 1, Ho Chi Minh City', '02839330003' FROM users WHERE username = 'nike_vn' UNION ALL
-SELECT user_id, 'Hokkaido Sushi Landmark', '720A Dien Bien Phu, Binh Thanh, Ho Chi Minh City', '02839330004' FROM users WHERE username = 'hokkaido_sushi' UNION ALL
-SELECT user_id, 'CGV Crescent Mall', '101 Ton Dat Tien, District 7, Ho Chi Minh City', '02839330005' FROM users WHERE username = 'cgv_cinemas';
-
-INSERT INTO categories (category_name) VALUES
-('Dining'), ('Travel'), ('Beauty'), ('Shopping'), ('Entertainment'),
-('Education'), ('Health'), ('Spa'), ('Hotels'), ('Cafe');
-
-INSERT INTO vouchers (
-    partner_id, category_id, title, description, image_url, discount_percent,
-    original_price, sale_price, total_quantity, quantity_stock, start_date,
-    expiry_date, terms_and_conditions, cancellation_policy, status, approved_at
-) VALUES
-((SELECT user_id FROM users WHERE username = 'sheraton_partner'), (SELECT category_id FROM categories WHERE category_name = 'Dining'),
- 'Sheraton 5-Star Seafood Buffet', 'Premium seafood buffet at Sheraton Saigon.',
- 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&q=80&w=800',
- 34, 1200000, 790000, 50, 50, CURRENT_TIMESTAMP, TIMESTAMP '2026-12-31 23:59:59',
- 'Valid for weekday dinner buffet. Reservation is required.', 'No cash refund on holidays.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'fantastic_travel'), (SELECT category_id FROM categories WHERE category_name = 'Travel'),
- 'SaPa 3D2N Travel Combo', 'Mountain-view hotel and round-trip transfer package.',
- 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&q=80&w=800',
- 33, 4500000, 2990000, 30, 30, CURRENT_TIMESTAMP, TIMESTAMP '2026-11-15 23:59:59',
- 'Includes transfer and 2 hotel nights with breakfast.', 'Free cancellation 7 days before departure.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'glow_spa'), (SELECT category_id FROM categories WHERE category_name = 'Beauty'),
- 'Full Body Spa Treatment', 'Hot-stone massage and facial care package.',
- 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80&w=800',
- 47, 850000, 450000, 100, 100, CURRENT_TIMESTAMP, TIMESTAMP '2026-10-20 23:59:59',
- 'Appointment required. Maximum 2 vouchers per customer.', 'Reschedule at least 24 hours before service.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'nike_vn'), (SELECT category_id FROM categories WHERE category_name = 'Shopping'),
- 'Nike Shopping Voucher 500K', 'Store voucher for selected Nike Vietnam products.',
- 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800',
- 16, 500000, 420000, 200, 200, CURRENT_TIMESTAMP, TIMESTAMP '2026-09-30 23:59:59',
- 'Valid at selected stores. Maximum 2 vouchers per invoice.', 'No cash exchange.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'hokkaido_sushi'), (SELECT category_id FROM categories WHERE category_name = 'Dining'),
- 'Japanese Dining Discovery', 'Sushi and sashimi set menu at Hokkaido Sushi.',
- 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&q=80&w=800',
- 42, 600000, 350000, 150, 150, CURRENT_TIMESTAMP, TIMESTAMP '2026-12-01 23:59:59',
- 'Valid for dine-in and takeaway. Not combinable with membership offers.', 'Flexible cancellation before redemption.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'cgv_cinemas'), (SELECT category_id FROM categories WHERE category_name = 'Entertainment'),
- 'CGV Movie Combo Ticket', 'Movie ticket combo for selected CGV cinemas.',
- 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80&w=800',
- 28, 250000, 180000, 500, 500, CURRENT_TIMESTAMP, TIMESTAMP '2026-08-31 23:59:59',
- 'Redeem at counter or CGV app. Seat surcharges may apply.', 'No refund after code redemption.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'sheraton_partner'), (SELECT category_id FROM categories WHERE category_name = 'Dining'),
- 'Sheraton Business Lunch Set', 'Five-star business lunch set menu.',
- 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800',
- 20, 600000, 480000, 100, 100, CURRENT_TIMESTAMP, TIMESTAMP '2026-12-31 23:59:59',
- 'Valid 11:30-14:00 on weekdays.', 'Cancel 3 hours before reservation.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'fantastic_travel'), (SELECT category_id FROM categories WHERE category_name = 'Travel'),
- 'Ha Long Bay 5-Star Cruise', '2D1N cruise package with meals and kayak activity.',
- 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&q=80&w=800',
- 25, 3800000, 2850000, 40, 40, CURRENT_TIMESTAMP, TIMESTAMP '2026-11-30 23:59:59',
- 'Price for one adult in twin room.', 'Free date change 10 days before departure.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'glow_spa'), (SELECT category_id FROM categories WHERE category_name = 'Spa'),
- 'Herbal Hair Wash and Shoulder Massage', '75-minute relaxation service with herbal ingredients.',
- 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&q=80&w=800',
- 40, 300000, 180000, 200, 200, CURRENT_TIMESTAMP, TIMESTAMP '2026-11-20 23:59:59',
- 'Valid every day. Booking recommended.', 'Free cancellation before redemption.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'nike_vn'), (SELECT category_id FROM categories WHERE category_name = 'Shopping'),
- 'Nike Air Max Discount Voucher', 'Discount voucher for Nike Air Max products.',
- 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&q=80&w=800',
- 20, 1500000, 1200000, 100, 100, CURRENT_TIMESTAMP, TIMESTAMP '2026-09-15 23:59:59',
- 'Valid for regular-price products only.', 'Size exchange within 7 days if eligible.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'hokkaido_sushi'), (SELECT category_id FROM categories WHERE category_name = 'Dining'),
- 'Premium Sashimi Boat', 'Large sashimi set for group dining.',
- 'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&q=80&w=800',
- 30, 800000, 560000, 120, 120, CURRENT_TIMESTAMP, TIMESTAMP '2026-12-10 23:59:59',
- 'Valid for dine-in. Reservation recommended.', 'Contact restaurant before cancellation.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'cgv_cinemas'), (SELECT category_id FROM categories WHERE category_name = 'Entertainment'),
- 'CGV Couple Movie Combo', 'Two 2D tickets, one large popcorn and two drinks.',
- 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&q=80&w=800',
- 35, 360000, 234000, 300, 300, CURRENT_TIMESTAMP, TIMESTAMP '2026-09-30 23:59:59',
- 'Valid for standard 2D showtimes.', 'No refund after purchase.', 'Approved', CURRENT_TIMESTAMP),
-((SELECT user_id FROM users WHERE username = 'sheraton_partner'), (SELECT category_id FROM categories WHERE category_name = 'Dining'),
- 'Sheraton Draft Voucher Pending Review', 'Voucher used to demonstrate admin approval workflow.',
- 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80&w=800',
- 10, 1000000, 900000, 30, 30, CURRENT_TIMESTAMP, TIMESTAMP '2026-12-25 23:59:59',
- 'Pending approval.', 'Pending approval.', 'Pending', NULL);
-
-INSERT INTO voucher_branches (voucher_id, branch_id)
-SELECT v.voucher_id, b.branch_id
-FROM vouchers v
-JOIN branches b ON b.partner_id = v.partner_id;
-
--- Paid orders used for e-voucher issuance and reviews.
-INSERT INTO orders (
-    customer_id, total_amount, status, payment_method, transaction_reference,
-    shipping_name, shipping_phone, shipping_email, shipping_address
-) VALUES
-((SELECT user_id FROM users WHERE username = 'customer_daniel'), 790000, 'Paid', 'sandbox', 'PAY-DEMO-0001', 'Daniel Nguyen', '0911000001', 'daniel@dealzy.vn', '123 District 1, Ho Chi Minh City'),
-((SELECT user_id FROM users WHERE username = 'customer_daniel'), 2990000, 'Paid', 'sandbox', 'PAY-DEMO-0002', 'Daniel Nguyen', '0911000001', 'daniel@dealzy.vn', '123 District 1, Ho Chi Minh City'),
-((SELECT user_id FROM users WHERE username = 'customer_minh'), 180000, 'Paid', 'sandbox', 'PAY-DEMO-0003', 'Nguyen Van Minh', '0911000002', 'minh@dealzy.vn', '456 District 7, Ho Chi Minh City'),
-((SELECT user_id FROM users WHERE username = 'customer_lan'), 450000, 'Pending', 'sandbox', 'PAY-DEMO-PENDING', 'Le Thi Lan', '0911000003', 'lan@dealzy.vn', '789 Hoan Kiem, Ha Noi'),
-((SELECT user_id FROM users WHERE username = 'customer_minh'), 420000, 'Cancelled', 'sandbox', 'PAY-DEMO-CANCELLED', 'Nguyen Van Minh', '0911000002', 'minh@dealzy.vn', '456 District 7, Ho Chi Minh City'),
-((SELECT user_id FROM users WHERE username = 'customer_lan'), 350000, 'Refunded', 'sandbox', 'PAY-DEMO-REFUNDED', 'Le Thi Lan', '0911000003', 'lan@dealzy.vn', '789 Hoan Kiem, Ha Noi');
-
-INSERT INTO order_items (order_id, voucher_id, quantity, price_at_purchase) VALUES
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-0001'), (SELECT voucher_id FROM vouchers WHERE title = 'Sheraton 5-Star Seafood Buffet'), 1, 790000),
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-0002'), (SELECT voucher_id FROM vouchers WHERE title = 'SaPa 3D2N Travel Combo'), 1, 2990000),
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-0003'), (SELECT voucher_id FROM vouchers WHERE title = 'CGV Movie Combo Ticket'), 1, 180000),
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-PENDING'), (SELECT voucher_id FROM vouchers WHERE title = 'Full Body Spa Treatment'), 1, 450000),
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-CANCELLED'), (SELECT voucher_id FROM vouchers WHERE title = 'Nike Shopping Voucher 500K'), 1, 420000),
-((SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-REFUNDED'), (SELECT voucher_id FROM vouchers WHERE title = 'Japanese Dining Discovery'), 1, 350000);
-
--- Cancelled pending orders return reserved stock in the current application flow.
-UPDATE vouchers
-SET quantity_stock = quantity_stock + 1
-WHERE title = 'Nike Shopping Voucher 500K'
-  AND quantity_stock < total_quantity;
-
-INSERT INTO e_vouchers (order_item_id, unique_code, status, expiry_date, used_at_branch_id, used_date)
-VALUES
-((SELECT oi.order_item_id FROM order_items oi JOIN orders o ON o.order_id = oi.order_id WHERE o.transaction_reference = 'PAY-DEMO-0001'), 'DLZ-SHER-0001', 'Unused', TIMESTAMP '2026-12-31 23:59:59', NULL, NULL),
-((SELECT oi.order_item_id FROM order_items oi JOIN orders o ON o.order_id = oi.order_id WHERE o.transaction_reference = 'PAY-DEMO-0002'), 'DLZ-SAPA-0001', 'Used', TIMESTAMP '2026-11-15 23:59:59', (SELECT branch_id FROM branches WHERE branch_name = 'Fantastic Travel HCM'), CURRENT_TIMESTAMP),
-((SELECT oi.order_item_id FROM order_items oi JOIN orders o ON o.order_id = oi.order_id WHERE o.transaction_reference = 'PAY-DEMO-0003'), 'DLZ-CGV-0001', 'Unused', TIMESTAMP '2026-08-31 23:59:59', NULL, NULL),
-((SELECT oi.order_item_id FROM order_items oi JOIN orders o ON o.order_id = oi.order_id WHERE o.transaction_reference = 'PAY-DEMO-CANCELLED'), 'DLZ-NIKE-LOCKED-0001', 'Locked', TIMESTAMP '2026-09-30 23:59:59', NULL, NULL),
-((SELECT oi.order_item_id FROM order_items oi JOIN orders o ON o.order_id = oi.order_id WHERE o.transaction_reference = 'PAY-DEMO-REFUNDED'), 'DLZ-SUSHI-LOCKED-0001', 'Locked', TIMESTAMP '2026-12-01 23:59:59', NULL, NULL);
-
-INSERT INTO reviews (voucher_id, customer_id, rating, comment) VALUES
-((SELECT voucher_id FROM vouchers WHERE title = 'Sheraton 5-Star Seafood Buffet'), (SELECT user_id FROM users WHERE username = 'customer_daniel'), 5, 'Great buffet and smooth voucher redemption.'),
-((SELECT voucher_id FROM vouchers WHERE title = 'SaPa 3D2N Travel Combo'), (SELECT user_id FROM users WHERE username = 'customer_daniel'), 5, 'Good travel package for a demo order.'),
-((SELECT voucher_id FROM vouchers WHERE title = 'CGV Movie Combo Ticket'), (SELECT user_id FROM users WHERE username = 'customer_minh'), 4, 'Simple checkout flow and clear e-voucher code.');
-
-INSERT INTO complaints (customer_id, order_id, title, content, status, priority) VALUES
-((SELECT user_id FROM users WHERE username = 'customer_daniel'), (SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-0001'), 'Need invoice support', 'Customer requests invoice information for the buffet order.', 'Resolved', 'Normal'),
-((SELECT user_id FROM users WHERE username = 'customer_minh'), (SELECT order_id FROM orders WHERE transaction_reference = 'PAY-DEMO-CANCELLED'), 'Cancelled order check', 'Customer asks why the cancelled order no longer has usable codes.', 'Processing', 'High');
-
-INSERT INTO complaint_vouchers (complaint_id, voucher_id)
-SELECT c.complaint_id, v.voucher_id
-FROM complaints c
-JOIN vouchers v ON v.title = 'Sheraton 5-Star Seafood Buffet'
-WHERE c.title = 'Need invoice support';
-
-INSERT INTO complaint_responses (complaint_id, responder_id, content, action_type)
-VALUES
-((SELECT complaint_id FROM complaints WHERE title = 'Need invoice support'), (SELECT user_id FROM users WHERE username = 'admin'), 'Invoice support request was acknowledged.', 'AdminReply'),
-((SELECT complaint_id FROM complaints WHERE title = 'Cancelled order check'), (SELECT user_id FROM users WHERE username = 'admin'), 'Cancelled/refunded orders keep e-vouchers locked for consistency.', 'StatusUpdate');
-
-INSERT INTO system_logs (user_id, action, table_name, record_id) VALUES
-((SELECT user_id FROM users WHERE username = 'admin'), 'Seed database for submission', 'database', NULL),
-((SELECT user_id FROM users WHERE username = 'admin'), 'Approve demo vouchers', 'vouchers', NULL),
-((SELECT user_id FROM users WHERE username = 'admin'), 'Verify e-voucher consistency', 'e_vouchers', NULL);
-
-WITH reserved AS (
-    SELECT oi.voucher_id, SUM(oi.quantity)::int AS quantity
-    FROM order_items oi
-    JOIN orders o ON o.order_id = oi.order_id
-    WHERE o.status IN ('Pending', 'Paid')
-    GROUP BY oi.voucher_id
-)
-UPDATE vouchers v
-SET quantity_stock = GREATEST(0, v.total_quantity - COALESCE(r.quantity, 0))
-FROM reserved r
-WHERE r.voucher_id = v.voucher_id;
-
--- ============================================================
--- 5. ORDER / E-VOUCHER CONSISTENCY MAINTENANCE
--- Same intent as 20260609_fix_order_evoucher_consistency.sql.
--- ============================================================
-
-UPDATE e_vouchers ev
-SET status = 'Locked'
-FROM order_items oi
-JOIN orders o ON o.order_id = oi.order_id
-WHERE ev.order_item_id = oi.order_item_id
-  AND o.status <> 'Paid'
-  AND ev.status <> 'Locked';
-
-WITH paid_item_counts AS (
-    SELECT
-        oi.order_item_id,
-        oi.quantity,
-        v.expiry_date,
-        COUNT(ev.evoucher_id) AS existing_count
-    FROM order_items oi
-    JOIN orders o ON o.order_id = oi.order_id
-    JOIN vouchers v ON v.voucher_id = oi.voucher_id
-    LEFT JOIN e_vouchers ev ON ev.order_item_id = oi.order_item_id
-    WHERE o.status = 'Paid'
-    GROUP BY oi.order_item_id, oi.quantity, v.expiry_date
-),
-missing_codes AS (
-    SELECT
-        order_item_id,
-        expiry_date,
-        generate_series(1, GREATEST(quantity - existing_count, 0)) AS seq_no
-    FROM paid_item_counts
-)
-INSERT INTO e_vouchers (order_item_id, unique_code, status, expiry_date)
-SELECT
-    order_item_id,
-    'DLZ-' || order_item_id || '-' || LPAD(seq_no::TEXT, 4, '0') || '-' ||
-        UPPER(SUBSTRING(MD5(order_item_id::TEXT || '-' || seq_no::TEXT || '-' || clock_timestamp()::TEXT), 1, 6)),
-    'Unused',
-    expiry_date
-FROM missing_codes;
-
--- Keep sequences aligned after explicit/seed inserts.
-SELECT setval('users_user_id_seq', COALESCE((SELECT MAX(user_id) FROM users), 1), EXISTS (SELECT 1 FROM users));
-SELECT setval('branches_branch_id_seq', COALESCE((SELECT MAX(branch_id) FROM branches), 1), EXISTS (SELECT 1 FROM branches));
-SELECT setval('categories_category_id_seq', COALESCE((SELECT MAX(category_id) FROM categories), 1), EXISTS (SELECT 1 FROM categories));
-SELECT setval('vouchers_voucher_id_seq', COALESCE((SELECT MAX(voucher_id) FROM vouchers), 1), EXISTS (SELECT 1 FROM vouchers));
-SELECT setval('orders_order_id_seq', COALESCE((SELECT MAX(order_id) FROM orders), 1), EXISTS (SELECT 1 FROM orders));
-SELECT setval('order_items_order_item_id_seq', COALESCE((SELECT MAX(order_item_id) FROM order_items), 1), EXISTS (SELECT 1 FROM order_items));
-SELECT setval('e_vouchers_evoucher_id_seq', COALESCE((SELECT MAX(evoucher_id) FROM e_vouchers), 1), EXISTS (SELECT 1 FROM e_vouchers));
-SELECT setval('system_logs_log_id_seq', COALESCE((SELECT MAX(log_id) FROM system_logs), 1), EXISTS (SELECT 1 FROM system_logs));
-SELECT setval('content_items_content_id_seq', COALESCE((SELECT MAX(content_id) FROM content_items), 1), EXISTS (SELECT 1 FROM content_items));
-SELECT setval('reviews_review_id_seq', COALESCE((SELECT MAX(review_id) FROM reviews), 1), EXISTS (SELECT 1 FROM reviews));
-SELECT setval('complaints_complaint_id_seq', COALESCE((SELECT MAX(complaint_id) FROM complaints), 1), EXISTS (SELECT 1 FROM complaints));
-SELECT setval('complaint_responses_response_id_seq', COALESCE((SELECT MAX(response_id) FROM complaint_responses), 1), EXISTS (SELECT 1 FROM complaint_responses));
-
-COMMIT;
-
-DO $$
+CREATE FUNCTION public.fn_log_action() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
-        REVOKE ALL ON TABLE users, orders, order_items, e_vouchers, vouchers, voucher_branches, reviews, complaints FROM anon;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-        REVOKE ALL ON TABLE users, orders, order_items, e_vouchers, vouchers, voucher_branches, reviews, complaints FROM authenticated;
-    END IF;
+    INSERT INTO System_Logs (user_id, action, table_name, record_id)
+    VALUES (
+        (CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE NULL END), -- Cần bổ sung logic lấy user_id từ session trong thực tế
+        TG_OP || ' on ' || TG_TABLE_NAME,
+        TG_TABLE_NAME,
+        (CASE WHEN TG_OP = 'DELETE' THEN OLD.user_id ELSE NEW.user_id END)
+    );
+    RETURN NULL;
 END;
 $$;
 
+
+--
+-- Name: fn_validate_review(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_validate_review() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM orders o
+        JOIN order_items oi ON oi.order_id = o.order_id
+        WHERE o.customer_id = NEW.customer_id
+          AND oi.voucher_id = NEW.voucher_id
+          AND o.status = 'Paid'
+    ) THEN
+        RAISE EXCEPTION 'Customer can only review vouchers from paid orders.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: fn_validate_voucher_branch_owner(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_validate_voucher_branch_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM vouchers v
+        JOIN branches b ON b.branch_id = NEW.branch_id
+        WHERE v.voucher_id = NEW.voucher_id
+          AND v.partner_id = b.partner_id
+    ) THEN
+        RAISE EXCEPTION 'Voucher and branch must belong to the same partner.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: fn_validate_voucher_usage(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_validate_voucher_usage() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_voucher_partner_id INT;
+    v_branch_partner_id INT;
+    v_order_status VARCHAR(20);
+BEGIN
+    IF NEW.status = 'Used' AND OLD.status <> 'Used' THEN
+        SELECT v.partner_id, o.status
+        INTO v_voucher_partner_id, v_order_status
+        FROM order_items oi
+        JOIN vouchers v ON v.voucher_id = oi.voucher_id
+        JOIN orders o ON o.order_id = oi.order_id
+        WHERE oi.order_item_id = NEW.order_item_id;
+
+        SELECT partner_id INTO v_branch_partner_id
+        FROM branches
+        WHERE branch_id = NEW.used_at_branch_id;
+
+        IF v_order_status <> 'Paid' THEN
+            RAISE EXCEPTION 'Only vouchers from paid orders can be redeemed.';
+        END IF;
+        IF v_voucher_partner_id IS DISTINCT FROM v_branch_partner_id THEN
+            RAISE EXCEPTION 'Branch does not belong to the partner that issued this voucher.';
+        END IF;
+        NEW.used_date := CURRENT_TIMESTAMP;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: branches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.branches (
+    branch_id integer NOT NULL,
+    partner_id integer,
+    branch_name character varying(200),
+    address text,
+    phone character varying(20)
+);
+
+
+--
+-- Name: branches_branch_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.branches_branch_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: branches_branch_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.branches_branch_id_seq OWNED BY public.branches.branch_id;
+
+
+--
+-- Name: categories; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.categories (
+    category_id integer NOT NULL,
+    category_name character varying(100) NOT NULL
+);
+
+
+--
+-- Name: categories_category_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.categories_category_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: categories_category_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.categories_category_id_seq OWNED BY public.categories.category_id;
+
+
+--
+-- Name: complaint_overflow_archive; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.complaint_overflow_archive (
+    complaint_id integer NOT NULL,
+    archived_data jsonb NOT NULL,
+    archived_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    archive_reason text NOT NULL
+);
+
+
+--
+-- Name: complaint_responses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.complaint_responses (
+    response_id integer NOT NULL,
+    complaint_id integer,
+    responder_id integer,
+    content text NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    action_type character varying(50)
+);
+
+
+--
+-- Name: complaint_responses_response_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.complaint_responses_response_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: complaint_responses_response_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.complaint_responses_response_id_seq OWNED BY public.complaint_responses.response_id;
+
+
+--
+-- Name: complaint_vouchers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.complaint_vouchers (
+    complaint_id integer NOT NULL,
+    voucher_id integer NOT NULL
+);
+
+
+--
+-- Name: complaints; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.complaints (
+    complaint_id integer NOT NULL,
+    customer_id integer,
+    order_id integer,
+    title character varying(255),
+    content text NOT NULL,
+    status character varying(20) DEFAULT 'Pending'::character varying,
+    priority character varying(10) DEFAULT 'Normal'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    admin_note text,
+    resolution_type character varying(40) DEFAULT 'none'::character varying,
+    resolution_note text,
+    refund_status character varying(40) DEFAULT 'none'::character varying,
+    refund_amount numeric DEFAULT 0,
+    voucher_id integer,
+    attempt_no integer DEFAULT 1,
+    reviewed_by integer,
+    reviewed_at timestamp without time zone,
+    resolved_at timestamp without time zone,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT complaints_priority_check CHECK (((priority)::text = ANY ((ARRAY['Low'::character varying, 'Normal'::character varying, 'High'::character varying, 'Urgent'::character varying])::text[]))),
+    CONSTRAINT complaints_status_check CHECK (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Processing'::character varying, 'Resolved'::character varying, 'Rejected'::character varying])::text[])))
+);
+
+
+--
+-- Name: complaints_complaint_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.complaints_complaint_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: complaints_complaint_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.complaints_complaint_id_seq OWNED BY public.complaints.complaint_id;
+
+
+--
+-- Name: content_item_revisions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_item_revisions (
+    revision_id integer NOT NULL,
+    content_id integer,
+    content_key character varying(80) NOT NULL,
+    action character varying(50) NOT NULL,
+    before_data jsonb,
+    after_data jsonb,
+    before_status character varying(30),
+    after_status character varying(30),
+    changed_by integer,
+    changed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: content_item_revisions_revision_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.content_item_revisions_revision_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: content_item_revisions_revision_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.content_item_revisions_revision_id_seq OWNED BY public.content_item_revisions.revision_id;
+
+
+--
+-- Name: content_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_items (
+    content_id integer NOT NULL,
+    content_key character varying(80) NOT NULL,
+    title character varying(255) NOT NULL,
+    type character varying(30) DEFAULT 'policy'::character varying NOT NULL,
+    body text,
+    is_active boolean DEFAULT true,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    slug character varying(120),
+    summary text,
+    thumbnail_url text,
+    status character varying(30) DEFAULT 'published'::character varying,
+    published_at timestamp without time zone,
+    created_by integer,
+    updated_by integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    template character varying(50),
+    data jsonb DEFAULT '{}'::jsonb,
+    version integer DEFAULT 1,
+    last_action character varying(50),
+    published_title character varying(255),
+    published_summary text,
+    published_body text,
+    published_template character varying(50),
+    published_data jsonb,
+    published_version integer
+);
+
+
+--
+-- Name: content_items_content_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.content_items_content_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: content_items_content_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.content_items_content_id_seq OWNED BY public.content_items.content_id;
+
+
+--
+-- Name: customers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customers (
+    user_id integer NOT NULL,
+    full_name character varying(100),
+    dob date,
+    address text,
+    is_active boolean DEFAULT true
+);
+
+
+--
+-- Name: e_vouchers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.e_vouchers (
+    evoucher_id integer NOT NULL,
+    order_item_id integer,
+    unique_code character varying(50) NOT NULL,
+    status character varying(20) DEFAULT 'Unused'::character varying,
+    issued_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    expiry_date timestamp without time zone,
+    used_at_branch_id integer,
+    used_date timestamp without time zone,
+    CONSTRAINT e_vouchers_status_check CHECK (((status)::text = ANY ((ARRAY['Unused'::character varying, 'Used'::character varying, 'Expired'::character varying, 'Locked'::character varying])::text[])))
+);
+
+
+--
+-- Name: e_vouchers_evoucher_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.e_vouchers_evoucher_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: e_vouchers_evoucher_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.e_vouchers_evoucher_id_seq OWNED BY public.e_vouchers.evoucher_id;
+
+
+--
+-- Name: order_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.order_items (
+    order_item_id integer NOT NULL,
+    order_id integer,
+    voucher_id integer,
+    quantity integer,
+    price_at_purchase numeric(12,2),
+    CONSTRAINT order_items_price_nonnegative_check CHECK (((price_at_purchase IS NULL) OR (price_at_purchase >= (0)::numeric))),
+    CONSTRAINT order_items_quantity_check CHECK ((quantity > 0))
+);
+
+
+--
+-- Name: order_items_order_item_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.order_items_order_item_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: order_items_order_item_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.order_items_order_item_id_seq OWNED BY public.order_items.order_item_id;
+
+
+--
+-- Name: orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.orders (
+    order_id integer NOT NULL,
+    customer_id integer,
+    order_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    total_amount numeric(12,2),
+    status character varying(20) DEFAULT 'Pending'::character varying,
+    payment_method character varying(50),
+    transaction_reference character varying(100),
+    shipping_name character varying(100),
+    shipping_phone character varying(20),
+    shipping_email character varying(100),
+    shipping_address text,
+    is_gift boolean DEFAULT false NOT NULL,
+    gift_recipient_name character varying(255),
+    gift_recipient_phone character varying(50),
+    gift_recipient_email character varying(255),
+    gift_message text,
+    CONSTRAINT orders_status_check CHECK (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Paid'::character varying, 'Cancelled'::character varying, 'Failed'::character varying, 'Expired'::character varying, 'Refunded'::character varying])::text[]))),
+    CONSTRAINT orders_total_amount_nonnegative_check CHECK (((total_amount IS NULL) OR (total_amount >= (0)::numeric)))
+);
+
+
+--
+-- Name: orders_order_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.orders_order_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: orders_order_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.orders_order_id_seq OWNED BY public.orders.order_id;
+
+
+--
+-- Name: partners; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.partners (
+    user_id integer NOT NULL,
+    company_name character varying(200),
+    representative_name character varying(100),
+    tax_id character varying(50),
+    headquarters text,
+    status character varying(20) DEFAULT 'Pending'::character varying,
+    is_active boolean DEFAULT true,
+    CONSTRAINT partners_status_check CHECK (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Approved'::character varying, 'Rejected'::character varying])::text[])))
+);
+
+
+--
+-- Name: reviews; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reviews (
+    review_id integer NOT NULL,
+    voucher_id integer,
+    customer_id integer,
+    rating integer,
+    comment text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)))
+);
+
+
+--
+-- Name: reviews_review_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.reviews_review_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: reviews_review_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.reviews_review_id_seq OWNED BY public.reviews.review_id;
+
+
+--
+-- Name: system_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.system_logs (
+    log_id integer NOT NULL,
+    user_id integer,
+    action text NOT NULL,
+    table_name character varying(50),
+    record_id integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: system_logs_log_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.system_logs_log_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: system_logs_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.system_logs_log_id_seq OWNED BY public.system_logs.log_id;
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.users (
+    user_id integer NOT NULL,
+    username character varying(50) NOT NULL,
+    password character varying(255) NOT NULL,
+    email character varying(100),
+    phone character varying(20),
+    role character varying(20),
+    reset_token character varying(255),
+    reset_token_expiry timestamp without time zone,
+    create_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['Customer'::character varying, 'Partner'::character varying, 'Admin'::character varying])::text[])))
+);
+
+
+--
+-- Name: users_user_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.users_user_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: users_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.users_user_id_seq OWNED BY public.users.user_id;
+
+
+--
+-- Name: voucher_branches; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.voucher_branches (
+    voucher_id integer NOT NULL,
+    branch_id integer NOT NULL
+);
+
+
+--
+-- Name: vouchers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.vouchers (
+    voucher_id integer NOT NULL,
+    partner_id integer,
+    category_id integer,
+    title character varying(255) NOT NULL,
+    description text,
+    image_url text,
+    discount_percent integer DEFAULT 0,
+    original_price numeric(12,2) NOT NULL,
+    sale_price numeric(12,2) NOT NULL,
+    total_quantity integer DEFAULT 0 NOT NULL,
+    quantity_stock integer DEFAULT 0 NOT NULL,
+    start_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    expiry_date timestamp without time zone NOT NULL,
+    terms_and_conditions text,
+    cancellation_policy text,
+    status character varying(20) DEFAULT 'Pending'::character varying,
+    approved_at timestamp without time zone,
+    rejected_reason text,
+    CONSTRAINT chk_dates CHECK ((expiry_date > start_date)),
+    CONSTRAINT chk_price CHECK ((sale_price < original_price)),
+    CONSTRAINT chk_stock CHECK (((quantity_stock >= 0) AND (quantity_stock <= total_quantity))),
+    CONSTRAINT vouchers_discount_percent_check CHECK (((discount_percent >= 0) AND (discount_percent <= 100))),
+    CONSTRAINT vouchers_price_nonnegative_check CHECK (((original_price >= (0)::numeric) AND (sale_price >= (0)::numeric))),
+    CONSTRAINT vouchers_status_check CHECK (((status)::text = ANY ((ARRAY['Draft'::character varying, 'Pending'::character varying, 'Approved'::character varying, 'Rejected'::character varying, 'Suspended'::character varying, 'Expired'::character varying])::text[])))
+);
+
+
+--
+-- Name: vouchers_voucher_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.vouchers_voucher_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: vouchers_voucher_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.vouchers_voucher_id_seq OWNED BY public.vouchers.voucher_id;
+
+
+--
+-- Name: branches branch_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branches ALTER COLUMN branch_id SET DEFAULT nextval('public.branches_branch_id_seq'::regclass);
+
+
+--
+-- Name: categories category_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories ALTER COLUMN category_id SET DEFAULT nextval('public.categories_category_id_seq'::regclass);
+
+
+--
+-- Name: complaint_responses response_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_responses ALTER COLUMN response_id SET DEFAULT nextval('public.complaint_responses_response_id_seq'::regclass);
+
+
+--
+-- Name: complaints complaint_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaints ALTER COLUMN complaint_id SET DEFAULT nextval('public.complaints_complaint_id_seq'::regclass);
+
+
+--
+-- Name: content_item_revisions revision_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_item_revisions ALTER COLUMN revision_id SET DEFAULT nextval('public.content_item_revisions_revision_id_seq'::regclass);
+
+
+--
+-- Name: content_items content_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_items ALTER COLUMN content_id SET DEFAULT nextval('public.content_items_content_id_seq'::regclass);
+
+
+--
+-- Name: e_vouchers evoucher_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_vouchers ALTER COLUMN evoucher_id SET DEFAULT nextval('public.e_vouchers_evoucher_id_seq'::regclass);
+
+
+--
+-- Name: order_items order_item_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items ALTER COLUMN order_item_id SET DEFAULT nextval('public.order_items_order_item_id_seq'::regclass);
+
+
+--
+-- Name: orders order_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders ALTER COLUMN order_id SET DEFAULT nextval('public.orders_order_id_seq'::regclass);
+
+
+--
+-- Name: reviews review_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews ALTER COLUMN review_id SET DEFAULT nextval('public.reviews_review_id_seq'::regclass);
+
+
+--
+-- Name: system_logs log_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.system_logs ALTER COLUMN log_id SET DEFAULT nextval('public.system_logs_log_id_seq'::regclass);
+
+
+--
+-- Name: users user_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN user_id SET DEFAULT nextval('public.users_user_id_seq'::regclass);
+
+
+--
+-- Name: vouchers voucher_id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vouchers ALTER COLUMN voucher_id SET DEFAULT nextval('public.vouchers_voucher_id_seq'::regclass);
+
+
+--
+-- Name: branches branches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branches
+    ADD CONSTRAINT branches_pkey PRIMARY KEY (branch_id);
+
+
+--
+-- Name: categories categories_category_name_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_category_name_key UNIQUE (category_name);
+
+
+--
+-- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_pkey PRIMARY KEY (category_id);
+
+
+--
+-- Name: complaint_overflow_archive complaint_overflow_archive_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_overflow_archive
+    ADD CONSTRAINT complaint_overflow_archive_pkey PRIMARY KEY (complaint_id);
+
+
+--
+-- Name: complaint_responses complaint_responses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_responses
+    ADD CONSTRAINT complaint_responses_pkey PRIMARY KEY (response_id);
+
+
+--
+-- Name: complaint_vouchers complaint_vouchers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_vouchers
+    ADD CONSTRAINT complaint_vouchers_pkey PRIMARY KEY (complaint_id, voucher_id);
+
+
+--
+-- Name: complaints complaints_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaints
+    ADD CONSTRAINT complaints_pkey PRIMARY KEY (complaint_id);
+
+
+--
+-- Name: content_item_revisions content_item_revisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_item_revisions
+    ADD CONSTRAINT content_item_revisions_pkey PRIMARY KEY (revision_id);
+
+
+--
+-- Name: content_items content_items_content_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_items
+    ADD CONSTRAINT content_items_content_key_key UNIQUE (content_key);
+
+
+--
+-- Name: content_items content_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_items
+    ADD CONSTRAINT content_items_pkey PRIMARY KEY (content_id);
+
+
+--
+-- Name: customers customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: e_vouchers e_vouchers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_vouchers
+    ADD CONSTRAINT e_vouchers_pkey PRIMARY KEY (evoucher_id);
+
+
+--
+-- Name: e_vouchers e_vouchers_unique_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_vouchers
+    ADD CONSTRAINT e_vouchers_unique_code_key UNIQUE (unique_code);
+
+
+--
+-- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_pkey PRIMARY KEY (order_item_id);
+
+
+--
+-- Name: orders orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (order_id);
+
+
+--
+-- Name: partners partners_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.partners
+    ADD CONSTRAINT partners_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: reviews reviews_customer_voucher_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_customer_voucher_unique UNIQUE (customer_id, voucher_id);
+
+
+--
+-- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_pkey PRIMARY KEY (review_id);
+
+
+--
+-- Name: system_logs system_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.system_logs
+    ADD CONSTRAINT system_logs_pkey PRIMARY KEY (log_id);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_username_key UNIQUE (username);
+
+
+--
+-- Name: voucher_branches voucher_branches_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.voucher_branches
+    ADD CONSTRAINT voucher_branches_pkey PRIMARY KEY (voucher_id, branch_id);
+
+
+--
+-- Name: vouchers vouchers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vouchers
+    ADD CONSTRAINT vouchers_pkey PRIMARY KEY (voucher_id);
+
+
+--
+-- Name: complaints_one_active_per_order; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX complaints_one_active_per_order ON public.complaints USING btree (order_id, customer_id) WHERE (((status)::text = ANY ((ARRAY['Pending'::character varying, 'Processing'::character varying])::text[])) AND (order_id IS NOT NULL));
+
+
+--
+-- Name: idx_complaints_order_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_complaints_order_status ON public.complaints USING btree (order_id, status);
+
+
+--
+-- Name: idx_content_item_revisions_content_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_content_item_revisions_content_id ON public.content_item_revisions USING btree (content_id, changed_at DESC);
+
+
+--
+-- Name: idx_content_items_public; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_content_items_public ON public.content_items USING btree (status, type, published_at);
+
+
+--
+-- Name: idx_content_items_slug_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_content_items_slug_unique ON public.content_items USING btree (slug) WHERE (slug IS NOT NULL);
+
+
+--
+-- Name: idx_content_items_template; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_content_items_template ON public.content_items USING btree (template);
+
+
+--
+-- Name: idx_users_email_unique_not_null; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_users_email_unique_not_null ON public.users USING btree (lower((email)::text)) WHERE (email IS NOT NULL);
+
+
+--
+-- Name: idx_users_phone_unique_not_null; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_users_phone_unique_not_null ON public.users USING btree (phone) WHERE (phone IS NOT NULL);
+
+
+--
+-- Name: orders_paid_transaction_reference_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX orders_paid_transaction_reference_unique ON public.orders USING btree (transaction_reference) WHERE (((status)::text = 'Paid'::text) AND (transaction_reference IS NOT NULL));
+
+
+--
+-- Name: complaints trg_enforce_complaint_order_limit; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_enforce_complaint_order_limit BEFORE INSERT ON public.complaints FOR EACH ROW EXECUTE FUNCTION public.enforce_complaint_order_limit();
+
+
+--
+-- Name: reviews trg_validate_review; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_validate_review BEFORE INSERT ON public.reviews FOR EACH ROW EXECUTE FUNCTION public.fn_validate_review();
+
+
+--
+-- Name: voucher_branches trg_validate_voucher_branch_owner; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_validate_voucher_branch_owner BEFORE INSERT OR UPDATE ON public.voucher_branches FOR EACH ROW EXECUTE FUNCTION public.fn_validate_voucher_branch_owner();
+
+
+--
+-- Name: e_vouchers trg_validate_voucher_usage; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trg_validate_voucher_usage BEFORE UPDATE ON public.e_vouchers FOR EACH ROW EXECUTE FUNCTION public.fn_validate_voucher_usage();
+
+
+--
+-- Name: branches branches_partner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.branches
+    ADD CONSTRAINT branches_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES public.partners(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: complaint_responses complaint_responses_complaint_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_responses
+    ADD CONSTRAINT complaint_responses_complaint_id_fkey FOREIGN KEY (complaint_id) REFERENCES public.complaints(complaint_id) ON DELETE CASCADE;
+
+
+--
+-- Name: complaint_responses complaint_responses_responder_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_responses
+    ADD CONSTRAINT complaint_responses_responder_id_fkey FOREIGN KEY (responder_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
+
+
+--
+-- Name: complaint_vouchers complaint_vouchers_complaint_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_vouchers
+    ADD CONSTRAINT complaint_vouchers_complaint_id_fkey FOREIGN KEY (complaint_id) REFERENCES public.complaints(complaint_id) ON DELETE CASCADE;
+
+
+--
+-- Name: complaint_vouchers complaint_vouchers_voucher_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaint_vouchers
+    ADD CONSTRAINT complaint_vouchers_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(voucher_id) ON DELETE CASCADE;
+
+
+--
+-- Name: complaints complaints_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaints
+    ADD CONSTRAINT complaints_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: complaints complaints_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.complaints
+    ADD CONSTRAINT complaints_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id) ON DELETE SET NULL;
+
+
+--
+-- Name: content_item_revisions content_item_revisions_changed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_item_revisions
+    ADD CONSTRAINT content_item_revisions_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.users(user_id);
+
+
+--
+-- Name: content_item_revisions content_item_revisions_content_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_item_revisions
+    ADD CONSTRAINT content_item_revisions_content_id_fkey FOREIGN KEY (content_id) REFERENCES public.content_items(content_id) ON DELETE CASCADE;
+
+
+--
+-- Name: customers customers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: e_vouchers e_vouchers_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_vouchers
+    ADD CONSTRAINT e_vouchers_order_item_id_fkey FOREIGN KEY (order_item_id) REFERENCES public.order_items(order_item_id) ON DELETE CASCADE;
+
+
+--
+-- Name: e_vouchers e_vouchers_used_at_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_vouchers
+    ADD CONSTRAINT e_vouchers_used_at_branch_id_fkey FOREIGN KEY (used_at_branch_id) REFERENCES public.branches(branch_id) ON DELETE SET NULL;
+
+
+--
+-- Name: order_items order_items_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(order_id) ON DELETE CASCADE;
+
+
+--
+-- Name: order_items order_items_voucher_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.order_items
+    ADD CONSTRAINT order_items_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(voucher_id) ON DELETE SET NULL;
+
+
+--
+-- Name: orders orders_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(user_id) ON DELETE RESTRICT;
+
+
+--
+-- Name: partners partners_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.partners
+    ADD CONSTRAINT partners_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: reviews reviews_voucher_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reviews
+    ADD CONSTRAINT reviews_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(voucher_id) ON DELETE CASCADE;
+
+
+--
+-- Name: system_logs system_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.system_logs
+    ADD CONSTRAINT system_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
+
+
+--
+-- Name: voucher_branches voucher_branches_branch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.voucher_branches
+    ADD CONSTRAINT voucher_branches_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(branch_id) ON DELETE CASCADE;
+
+
+--
+-- Name: voucher_branches voucher_branches_voucher_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.voucher_branches
+    ADD CONSTRAINT voucher_branches_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(voucher_id) ON DELETE CASCADE;
+
+
+--
+-- Name: vouchers vouchers_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vouchers
+    ADD CONSTRAINT vouchers_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(category_id) ON DELETE SET NULL;
+
+
+--
+-- Name: vouchers vouchers_partner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.vouchers
+    ADD CONSTRAINT vouchers_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES public.partners(user_id) ON DELETE RESTRICT;
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict OUQ9RStVPIUoWEl5dYrNWjvsQMfIURgu04XRERmOdTtmfs1d7GmgAhgrMaQytsX
+
+
+-- Schema above was exported from the current Supabase public schema on 2026-06-10.
+
+
 -- ============================================================
--- 6. POST-RUN VERIFICATION QUERIES
--- Expected result: all issue_count values are 0.
+-- DEALZY CONSISTENT DEMO SEED
+-- Shared demo password for all seeded accounts: Demo@123
 -- ============================================================
 
-SELECT 'paid_missing_evouchers' AS check_name, COUNT(*)::INT AS issue_count
+SET search_path TO public;
+
+BEGIN;
+
+INSERT INTO public.users (username, password, email, phone, role) VALUES
+('admin_demo', '$2b$10$z1Wdw8Tf85eGCPPQOTRJv.oE2XyqQt5iFqInUEqgivaZL.oBLJrHu', 'admin.demo@dealzy.test', '0901000001', 'Admin'),
+('partner_demo', '$2b$10$z1Wdw8Tf85eGCPPQOTRJv.oE2XyqQt5iFqInUEqgivaZL.oBLJrHu', 'partner.demo@dealzy.test', '0901000002', 'Partner'),
+('partner_pending_demo', '$2b$10$z1Wdw8Tf85eGCPPQOTRJv.oE2XyqQt5iFqInUEqgivaZL.oBLJrHu', 'partner.pending@dealzy.test', '0901000003', 'Partner'),
+('customer_demo', '$2b$10$z1Wdw8Tf85eGCPPQOTRJv.oE2XyqQt5iFqInUEqgivaZL.oBLJrHu', 'customer.demo@dealzy.test', '0901000004', 'Customer');
+
+INSERT INTO public.partners (user_id, company_name, representative_name, tax_id, headquarters, status, is_active)
+SELECT user_id, 'Dealzy Demo Wellness', 'Nguyen Demo', 'DEMO-TAX-001', 'Thu Duc City, Ho Chi Minh City', 'Approved', TRUE
+FROM public.users WHERE username = 'partner_demo'
+UNION ALL
+SELECT user_id, 'Pending Demo Restaurant', 'Tran Demo', 'DEMO-TAX-002', 'District 1, Ho Chi Minh City', 'Pending', TRUE
+FROM public.users WHERE username = 'partner_pending_demo';
+
+INSERT INTO public.customers (user_id, full_name, dob, address, is_active)
+SELECT user_id, 'Customer Demo', DATE '2000-01-15', 'Ho Chi Minh City', TRUE
+FROM public.users WHERE username = 'customer_demo';
+
+INSERT INTO public.branches (partner_id, branch_name, address, phone)
+SELECT user_id, 'Dealzy Demo Wellness - Thu Duc', 'Thu Duc City, Ho Chi Minh City', '02839000001'
+FROM public.users WHERE username = 'partner_demo'
+UNION ALL
+SELECT user_id, 'Pending Demo Restaurant - District 1', 'District 1, Ho Chi Minh City', '02839000002'
+FROM public.users WHERE username = 'partner_pending_demo';
+
+INSERT INTO public.categories (category_name) VALUES
+('Dining'), ('Beauty'), ('Travel'), ('Entertainment'), ('Shopping');
+
+INSERT INTO public.vouchers (
+    partner_id, category_id, title, description, image_url, discount_percent,
+    original_price, sale_price, total_quantity, quantity_stock, start_date,
+    expiry_date, terms_and_conditions, cancellation_policy, status, approved_at
+)
+SELECT
+    u.user_id, c.category_id, 'Demo Facial Care Voucher',
+    'Approved voucher used for checkout, E-Voucher and complaint demonstrations.',
+    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=900',
+    40, 500000, 300000, 20, 19, CURRENT_TIMESTAMP - INTERVAL '1 day',
+    CURRENT_TIMESTAMP + INTERVAL '180 days',
+    'Advance booking is required.', 'Unused vouchers can be reviewed by support.',
+    'Approved', CURRENT_TIMESTAMP
+FROM public.users u
+JOIN public.categories c ON c.category_name = 'Beauty'
+WHERE u.username = 'partner_demo'
+UNION ALL
+SELECT
+    u.user_id, c.category_id, 'Demo Relaxation Package',
+    'Approved voucher reserved by a pending order for stock consistency demonstration.',
+    'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&q=80&w=900',
+    30, 400000, 280000, 15, 14, CURRENT_TIMESTAMP - INTERVAL '1 day',
+    CURRENT_TIMESTAMP + INTERVAL '180 days',
+    'Advance booking is required.', 'Pending orders expire according to application policy.',
+    'Approved', CURRENT_TIMESTAMP
+FROM public.users u
+JOIN public.categories c ON c.category_name = 'Beauty'
+WHERE u.username = 'partner_demo'
+UNION ALL
+SELECT
+    u.user_id, c.category_id, 'Pending Voucher For Admin Approval',
+    'Voucher used to demonstrate the administrator approval workflow.',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=900',
+    20, 300000, 240000, 10, 10, CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP + INTERVAL '180 days',
+    'Pending approval.', 'Pending approval.',
+    'Pending', NULL
+FROM public.users u
+JOIN public.categories c ON c.category_name = 'Dining'
+WHERE u.username = 'partner_demo';
+
+INSERT INTO public.voucher_branches (voucher_id, branch_id)
+SELECT v.voucher_id, b.branch_id
+FROM public.vouchers v
+JOIN public.branches b ON b.partner_id = v.partner_id;
+
+INSERT INTO public.orders (
+    customer_id, total_amount, status, payment_method, transaction_reference,
+    shipping_name, shipping_phone, shipping_email, shipping_address
+)
+SELECT user_id, 300000, 'Paid', 'VietQR', 'DEMO-PAID-0001',
+       'Customer Demo', '0901000004', 'customer.demo@dealzy.test', 'Ho Chi Minh City'
+FROM public.users WHERE username = 'customer_demo'
+UNION ALL
+SELECT user_id, 280000, 'Pending', 'PayPal', 'DEMO-PENDING-0001',
+       'Customer Demo', '0901000004', 'customer.demo@dealzy.test', 'Ho Chi Minh City'
+FROM public.users WHERE username = 'customer_demo';
+
+INSERT INTO public.order_items (order_id, voucher_id, quantity, price_at_purchase)
+VALUES
+(
+    (SELECT order_id FROM public.orders WHERE transaction_reference = 'DEMO-PAID-0001'),
+    (SELECT voucher_id FROM public.vouchers WHERE title = 'Demo Facial Care Voucher'),
+    1, 300000
+),
+(
+    (SELECT order_id FROM public.orders WHERE transaction_reference = 'DEMO-PENDING-0001'),
+    (SELECT voucher_id FROM public.vouchers WHERE title = 'Demo Relaxation Package'),
+    1, 280000
+);
+
+INSERT INTO public.e_vouchers (order_item_id, unique_code, status, expiry_date)
+SELECT oi.order_item_id, 'DEMO-EVOUCHER-0001', 'Unused', v.expiry_date
+FROM public.order_items oi
+JOIN public.orders o ON o.order_id = oi.order_id
+JOIN public.vouchers v ON v.voucher_id = oi.voucher_id
+WHERE o.transaction_reference = 'DEMO-PAID-0001';
+
+INSERT INTO public.reviews (voucher_id, customer_id, rating, comment)
+SELECT v.voucher_id, u.user_id, 5, 'Quy trinh mua voucher ro rang va nhanh.'
+FROM public.vouchers v
+CROSS JOIN public.users u
+WHERE v.title = 'Demo Facial Care Voucher' AND u.username = 'customer_demo';
+
+INSERT INTO public.complaints (
+    customer_id, order_id, title, content, status, priority, attempt_no, updated_at
+)
+SELECT
+    u.user_id, o.order_id, 'Chua nhan duoc huong dan su dung voucher',
+    'Toi da thanh toan thanh cong nhung can duoc huong dan cach su dung E-Voucher tai chi nhanh.',
+    'Pending', 'High', 1, CURRENT_TIMESTAMP
+FROM public.users u
+JOIN public.orders o ON o.customer_id = u.user_id
+WHERE u.username = 'customer_demo' AND o.transaction_reference = 'DEMO-PAID-0001';
+
+INSERT INTO public.complaint_vouchers (complaint_id, voucher_id)
+SELECT c.complaint_id, v.voucher_id
+FROM public.complaints c
+JOIN public.orders o ON o.order_id = c.order_id
+JOIN public.order_items oi ON oi.order_id = o.order_id
+JOIN public.vouchers v ON v.voucher_id = oi.voucher_id
+WHERE o.transaction_reference = 'DEMO-PAID-0001';
+
+INSERT INTO public.system_logs (user_id, action, table_name, record_id)
+SELECT user_id, 'CREATE_CONSISTENT_DEMO_SEED', 'database', NULL
+FROM public.users WHERE username = 'admin_demo';
+
+SELECT setval(pg_get_serial_sequence('public.users', 'user_id'), COALESCE(MAX(user_id), 1), TRUE) FROM public.users;
+SELECT setval(pg_get_serial_sequence('public.branches', 'branch_id'), COALESCE(MAX(branch_id), 1), TRUE) FROM public.branches;
+SELECT setval(pg_get_serial_sequence('public.categories', 'category_id'), COALESCE(MAX(category_id), 1), TRUE) FROM public.categories;
+SELECT setval(pg_get_serial_sequence('public.vouchers', 'voucher_id'), COALESCE(MAX(voucher_id), 1), TRUE) FROM public.vouchers;
+SELECT setval(pg_get_serial_sequence('public.orders', 'order_id'), COALESCE(MAX(order_id), 1), TRUE) FROM public.orders;
+SELECT setval(pg_get_serial_sequence('public.order_items', 'order_item_id'), COALESCE(MAX(order_item_id), 1), TRUE) FROM public.order_items;
+SELECT setval(pg_get_serial_sequence('public.e_vouchers', 'evoucher_id'), COALESCE(MAX(evoucher_id), 1), TRUE) FROM public.e_vouchers;
+SELECT setval(pg_get_serial_sequence('public.reviews', 'review_id'), COALESCE(MAX(review_id), 1), TRUE) FROM public.reviews;
+SELECT setval(pg_get_serial_sequence('public.complaints', 'complaint_id'), COALESCE(MAX(complaint_id), 1), TRUE) FROM public.complaints;
+SELECT setval(pg_get_serial_sequence('public.system_logs', 'log_id'), COALESCE(MAX(log_id), 1), TRUE) FROM public.system_logs;
+
+COMMIT;
+
+-- Expected result: every issue_count is 0.
+SELECT 'stock_mismatch' AS check_name, COUNT(*)::INT AS issue_count
+FROM (
+    SELECT v.voucher_id
+    FROM public.vouchers v
+    LEFT JOIN public.order_items oi ON oi.voucher_id = v.voucher_id
+    LEFT JOIN public.orders o ON o.order_id = oi.order_id
+    GROUP BY v.voucher_id, v.total_quantity, v.quantity_stock
+    HAVING v.quantity_stock <> v.total_quantity
+        - COALESCE(SUM(oi.quantity) FILTER (WHERE o.status IN ('Pending', 'Paid')), 0)
+) issue
+UNION ALL
+SELECT 'paid_order_evoucher_count_mismatch', COUNT(*)::INT
 FROM (
     SELECT oi.order_item_id
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.order_id
-    LEFT JOIN e_vouchers ev ON ev.order_item_id = oi.order_item_id
+    FROM public.order_items oi
+    JOIN public.orders o ON o.order_id = oi.order_id
+    LEFT JOIN public.e_vouchers ev ON ev.order_item_id = oi.order_item_id
     WHERE o.status = 'Paid'
     GROUP BY oi.order_item_id, oi.quantity
     HAVING COUNT(ev.evoucher_id) <> oi.quantity
-) x
+) issue
 UNION ALL
-SELECT 'non_paid_unlocked_evouchers', COUNT(*)::INT
-FROM e_vouchers ev
-JOIN order_items oi ON oi.order_item_id = ev.order_item_id
-JOIN orders o ON o.order_id = oi.order_id
-WHERE o.status <> 'Paid' AND ev.status <> 'Locked'
+SELECT 'non_paid_order_has_evoucher', COUNT(*)::INT
+FROM public.e_vouchers ev
+JOIN public.order_items oi ON oi.order_item_id = ev.order_item_id
+JOIN public.orders o ON o.order_id = oi.order_id
+WHERE o.status <> 'Paid'
 UNION ALL
-SELECT 'stock_out_of_range', COUNT(*)::INT
-FROM vouchers
-WHERE quantity_stock < 0 OR quantity_stock > total_quantity
+SELECT 'complaint_voucher_not_in_order', COUNT(*)::INT
+FROM public.complaint_vouchers cv
+JOIN public.complaints c ON c.complaint_id = cv.complaint_id
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.order_items oi
+    WHERE oi.order_id = c.order_id AND oi.voucher_id = cv.voucher_id
+)
 UNION ALL
-SELECT 'invalid_prices', COUNT(*)::INT
-FROM vouchers
-WHERE sale_price >= original_price OR sale_price < 0 OR original_price < 0
+SELECT 'orphan_partner_profile', COUNT(*)::INT
+FROM public.partners p
+LEFT JOIN public.users u ON u.user_id = p.user_id
+WHERE u.user_id IS NULL OR u.role <> 'Partner'
 UNION ALL
-SELECT 'invalid_dates', COUNT(*)::INT
-FROM vouchers
-WHERE expiry_date <= start_date
-UNION ALL
-SELECT 'duplicate_evoucher_codes', COUNT(*)::INT
-FROM (
-    SELECT unique_code
-    FROM e_vouchers
-    GROUP BY unique_code
-    HAVING COUNT(*) > 1
-) d;
+SELECT 'orphan_customer_profile', COUNT(*)::INT
+FROM public.customers c
+LEFT JOIN public.users u ON u.user_id = c.user_id
+WHERE u.user_id IS NULL OR u.role <> 'Customer';
