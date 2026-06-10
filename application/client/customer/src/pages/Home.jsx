@@ -269,7 +269,7 @@ const Home = () => {
         ))}
       </Motion.section>
 
-      <Motion.section className="container lux-market" {...sectionReveal}>
+      <section className="container lux-market">
         <div className="lux-market__header">
           <div>
             <span className="lux-eyebrow">Marketplace</span>
@@ -311,8 +311,8 @@ const Home = () => {
             </aside>
 
             <div className="lux-sections">
-              {groupedSections.map(({ category, items }, index) => (
-                <Motion.section
+              {groupedSections.map(({ category, items }) => (
+                <section
                   key={category.category_id}
                   data-category-id={category.category_id}
                   ref={(node) => {
@@ -323,10 +323,6 @@ const Home = () => {
                     }
                   }}
                   className="lux-section"
-                  initial={{ opacity: 0, y: 36 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.12 }}
-                  transition={{ duration: 0.56, delay: Math.min(index * 0.04, 0.18), ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div className="lux-section__head">
                     <div>
@@ -355,7 +351,7 @@ const Home = () => {
                       </button>
                     </div>
                   )}
-                </Motion.section>
+                </section>
               ))}
             </div>
           </div>
@@ -366,7 +362,7 @@ const Home = () => {
             <p>Thử đổi bộ lọc hoặc quay lại sau khi đối tác phát hành voucher mới.</p>
           </div>
         )}
-      </Motion.section>
+      </section>
     </main>
   );
 };
