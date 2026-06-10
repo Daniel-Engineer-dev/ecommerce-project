@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { KeyRound, Lock, ShieldAlert, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 
@@ -17,7 +17,10 @@ const AuthPage = () => {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          username: formData.username.trim(),
+        }),
       });
       const data = await response.json();
       
@@ -51,7 +54,7 @@ const AuthPage = () => {
         <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-[#6ec6a0]/10 rounded-full blur-[120px]" />
       </div>
 
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -67,7 +70,7 @@ const AuthPage = () => {
 
         <AnimatePresence>
           {errorMessage && (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, height: 0, marginBottom: 0 }}
               animate={{ opacity: 1, height: 'auto', marginBottom: 20 }}
               exit={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -77,7 +80,7 @@ const AuthPage = () => {
                 <AlertCircle size={18} className="shrink-0" />
                 <p className="leading-tight">{errorMessage}</p>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
 
@@ -135,7 +138,7 @@ const AuthPage = () => {
           <ShieldAlert size={14} className="text-[#6ec6a0]" />
           Secure Corporate Environment
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 };

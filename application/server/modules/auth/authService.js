@@ -191,7 +191,10 @@ class AuthService {
     }
 
     async login(username, password) {
-        const result = await pool.query('SELECT * FROM Users WHERE username = $1', [username]);
+        const normalizedUsername = String(username || '').trim();
+        if (!normalizedUsername) throw new Error('Tài khoản là bắt buộc');
+
+        const result = await pool.query('SELECT * FROM Users WHERE username = $1', [normalizedUsername]);
         if (result.rows.length === 0) throw new Error('Tài khoản không tồn tại');
 
         const user = result.rows[0];

@@ -17,6 +17,12 @@ const sendNotificationEmail = async (mailOptions) => {
     }
 };
 
+const queueNotificationEmail = (mailOptions) => {
+    setImmediate(() => {
+        void sendNotificationEmail(mailOptions);
+    });
+};
+
 class AdminService {
     async ensureComplaintWorkflowColumns() {
         return;
@@ -72,12 +78,12 @@ class AdminService {
             [id]
         );
         const user = userRes.rows[0];
-        let emailResult = { sent: false, error: null };
+        let emailQueued = false;
 
         if (user && user.email) {
             const partnerUrl = process.env.PARTNER_URL || 'http://localhost:5174';
             const displayName = user.company_name || user.username;
-            emailResult = await sendNotificationEmail({
+            queueNotificationEmail({
                 email: user.email,
                 subject: 'Dealzy - Hồ sơ đối tác đã được phê duyệt',
                 template: {
@@ -101,10 +107,11 @@ class AdminService {
                     footer: 'Cảm ơn bạn đã lựa chọn Dealzy làm kênh kết nối khách hàng. Chúc bạn vận hành hiệu quả và đạt được nhiều kết quả tích cực.',
                 },
             });
+            emailQueued = true;
         }
 
         await logAction(adminId, 'APPROVE_PARTNER', 'Partners', id);
-        return { success: true, emailSent: emailResult.sent, emailError: emailResult.error };
+        return { success: true, emailQueued };
     }
 
     async rejectPartner(id, adminId = null) {
@@ -115,10 +122,10 @@ class AdminService {
         if (rejection.rowCount === 0) throw new Error('Chi ho so dang cho duyet moi co the bi tu choi');
         const userRes = await pool.query("SELECT email, username FROM Users WHERE user_id = $1", [id]);
         const user = userRes.rows[0];
-        let emailResult = { sent: false, error: null };
+        let emailQueued = false;
 
         if (user && user.email) {
-            emailResult = await sendNotificationEmail({
+            queueNotificationEmail({
                 email: user.email,
                 subject: 'Ho so doi tac bi tu choi',
                 template: {
@@ -128,10 +135,11 @@ class AdminService {
                     footer: 'Dealzy se luon san sang ho tro ban hoan thien ho so.',
                 },
             });
+            emailQueued = true;
         }
 
         await logAction(adminId, 'REJECT_PARTNER', 'Partners', id);
-        return { success: true, emailSent: emailResult.sent, emailError: emailResult.error };
+        return { success: true, emailQueued };
     }
 
     async getAllUsers({ role, search, status, page = 1, limit = 10 }) {

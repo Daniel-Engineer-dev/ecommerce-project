@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Building2, User, Mail, ShieldCheck, Phone, MapPin, RefreshCw, Hash, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '../config';
 import { apiJson } from '../apiClient';
@@ -20,7 +20,7 @@ const apiFetch = async (path, options = {}) => {
 const Toast = ({ toast }) => (
     <AnimatePresence>
         {toast && (
-            <motion.div
+            <Motion.div
                 key={toast.id}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -31,7 +31,7 @@ const Toast = ({ toast }) => (
             >
                 <span className={`w-2 h-2 rounded-full shrink-0 ${toast.type === 'success' ? 'bg-[#6ec6a0]' : 'bg-white'}`} />
                 {toast.message}
-            </motion.div>
+            </Motion.div>
         )}
     </AnimatePresence>
 );
@@ -51,11 +51,9 @@ const InfoField = ({ icon, label, value }) => (
 
 // ─── PARTNER CARD ─────────────────────────────────────────────────────────────
 const PartnerCard = ({ partner, onApprove, onReject, isLoading }) => (
-    <motion.div
-        layout
+    <Motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
         className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden"
     >
@@ -114,7 +112,7 @@ const PartnerCard = ({ partner, onApprove, onReject, isLoading }) => (
                 Từ chối
             </button>
         </div>
-    </motion.div>
+    </Motion.div>
 );
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -138,7 +136,12 @@ const PartnerApproval = () => {
         }
     }, []);
 
-    useEffect(() => { fetchPartners(); }, [fetchPartners]);
+    useEffect(() => {
+        const loadPartners = async () => {
+            await fetchPartners();
+        };
+        void loadPartners();
+    }, [fetchPartners]);
 
     const showToast = (type, message) => {
         setToast({ type, message, id: Date.now() });
@@ -146,10 +149,11 @@ const PartnerApproval = () => {
     };
 
     const handleApprove = async (userId) => {
+        if (actionLoading !== null) return;
         setActionLoading(userId);
         try {
             await apiFetch(`/api/admin/partners/approve/${userId}`, { method: 'POST' });
-            showToast('success', 'Phê duyệt đối tác thành công! Hệ thống đã gửi email thông báo.');
+            showToast('success', 'Phê duyệt đối tác thành công. Email thông báo được xử lý riêng.');
             setPartners(prev => prev.filter(p => p.user_id !== userId));
         } catch (err) {
             showToast('error', err.message || 'Phê duyệt thất bại.');
@@ -159,6 +163,7 @@ const PartnerApproval = () => {
     };
 
     const handleReject = async (userId) => {
+        if (actionLoading !== null) return;
         setActionLoading(userId);
         try {
             await apiFetch(`/api/admin/partners/reject/${userId}`, { method: 'POST' });
@@ -172,7 +177,7 @@ const PartnerApproval = () => {
     };
 
     return (
-        <motion.div
+        <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="p-6 md:p-8 space-y-6 bg-[#f5f7fa] min-h-screen relative"
@@ -237,20 +242,18 @@ const PartnerApproval = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <AnimatePresence mode="popLayout">
-                        {partners.map(partner => (
-                            <PartnerCard
-                                key={partner.user_id}
-                                partner={partner}
-                                onApprove={handleApprove}
-                                onReject={handleReject}
-                                isLoading={actionLoading === partner.user_id}
-                            />
-                        ))}
-                    </AnimatePresence>
+                    {partners.map(partner => (
+                        <PartnerCard
+                            key={partner.user_id}
+                            partner={partner}
+                            onApprove={handleApprove}
+                            onReject={handleReject}
+                            isLoading={actionLoading === partner.user_id}
+                        />
+                    ))}
                 </div>
             )}
-        </motion.div>
+        </Motion.div>
     );
 };
 
