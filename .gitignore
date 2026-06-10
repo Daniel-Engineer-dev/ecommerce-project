@@ -49,6 +49,7 @@
 **/*.synctex.gz
 **/*.toc
 **/*.xdv
+SUBMISSION_PACKAGE/01_Report_LaTeX/**/*.pdf
 
 # OS Files
 .DS_Store
