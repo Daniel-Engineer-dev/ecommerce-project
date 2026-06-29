@@ -294,7 +294,7 @@ const Profile = () => {
                                         ) : (
 
                                             <>
-                                                <div style={{ gridColumn: 'span 2' }}>
+                                                <div>
                                                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}>Họ và tên</label>
                                                     <div className="input-group"><User size={18} className="input-icon" /><input type="text" value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} className="auth-input" /></div>
                                                 </div>

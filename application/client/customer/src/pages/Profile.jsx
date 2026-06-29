@@ -24,6 +24,9 @@ import {
   QrCode,
   ReceiptText,
   CreditCard,
+  Search,
+  Filter,
+  History,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -70,6 +73,17 @@ const Profile = () => {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
+
+  // E-Voucher wallet search, filter & pagination states
+  const [evoucherSearch, setEvoucherSearch] = useState("");
+  const [evoucherFilter, setEvoucherFilter] = useState("All");
+  const [evoucherLimit, setEvoucherLimit] = useState(5);
+
+  // Order history time filter & pagination states
+  const [orderTimeFilter, setOrderTimeFilter] = useState("All");
+  const [orderStartDate, setOrderStartDate] = useState("");
+  const [orderEndDate, setOrderEndDate] = useState("");
+  const [orderLimit, setOrderLimit] = useState(5);
 
   const fetchCustomerEVouchers = async () => {
     setLoadingEvouchers(true);
@@ -421,6 +435,75 @@ const Profile = () => {
     }
   };
 
+  useEffect(() => {
+    setEvoucherSearch("");
+    setEvoucherFilter("All");
+    setEvoucherLimit(5);
+    setOrderTimeFilter("All");
+    setOrderStartDate("");
+    setOrderEndDate("");
+    setOrderLimit(5);
+  }, [activeTab]);
+
+  // Filtered E-Vouchers
+  const filteredEvouchers = evouchers.filter((item) => {
+    const matchesSearch = item.title
+      ? item.title.toLowerCase().includes(evoucherSearch.toLowerCase())
+      : false;
+
+    if (!matchesSearch) return false;
+
+    if (evoucherFilter === "Unused") {
+      return item.status === "Unused" && !isExpired(item.expiry_date);
+    }
+    if (evoucherFilter === "Used") {
+      return item.status === "Used";
+    }
+    if (evoucherFilter === "Expired") {
+      return isExpired(item.expiry_date);
+    }
+    return true; // All
+  });
+
+  // Filtered Orders
+  const filteredOrders = orders.filter((order) => {
+    if (orderTimeFilter === "All") return true;
+
+    const orderDate = new Date(order.order_date);
+    const now = new Date();
+
+    if (orderTimeFilter === "7days") {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      return orderDate >= sevenDaysAgo;
+    }
+    if (orderTimeFilter === "30days") {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(now.getDate() - 30);
+      return orderDate >= thirtyDaysAgo;
+    }
+    if (orderTimeFilter === "thisMonth") {
+      return (
+        orderDate.getMonth() === now.getMonth() &&
+        orderDate.getFullYear() === now.getFullYear()
+      );
+    }
+    if (orderTimeFilter === "custom") {
+      if (orderStartDate) {
+        const start = new Date(orderStartDate);
+        start.setHours(0, 0, 0, 0);
+        if (orderDate < start) return false;
+      }
+      if (orderEndDate) {
+        const end = new Date(orderEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (orderDate > end) return false;
+      }
+      return true;
+    }
+    return true;
+  });
+
   if (loading)
     return (
       <div style={{ paddingTop: "150px", textAlign: "center" }}>
@@ -698,11 +781,12 @@ const Profile = () => {
         {/* Main Content Area - Centered to match Navbar menu items */}
         <div
           style={{
-            maxWidth: "600px",
-            margin: "0 auto",
+            maxWidth: activeTab === "complaints" ? "1050px" : "600px",
+            margin: activeTab === "complaints" ? "0 0 0 270px" : "0 auto",
             display: "flex",
             flexDirection: "column",
             gap: "1.5rem",
+            transition: "max-width 0.2s ease, margin 0.2s ease",
           }}
         >
           <motion.div
@@ -918,7 +1002,7 @@ const Profile = () => {
                       </>
                     ) : (
                       <>
-                        <div style={{ gridColumn: "span 2" }}>
+                        <div>
                           <label
                             style={{
                               display: "block",
@@ -1506,6 +1590,114 @@ const Profile = () => {
                     </div>
                   </div>
 
+                  {/* Search and Filters for E-Vouchers */}
+                  {!loadingEvouchers && evouchers.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1rem",
+                        marginBottom: "2rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "1rem",
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        {/* Search Bar */}
+                        <div
+                          style={{
+                            position: "relative",
+                            flex: "1 1 300px",
+                          }}
+                        >
+                          <Search
+                            size={18}
+                            style={{
+                              position: "absolute",
+                              left: "14px",
+                              top: "50%",
+                              transform: "translateY(-50%)",
+                              color: "#94a3b8",
+                            }}
+                          />
+                          <input
+                            type="text"
+                            value={evoucherSearch}
+                            onChange={(e) => {
+                              setEvoucherSearch(e.target.value);
+                              setEvoucherLimit(5);
+                            }}
+                            placeholder="Tìm kiếm theo tên voucher..."
+                            style={{
+                              width: "100%",
+                              height: "44px",
+                              paddingLeft: "42px",
+                              paddingRight: "14px",
+                              borderRadius: "12px",
+                              border: "1px solid #cbd5e1",
+                              fontSize: "0.925rem",
+                              outline: "none",
+                              transition: "border-color 0.2s",
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
+                            onBlur={(e) => (e.target.style.borderColor = "#cbd5e1")}
+                          />
+                        </div>
+
+                        {/* Filter Pills */}
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "0.5rem",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {[
+                            { id: "All", label: "Tất cả" },
+                            { id: "Unused", label: "Chưa dùng" },
+                            { id: "Used", label: "Đã dùng" },
+                            { id: "Expired", label: "Hết hạn" },
+                          ].map((tab) => (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => {
+                                setEvoucherFilter(tab.id);
+                                setEvoucherLimit(5);
+                              }}
+                              style={{
+                                padding: "0.5rem 1rem",
+                                borderRadius: "999px",
+                                fontSize: "0.85rem",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                border: "1px solid",
+                                borderColor:
+                                  evoucherFilter === tab.id
+                                    ? "var(--primary)"
+                                    : "#e2e8f0",
+                                background:
+                                  evoucherFilter === tab.id
+                                    ? "var(--primary)"
+                                    : "#f8fafc",
+                                color:
+                                  evoucherFilter === tab.id ? "white" : "#64748b",
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {loadingEvouchers ? (
                     <div style={{ textAlign: "center", padding: "3rem" }}>
                       <div
@@ -1517,14 +1709,16 @@ const Profile = () => {
                       </p>
                     </div>
                   ) : evouchers.length > 0 ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "1.5rem",
-                      }}
-                    >
-                      {evouchers.map((item, idx) => (
+                    filteredEvouchers.length > 0 ? (
+                      <>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "1.5rem",
+                          }}
+                        >
+                          {filteredEvouchers.slice(0, evoucherLimit).map((item, idx) => (
                         <div
                           key={idx}
                           role={canShowEVoucherCode(item) ? "button" : undefined}
@@ -1890,7 +2084,57 @@ const Profile = () => {
                         </div>
                       ))}
                     </div>
-                  ) : (
+                    {filteredEvouchers.length > evoucherLimit && (
+                      <button
+                        type="button"
+                        onClick={() => setEvoucherLimit((prev) => prev + 5)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.5rem",
+                          margin: "1.5rem auto 0",
+                          padding: "0.75rem 2rem",
+                          borderRadius: "12px",
+                          border: "1px solid var(--primary)",
+                          background: "transparent",
+                          color: "var(--primary)",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#eff6ff";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        Xem thêm ({filteredEvouchers.length - evoucherLimit} voucher)
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "3rem",
+                      background: "#f8fafc",
+                      borderRadius: "24px",
+                      border: "2px dashed #e2e8f0",
+                    }}
+                  >
+                    <Ticket
+                      size={48}
+                      color="#cbd5e1"
+                      style={{ marginBottom: "1rem" }}
+                    />
+                    <p style={{ color: "#64748b", fontWeight: 600 }}>
+                      Không có E-Voucher nào phù hợp với bộ lọc và từ khóa tìm kiếm
+                    </p>
+                  </div>
+                )
+              ) : (
                     <div
                       style={{
                         textAlign: "center",
@@ -1949,6 +2193,167 @@ const Profile = () => {
                   >
                     <FileText color="var(--primary)" /> Lịch sử đơn hàng
                   </h3>
+                  {/* Time Filter controls for Orders */}
+                  {orders.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "1rem",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      {/* Time Presets Row */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.85rem",
+                            fontWeight: 700,
+                            color: "#64748b",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.25rem",
+                          }}
+                        >
+                          <Filter size={16} /> Lọc theo:
+                        </span>
+                        {[
+                          { id: "All", label: "Tất cả" },
+                          { id: "7days", label: "7 ngày qua" },
+                          { id: "30days", label: "30 ngày qua" },
+                          { id: "custom", label: "Tùy chọn" },
+                        ].map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => {
+                              setOrderTimeFilter(preset.id);
+                              setOrderLimit(5);
+                            }}
+                            style={{
+                              padding: "0.4rem 0.85rem",
+                              borderRadius: "999px",
+                              fontSize: "0.8rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              transition: "all 0.2s",
+                              border: "1px solid",
+                              borderColor:
+                                orderTimeFilter === preset.id
+                                  ? "var(--primary)"
+                                  : "#e2e8f0",
+                              background:
+                                orderTimeFilter === preset.id
+                                  ? "var(--primary)"
+                                  : "#f8fafc",
+                              color:
+                                orderTimeFilter === preset.id ? "white" : "#64748b",
+                            }}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Custom Date Pickers Sub-row */}
+                      {orderTimeFilter === "custom" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.75rem",
+                            flexWrap: "wrap",
+                            background: "#f8fafc",
+                            padding: "1rem",
+                            borderRadius: "12px",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b" }}>Từ ngày</span>
+                            <div className="input-group" style={{ width: "180px", position: "relative" }}>
+                              <Calendar size={16} className="input-icon" style={{ pointerEvents: 'none', zIndex: 10, top: "50%", transform: "translateY(-50%)" }} />
+                              <CustomDatePicker
+                                value={orderStartDate}
+                                onChange={(dateStr) => {
+                                  setOrderStartDate(dateStr);
+                                  setOrderLimit(5);
+                                }}
+                                showIcon={false}
+                                buttonStyle={{
+                                  paddingLeft: '40px',
+                                  height: '38px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #cbd5e1',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 500,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#64748b", marginTop: "1rem" }}>đến</span>
+
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b" }}>Đến ngày</span>
+                            <div className="input-group" style={{ width: "180px", position: "relative" }}>
+                              <Calendar size={16} className="input-icon" style={{ pointerEvents: 'none', zIndex: 10, top: "50%", transform: "translateY(-50%)" }} />
+                              <CustomDatePicker
+                                value={orderEndDate}
+                                onChange={(dateStr) => {
+                                  setOrderEndDate(dateStr);
+                                  setOrderLimit(5);
+                                }}
+                                showIcon={false}
+                                buttonStyle={{
+                                  paddingLeft: '40px',
+                                  height: '38px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #cbd5e1',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 500,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {(orderStartDate || orderEndDate) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOrderStartDate("");
+                                setOrderEndDate("");
+                                setOrderLimit(5);
+                              }}
+                              style={{
+                                marginTop: "1.2rem",
+                                background: "transparent",
+                                border: "none",
+                                color: "#ef4444",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                cursor: "pointer",
+                                padding: "0.25rem 0.5rem",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                              }}
+                            >
+                              <X size={14} /> Xóa bộ lọc
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div
                     style={{
                       display: "flex",
@@ -1957,7 +2362,9 @@ const Profile = () => {
                     }}
                   >
                     {orders.length > 0 ? (
-                      orders.map((order) => (
+                      filteredOrders.length > 0 ? (
+                        <>
+                          {filteredOrders.slice(0, orderLimit).map((order) => (
                         <button
                           type="button"
                           key={order.order_id}
@@ -2044,18 +2451,59 @@ const Profile = () => {
                             Xem chi tiết đơn hàng
                           </div>
                         </button>
-                      ))
-                    ) : (
-                      <p
-                        style={{
-                          color: "#64748b",
-                          textAlign: "center",
-                          padding: "2rem",
-                        }}
-                      >
-                        Chưa có đơn hàng nào
-                      </p>
-                    )}
+                      ))}
+                      {filteredOrders.length > orderLimit && (
+                        <button
+                          type="button"
+                          onClick={() => setOrderLimit((prev) => prev + 5)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                            margin: "1rem auto 0",
+                            padding: "0.75rem 2rem",
+                            borderRadius: "12px",
+                            border: "1px solid var(--primary)",
+                            background: "transparent",
+                            color: "var(--primary)",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#eff6ff";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          Xem thêm ({filteredOrders.length - orderLimit} đơn hàng)
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p
+                      style={{
+                        color: "#64748b",
+                        textAlign: "center",
+                        padding: "2rem",
+                      }}
+                    >
+                      Không tìm thấy đơn hàng nào phù hợp với bộ lọc thời gian.
+                    </p>
+                  )
+                ) : (
+                  <p
+                    style={{
+                      color: "#64748b",
+                      textAlign: "center",
+                      padding: "2rem",
+                    }}
+                  >
+                    Chưa có đơn hàng nào
+                  </p>
+                )}
                   </div>
                 </motion.div>
               )}
@@ -2066,21 +2514,32 @@ const Profile = () => {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
+                  style={{ width: "100%" }}
                 >
-                  <h3
+                  <div
                     style={{
-                      fontSize: "1.5rem",
-                      fontWeight: 800,
-                      marginBottom: "1.5rem",
                       display: "flex",
-                      alignItems: "center",
-                      gap: "0.75rem",
+                      gap: "2rem",
+                      alignItems: "flex-start",
+                      flexWrap: "nowrap",
+                      width: "100%",
                     }}
                   >
-                    <MessageSquare color="var(--primary)" /> Khiếu nại & phản
-                    hồi
-                  </h3>
-                  <form
+                    {/* Left Panel: Form only */}
+                    <div style={{ flex: 1, minWidth: "0" }}>
+                      <h3
+                        style={{
+                          fontSize: "1.5rem",
+                          fontWeight: 800,
+                          marginBottom: "1.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                        }}
+                      >
+                        <MessageSquare color="var(--primary)" /> Gửi khiếu nại mới
+                      </h3>
+                      <form
                     onSubmit={handleCreateComplaint}
                     style={{
                       display: "flex",
@@ -2091,6 +2550,7 @@ const Profile = () => {
                   >
                     <input
                       className="auth-input"
+                      style={{ paddingLeft: "16px" }}
                       value={complaintForm.title}
                       onChange={(e) =>
                         setComplaintForm({
@@ -2129,6 +2589,7 @@ const Profile = () => {
                         setComplaintForm({
                           ...complaintForm,
                           orderId: val,
+                          voucherIds: [],
                         })
                       }
                       placeholder="Không gắn đơn hàng"
@@ -2148,7 +2609,7 @@ const Profile = () => {
                         padding: "12px 16px",
                       }}
                     />
-                    {evouchers.length > 0 && (
+                    {complaintForm.orderId && evouchers.length > 0 && (
                       <div
                         style={{
                           border: "1px solid #cbd5e1",
@@ -2266,86 +2727,132 @@ const Profile = () => {
                       Gửi khiếu nại
                     </button>
                   </form>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "1rem",
-                    }}
-                  >
-                    {complaints.map((complaint) => (
-                      <div
-                        key={complaint.complaint_id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() =>
-                          fetchComplaintDetail(complaint.complaint_id)
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            fetchComplaintDetail(complaint.complaint_id);
-                          }
-                        }}
+                    </div>
+
+                    {/* Right Panel: List of complaints (Scrollable history) */}
+                    <div
+                      style={{
+                        width: "420px",
+                        minWidth: "320px",
+                        flexShrink: 0,
+                        position: "sticky",
+                        top: "120px",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "20px",
+                        padding: "1.5rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        height: "650px",
+                        overflow: "hidden",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+                      }}
+                    >
+                      <h4
                         style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "12px",
-                          padding: "1rem",
-                          background: "#f8fafc",
-                          cursor: "pointer",
+                          margin: 0,
+                          fontSize: "1.05rem",
+                          fontWeight: 850,
+                          color: "#0f172a",
+                          borderBottom: "1px solid #e2e8f0",
+                          paddingBottom: "0.75rem",
+                          marginBottom: "1rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: "1rem",
-                          }}
-                        >
-                          <b>
-                            {complaint.title ||
-                              `Khiếu nại #${complaint.complaint_id}`}
-                          </b>
-                          <span style={{ fontWeight: 800 }}>
-                            {getComplaintStatusText(complaint.status)}
-                          </span>
-                        </div>
-                        <p style={{ color: "#64748b", marginTop: "0.5rem" }}>
-                          {complaint.content}
-                        </p>
-                        <small>
-                          {complaint.order_id ? `Đơn #${complaint.order_id} - ` : ""}
-                          {getComplaintPriorityText(complaint.priority)} - {complaint.response_count || 0}{" "}
-                          phản hồi
-                        </small>
-                        {complaint.vouchers?.length > 0 && (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "0.5rem",
-                              flexWrap: "wrap",
-                              marginTop: "0.75rem",
-                            }}
-                          >
-                            {complaint.vouchers.map((voucher) => (
-                              <span
-                                key={voucher.voucher_id}
+                        <History size={18} color="var(--primary)" /> Lịch sử khiếu nại
+                      </h4>
+
+                      {/* Scrollable list section */}
+                      <div
+                        style={{
+                          flexGrow: 1,
+                          overflowY: "auto",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "1rem",
+                          paddingRight: "4px",
+                        }}
+                      >
+                        {complaints.length > 0 ? (
+                          complaints.map((complaint) => (
+                            <div
+                              key={complaint.complaint_id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => fetchComplaintDetail(complaint.complaint_id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  fetchComplaintDetail(complaint.complaint_id);
+                                }
+                              }}
+                              style={{
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "12px",
+                                padding: "1rem",
+                                background: "#ffffff",
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                boxShadow: "0 2px 4px rgba(0,0,0,0.01)",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = "var(--primary)";
+                                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.04)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = "#e2e8f0";
+                                e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.01)";
+                              }}
+                            >
+                              <div
                                 style={{
-                                  padding: "0.25rem 0.5rem",
-                                  borderRadius: "999px",
-                                  background: "#e0f2fe",
-                                  color: "#0369a1",
-                                  fontSize: "0.75rem",
-                                  fontWeight: 700,
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: "0.5rem",
                                 }}
                               >
-                                {voucher.title}
-                              </span>
-                            ))}
+                                <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#0f172a" }}>
+                                  {complaint.title || "Khiếu nại #" + complaint.complaint_id}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "0.7rem",
+                                    fontWeight: 800,
+                                    padding: "0.15rem 0.5rem",
+                                    borderRadius: "999px",
+                                    background: complaint.status === "Resolved" ? "#dcfce7" : complaint.status === "Rejected" ? "#fee2e2" : "#fef9c3",
+                                    color: complaint.status === "Resolved" ? "#15803d" : complaint.status === "Rejected" ? "#b91c1c" : "#a16207",
+                                    height: "fit-content",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {getComplaintStatusText(complaint.status)}
+                                </span>
+                              </div>
+                              <p style={{ color: "#64748b", marginTop: "0.5rem", fontSize: "0.85rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                                {complaint.content}
+                              </p>
+                              <div style={{ marginTop: "0.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <small style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                                  {complaint.order_id ? "Đơn #" + complaint.order_id + " - " : ""}
+                                  {getComplaintPriorityText(complaint.priority)}
+                                </small>
+                                <small style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--primary)" }}>
+                                  {complaint.response_count || 0} phản hồi
+                                </small>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#94a3b8", fontStyle: "italic", fontSize: "0.85rem" }}>
+                            Chưa có khiếu nại nào được tạo.
                           </div>
                         )}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -2354,7 +2861,10 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Modal Đánh giá - AnimatePresence */}
+
+
+
+      {/* Modal Chi tiết khiếu nại & phản hồi */}
       <AnimatePresence>
         {selectedComplaint && (
           <div
@@ -2378,33 +2888,33 @@ const Profile = () => {
               onClick={(e) => e.stopPropagation()}
               style={{
                 width: "100%",
-                maxWidth: "560px",
-                maxHeight: "calc(100vh - 2rem)",
-                overflowY: "auto",
+                maxWidth: "600px",
+                maxHeight: "calc(100vh - 4rem)",
                 background: "white",
                 borderRadius: "24px",
                 boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
               }}
             >
+              {/* Modal Header */}
               <div
                 style={{
                   padding: "1.25rem 1.5rem",
                   borderBottom: "1px solid #e2e8f0",
                   display: "flex",
                   justifyContent: "space-between",
+                  alignItems: "center",
                   gap: "1rem",
                 }}
               >
                 <div>
                   <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 900 }}>
-                    {selectedComplaint.title ||
-                      `Khiếu nại #${selectedComplaint.complaint_id}`}
+                    Chi tiết khiếu nại & phản hồi
                   </h3>
-                  <p style={{ margin: "0.35rem 0 0", color: "#64748b" }}>
-                    {getComplaintStatusText(selectedComplaint.status)} - {getComplaintPriorityText(selectedComplaint.priority)}
-                    {selectedComplaint.order_id
-                      ? ` - Đơn #${selectedComplaint.order_id}`
-                      : ""}
+                  <p style={{ margin: "0.25rem 0 0", color: "#64748b", fontSize: "0.85rem" }}>
+                    Mã khiếu nại: #{selectedComplaint.complaint_id}
                   </p>
                 </div>
                 <button
@@ -2418,56 +2928,96 @@ const Profile = () => {
                     background: "#f1f5f9",
                     color: "#64748b",
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <X size={18} />
                 </button>
               </div>
-              <div style={{ padding: "1.5rem" }}>
-                {loadingComplaintDetail ? (
-                  <p style={{ color: "#64748b" }}>Đang tải chi tiết...</p>
-                ) : (
-                  <>
-                    <p style={{ color: "#334155", lineHeight: 1.7, marginTop: 0 }}>
+
+              {loadingComplaintDetail ? (
+                <div style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+                  Đang tải chi tiết...
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflowY: "auto", padding: "1.5rem" }}>
+                  {/* Complaint Details Section */}
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <h4 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem", fontWeight: 850, color: "#0f172a" }}>
+                      {selectedComplaint.title || "Khiếu nại #" + selectedComplaint.complaint_id}
+                    </h4>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 800,
+                          padding: "0.2rem 0.6rem",
+                          borderRadius: "999px",
+                          background: selectedComplaint.status === "Resolved" ? "#dcfce7" : selectedComplaint.status === "Rejected" ? "#fee2e2" : "#fef9c3",
+                          color: selectedComplaint.status === "Resolved" ? "#15803d" : selectedComplaint.status === "Rejected" ? "#b91c1c" : "#a16207",
+                        }}
+                      >
+                        {getComplaintStatusText(selectedComplaint.status)}
+                      </span>
+                      <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "0.2rem 0.6rem", borderRadius: "999px", background: "#f1f5f9", color: "#475569" }}>
+                        Độ ưu tiên: {getComplaintPriorityText(selectedComplaint.priority)}
+                      </span>
+                      {selectedComplaint.order_id && (
+                        <span style={{ fontSize: "0.7rem", fontWeight: 800, padding: "0.2rem 0.6rem", borderRadius: "999px", background: "#eff6ff", color: "var(--primary)" }}>
+                          Đơn hàng: #{selectedComplaint.order_id}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Nội dung chi tiết
+                    </span>
+                    <p style={{ margin: "0.35rem 0 0 0", color: "#334155", lineHeight: 1.6, fontSize: "0.925rem", whiteSpace: "pre-wrap" }}>
                       {selectedComplaint.content}
                     </p>
-                    {selectedComplaint.vouchers?.length > 0 && (
-                      <div style={{ marginBottom: "1rem" }}>
-                        <b>Voucher liên quan</b>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "0.5rem",
-                            flexWrap: "wrap",
-                            marginTop: "0.5rem",
-                          }}
-                        >
-                          {selectedComplaint.vouchers.map((voucher) => (
-                            <span
-                              key={voucher.voucher_id}
-                              style={{
-                                padding: "0.35rem 0.6rem",
-                                borderRadius: "999px",
-                                background: "#e0f2fe",
-                                color: "#0369a1",
-                                fontSize: "0.78rem",
-                                fontWeight: 800,
-                              }}
-                            >
-                              {voucher.title}
-                            </span>
-                          ))}
-                        </div>
+                  </div>
+
+                  {/* Related Vouchers Section */}
+                  {selectedComplaint.vouchers?.length > 0 && (
+                    <div style={{ marginBottom: "1.5rem" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Voucher liên quan
+                      </span>
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                        {selectedComplaint.vouchers.map((voucher) => (
+                          <span
+                            key={voucher.voucher_id}
+                            style={{
+                              padding: "0.35rem 0.65rem",
+                              borderRadius: "999px",
+                              background: "#e0f2fe",
+                              color: "#0369a1",
+                              fontSize: "0.75rem",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {voucher.title}
+                          </span>
+                        ))}
                       </div>
-                    )}
-                    <div>
-                      <b>Phản hồi xử lý</b>
+                    </div>
+                  )}
+
+                  <hr style={{ border: "0", borderTop: "1px solid #e2e8f0", margin: "1.5rem 0" }} />
+
+                  {/* Admin Responses Section */}
+                  <div>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Ý kiến phản hồi từ Admin
+                    </span>
+                    <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                       {selectedComplaint.responses?.length > 0 ? (
                         selectedComplaint.responses.map((response) => (
                           <div
                             key={response.response_id}
                             style={{
-                              marginTop: "0.75rem",
                               padding: "0.85rem",
                               borderRadius: "12px",
                               background: "#f8fafc",
@@ -2478,26 +3028,31 @@ const Profile = () => {
                               style={{
                                 fontWeight: 800,
                                 color: "#0f172a",
+                                fontSize: "0.825rem",
                                 marginBottom: "0.25rem",
+                                display: "flex",
+                                justifyContent: "space-between",
                               }}
                             >
-                              {response.responder_name || "Dealzy"} -{" "}
-                              {response.responder_role || "Support"}
+                              <span>{response.responder_name || "Dealzy"}</span>
+                              <span style={{ color: "var(--primary)", fontSize: "0.75rem", fontWeight: 700 }}>
+                                {response.responder_role || "Support"}
+                              </span>
                             </div>
-                            <div style={{ color: "#475569" }}>
+                            <div style={{ color: "#475569", fontSize: "0.875rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                               {response.content}
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p style={{ color: "#64748b" }}>
-                          Chưa có phản hồi xử lý.
-                        </p>
+                        <div style={{ padding: "1.5rem 1rem", color: "#94a3b8", fontStyle: "italic", fontSize: "0.9rem", textAlign: "center" }}>
+                          Chưa có phản hồi nào từ quản trị viên.
+                        </div>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
@@ -2676,7 +3231,7 @@ const Profile = () => {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        gridTemplateColumns: "repeat(4, 1fr)",
                         gap: "0.85rem",
                       }}
                     >
