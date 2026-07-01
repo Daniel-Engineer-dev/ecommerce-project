@@ -2,8 +2,8 @@ const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // Bắt buộc dùng false cho cổng 587 (STARTTLS)
   family: 4, // Bắt buộc sử dụng IPv4 để tránh lỗi ENETUNREACH trên Render
   connectionTimeout: 10000,
   greetingTimeout: 10000,
