@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import CustomSelect from '../components/CustomSelect';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -309,16 +310,13 @@ const ActionPanel = ({ item, form, onChange, onMarkProcessing, onSubmit, submitt
           {/* Luồng A: Chấp nhận — chọn hướng giải quyết */}
           {form.decision === 'Resolved' && (
             <>
-              <select
+              <CustomSelect
+                className="w-full"
+                buttonClassName="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-amber-200 text-xs font-semibold bg-amber-50 text-amber-700 outline-none focus:border-amber-400 active:scale-[0.98] transition-all"
                 value={form.actionType || ''}
-                onChange={(e) => onChange('actionType', e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-amber-200 text-xs font-semibold bg-amber-50 text-amber-700 outline-none focus:border-amber-400"
-              >
-                <option value="">-- Chọn hướng giải quyết (A1) --</option>
-                {actionOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                onChange={(val) => onChange('actionType', val)}
+                options={[{ value: '', label: '-- Chọn hướng giải quyết (A1) --' }, ...actionOptions]}
+              />
 
               {/* Advisor: hiện khi chọn cấp lại voucher */}
               {form.actionType === 'NewCode' && (
@@ -536,15 +534,12 @@ const ComplaintManagement = () => {
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Xử lý Khiếu nại</h1>
         </div>
         <div className="flex gap-3 self-start md:self-auto">
-          <select
+          <CustomSelect
+            className="w-48"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-600 outline-none hover:border-slate-300"
-          >
-            {filterStatuses.map((s) => (
-              <option key={s} value={s}>{s ? statusLabel[s] || s : 'Tất cả trạng thái'}</option>
-            ))}
-          </select>
+            onChange={(val) => setFilterStatus(val)}
+            options={filterStatuses.map((s) => ({ value: s, label: s ? statusLabel[s] || s : 'Tất cả trạng thái' }))}
+          />
           <button
             onClick={fetchComplaints}
             className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-2"

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import CustomSelect from '../components/CustomSelect';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -354,24 +355,26 @@ const UserManagement = () => {
                     <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1">
                         <Filter size={14} /> Bộ lọc
                     </div>
-                    <select
-                        className="bg-[#f5f7fa] border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 outline-none hover:border-slate-200 transition-colors"
+                    <CustomSelect
+                        className="w-40"
                         value={roleFilter}
-                        onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">Tất cả vai trò</option>
-                        <option value="Customer">Khách hàng</option>
-                        <option value="Partner">Đối tác</option>
-                    </select>
-                    <select
-                        className="bg-[#f5f7fa] border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 outline-none hover:border-slate-200 transition-colors"
+                        onChange={(val) => { setRoleFilter(val); setPage(1); }}
+                        options={[
+                            { value: '', label: 'Tất cả vai trò' },
+                            { value: 'Customer', label: 'Khách hàng' },
+                            { value: 'Partner', label: 'Đối tác' },
+                        ]}
+                    />
+                    <CustomSelect
+                        className="w-44"
                         value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="active">Đang hoạt động</option>
-                        <option value="locked">Đang bị khóa</option>
-                    </select>
+                        onChange={(val) => { setStatusFilter(val); setPage(1); }}
+                        options={[
+                            { value: '', label: 'Tất cả trạng thái' },
+                            { value: 'active', label: 'Đang hoạt động' },
+                            { value: 'locked', label: 'Đang bị khóa' },
+                        ]}
+                    />
                 </div>
             </div>
 

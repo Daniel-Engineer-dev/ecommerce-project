@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
+import CustomSelect from '../components/CustomSelect';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
@@ -153,9 +154,12 @@ const OrderManagement = () => {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm theo mã đơn, khách hàng, email, SĐT..." className="bg-transparent outline-none text-sm w-full font-normal text-slate-800 placeholder:text-slate-400" />
         </div>
         <div className="flex gap-3">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="px-4 py-2.5 rounded-xl border border-slate-100 text-xs font-semibold bg-[#f5f7fa] text-slate-600 outline-none focus:bg-white focus:border-[#1a3a5c] transition-colors">
-            {statuses.map((item) => <option key={item} value={item}>{item || 'Tất cả trạng thái'}</option>)}
-          </select>
+          <CustomSelect
+            className="w-48"
+            value={status}
+            onChange={(val) => setStatus(val)}
+            options={statuses.map((item) => ({ value: item, label: item || 'Tất cả trạng thái' }))}
+          />
           <button onClick={fetchOrders} className="px-6 py-2.5 rounded-xl bg-[#1a3a5c] hover:bg-[#132a44] text-white text-xs font-semibold shadow-sm transition-all">Lọc kết quả</button>
         </div>
       </div>
