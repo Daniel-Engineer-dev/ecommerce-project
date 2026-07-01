@@ -137,6 +137,39 @@ const sendEmail = async (options) => {
     );
   }
 
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: process.env.EMAIL_FROM || "Dealzy Support <onboarding@resend.dev>",
+          to: email,
+          subject: subject,
+          html: htmlContent,
+          text: text || stripHtml(htmlContent),
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Resend API error: ${errText}`);
+      }
+
+      console.log(`[EMAIL] Đã gửi email thành công qua Resend HTTP API đến: ${email}`);
+      return;
+    } catch (error) {
+      console.error(`[EMAIL] Lỗi gửi email qua Resend API: ${error.message}`);
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("Khong the gui email OTP. Vui long thu lai sau.");
+      }
+    }
+  }
+
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASS;
   const useRealEmail = user && pass && user.trim() !== "" && pass.trim() !== "";
