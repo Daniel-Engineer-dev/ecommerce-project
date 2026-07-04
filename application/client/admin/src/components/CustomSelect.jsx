@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-const CustomSelect = ({ 
-  options = [], 
-  value, 
-  onChange, 
-  className = '', 
-  buttonClassName = '', 
-  placeholder = '' 
+const CustomSelect = ({
+  options = [],
+  value,
+  onChange,
+  className = '',
+  buttonClassName = '',
+  placeholder = '',
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -44,8 +45,9 @@ const CustomSelect = ({
     <div ref={containerRef} className={`relative inline-block text-left ${className}`}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={btnClass}
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`${btnClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className="truncate">{selectedOption.label}</span>
         <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-slate-800' : ''}`} />

@@ -16,7 +16,7 @@ const auth = async (req, res, next) => {
         }
 
         const { rows } = await pool.query(
-            `SELECT u.user_id, u.role,
+            `SELECT u.user_id, u.role, u.admin_scope, u.is_active AS admin_active,
                     c.is_active AS customer_active,
                     p.is_active AS partner_active,
                     p.status AS partner_status
@@ -30,13 +30,14 @@ const auth = async (req, res, next) => {
         const inactive = !user
             || user.role !== decoded.role
             || (user.role === 'Customer' && user.customer_active === false)
-            || (user.role === 'Partner' && (user.partner_active === false || user.partner_status !== 'Approved'));
+            || (user.role === 'Partner' && (user.partner_active === false || user.partner_status !== 'Approved'))
+            || (user.role === 'Admin' && user.admin_active === false);
 
         if (inactive) {
             return res.status(401).json({ message: 'Account is locked, unapproved, or no longer valid.' });
         }
 
-        req.user = { ...decoded, role: user.role };
+        req.user = { ...decoded, role: user.role, scope: user.admin_scope || null };
         return next();
     } catch (err) {
         return res.status(401).json({ message: 'Invalid access token.' });

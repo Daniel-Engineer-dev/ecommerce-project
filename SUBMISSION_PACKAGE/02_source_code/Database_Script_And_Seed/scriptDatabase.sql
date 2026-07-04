@@ -759,7 +759,10 @@ CREATE TABLE public.users (
     reset_token character varying(255),
     reset_token_expiry timestamp without time zone,
     create_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['Customer'::character varying, 'Partner'::character varying, 'Admin'::character varying])::text[])))
+    admin_scope character varying(30),
+    is_active boolean DEFAULT true,
+    CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['Customer'::character varying, 'Partner'::character varying, 'Admin'::character varying])::text[]))),
+    CONSTRAINT users_admin_scope_check CHECK ((admin_scope IS NULL OR (admin_scope)::text = ANY ((ARRAY['SuperAdmin'::character varying, 'PartnerModerator'::character varying, 'VoucherModerator'::character varying, 'OrderManager'::character varying, 'ContentEditor'::character varying, 'SupportAgent'::character varying])::text[])))
 );
 
 

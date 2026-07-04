@@ -12,6 +12,7 @@ import {
   History,
   LogOut,
 } from 'lucide-react';
+import { canAccessPath } from '../scopes';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -26,7 +27,7 @@ const Sidebar = () => {
     { path: '/complaints', label: 'Khiếu nại', icon: MessageSquareWarning },
     { path: '/content', label: 'Nội dung', icon: FileText },
     { path: '/logs', label: 'Nhật ký', icon: History },
-  ];
+  ].filter((item) => canAccessPath(item.path));
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {

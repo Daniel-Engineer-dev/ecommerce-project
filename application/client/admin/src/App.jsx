@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Search, Globe, Bell, ArrowRight, ClipboardCheck, FileText, History, LayoutDashboard, MessageSquareWarning, ShoppingBag, Ticket, Users, X } from 'lucide-react';
 
 import Sidebar from './components/SideBar';
+import NoAccess from './components/NoAccess';
 import AuthPage from './pages/AuthPage';
 import AdminDashboard from './pages/AdminDashboard';
 import PartnerApproval from './pages/PartnerApproval';
@@ -13,12 +14,16 @@ import OrderManagement from './pages/OrderManagement';
 import ComplaintManagement from './pages/ComplaintManagement';
 import ContentManagement from './pages/ContentManagement';
 import SystemLogs from './pages/SystemLogs';
+import { canAccessPath } from './scopes';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('adminToken');
   if (!token) return <Navigate to="/login" replace />;
   return children;
 };
+
+// Chặn admin truy cập phân hệ ngoài phạm vi: hiện màn hình "Không đủ quyền"
+const ScopedRoute = ({ path, children }) => (canAccessPath(path) ? children : <NoAccess />);
 
 const quickActions = [
   { label: 'Dashboard tổng quan', description: 'Thống kê hệ thống và biểu đồ vận hành', path: '/', icon: LayoutDashboard, keywords: 'dashboard tong quan thong ke' },
@@ -45,14 +50,18 @@ const AdminLayout = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
+  // Chỉ hiện các khu vực nằm trong phạm vi quản trị của admin đang đăng nhập
+  const allowedActions = useMemo(() => quickActions.filter((item) => canAccessPath(item.path)), []);
+  const allowedNotifications = useMemo(() => notifications.filter((item) => canAccessPath(item.path)), []);
+
   const filteredActions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return quickActions.slice(0, 5);
-    return quickActions.filter((item) => {
+    if (!normalizedQuery) return allowedActions.slice(0, 5);
+    return allowedActions.filter((item) => {
       const haystack = `${item.label} ${item.description} ${item.keywords}`.toLowerCase();
       return haystack.includes(normalizedQuery);
     });
-  }, [query]);
+  }, [query, allowedActions]);
 
   const goTo = (path) => {
     navigate(path);
@@ -158,7 +167,7 @@ const AdminLayout = () => {
                   <div className="text-xs text-slate-500 mt-0.5">Các khu vực nên kiểm tra nhanh</div>
                 </div>
                 <div className="p-2">
-                  {notifications.map((item) => (
+                  {allowedNotifications.map((item) => (
                     <button
                       key={item.path}
                       type="button"
@@ -215,13 +224,13 @@ const AdminLayout = () => {
           <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={<AdminDashboard />} />
-              <Route path="/partners" element={<PartnerApproval />} />
-              <Route path="/users" element={<UserManagement />} />
-              <Route path="/vouchers" element={<VoucherManagement />} />
-              <Route path="/orders" element={<OrderManagement />} />
-              <Route path="/complaints" element={<ComplaintManagement />} />
-              <Route path="/content" element={<ContentManagement />} />
-              <Route path="/logs" element={<SystemLogs />} />
+              <Route path="/partners" element={<ScopedRoute path="/partners"><PartnerApproval /></ScopedRoute>} />
+              <Route path="/users" element={<ScopedRoute path="/users"><UserManagement /></ScopedRoute>} />
+              <Route path="/vouchers" element={<ScopedRoute path="/vouchers"><VoucherManagement /></ScopedRoute>} />
+              <Route path="/orders" element={<ScopedRoute path="/orders"><OrderManagement /></ScopedRoute>} />
+              <Route path="/complaints" element={<ScopedRoute path="/complaints"><ComplaintManagement /></ScopedRoute>} />
+              <Route path="/content" element={<ScopedRoute path="/content"><ContentManagement /></ScopedRoute>} />
+              <Route path="/logs" element={<ScopedRoute path="/logs"><SystemLogs /></ScopedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AnimatePresence>

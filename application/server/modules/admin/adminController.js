@@ -68,6 +68,45 @@ const changeUserRole = async (req, res) => {
     }
 };
 
+const getAdmins = async (req, res) => {
+    try {
+        const admins = await adminService.getAdmins(req.user?.id);
+        res.json({ admins });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const setAdminScope = async (req, res) => {
+    try {
+        const result = await adminService.setAdminScope(req.params.id, req.body.scope, req.user?.id);
+        res.json({ message: 'Đã cập nhật phạm vi quản trị', ...result });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+const createAdmin = async (req, res) => {
+    try {
+        const admin = await adminService.createAdmin(req.body || {}, req.user?.id);
+        res.status(201).json({ message: 'Đã tạo tài khoản quản trị', admin });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+const toggleAdminLock = async (req, res) => {
+    try {
+        const result = await adminService.toggleAdminLock(req.params.id, req.user?.id);
+        res.json({
+            message: result.is_active ? 'Đã mở khóa tài khoản admin' : 'Đã khóa tài khoản admin',
+            ...result,
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
 const getUserStats = async (req, res) => {
     try {
         const stats = await adminService.getUserStats();
@@ -329,6 +368,10 @@ module.exports = {
     getUserById,
     toggleUserLock,
     changeUserRole,
+    getAdmins,
+    setAdminScope,
+    createAdmin,
+    toggleAdminLock,
     getUserStats,
     getOrders,
     getOrderDetail,

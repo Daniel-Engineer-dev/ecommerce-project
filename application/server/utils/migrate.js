@@ -12,6 +12,12 @@ async function migrate() {
             `ALTER TABLE Orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;`,
             `ALTER TABLE Vouchers ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;`,
             `ALTER TABLE Vouchers ADD COLUMN IF NOT EXISTS rejected_reason TEXT;`,
+            `ALTER TABLE Users ADD COLUMN IF NOT EXISTS admin_scope VARCHAR(30);`,
+            `UPDATE Users SET admin_scope = 'SuperAdmin' WHERE role = 'Admin' AND admin_scope IS NULL;`,
+            `ALTER TABLE Users DROP CONSTRAINT IF EXISTS users_admin_scope_check;`,
+            `ALTER TABLE Users ADD CONSTRAINT users_admin_scope_check CHECK (admin_scope IS NULL OR admin_scope IN ('SuperAdmin', 'PartnerModerator', 'VoucherModerator', 'OrderManager', 'ContentEditor', 'SupportAgent'));`,
+            `ALTER TABLE Users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;`,
+            `UPDATE Users SET is_active = TRUE WHERE is_active IS NULL;`,
             `
                 CREATE TABLE IF NOT EXISTS Content_Items (
                     content_id SERIAL PRIMARY KEY,

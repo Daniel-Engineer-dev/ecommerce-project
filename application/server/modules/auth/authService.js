@@ -59,7 +59,7 @@ class AuthService {
 
     createAccessToken(user) {
         return jwt.sign(
-            { id: user.user_id, role: user.role },
+            { id: user.user_id, role: user.role, scope: user.admin_scope || null },
             getRequiredSecret('JWT_SECRET'),
             { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m' }
         );
@@ -220,16 +220,21 @@ class AuthService {
             
         } else if (user.role === 'Customer') {
             const customerRes = await pool.query(
-                'SELECT is_active FROM Customers WHERE user_id = $1', 
+                'SELECT is_active FROM Customers WHERE user_id = $1',
                 [user.user_id]
             );
             const customer = customerRes.rows[0];
-            
+
             if (!customer) throw new Error('Thông tin khách hàng không tồn tại trên hệ thống');
-            
+
             // Chặn đăng nhập nếu khách hàng bị khóa tài khoản
             if (customer.is_active === false) {
                 throw new Error('Tài khoản của bạn đang bị tạm khóa do vi phạm tiêu chuẩn. Vui lòng liên hệ tổng đài.');
+            }
+        } else if (user.role === 'Admin') {
+            // Chặn đăng nhập nếu tài khoản quản trị đã bị khóa
+            if (user.is_active === false) {
+                throw new Error('Tài khoản quản trị của bạn đã bị khóa. Vui lòng liên hệ Super Admin.');
             }
         }
 
@@ -239,7 +244,7 @@ class AuthService {
             token: accessToken,
             accessToken,
             refreshToken,
-            user: { id: user.user_id, username: user.username, role: user.role },
+            user: { id: user.user_id, username: user.username, role: user.role, scope: user.admin_scope || null },
         };
     }
 
@@ -253,7 +258,7 @@ class AuthService {
         if (decoded.type !== 'refresh') throw new Error('Invalid refresh token.');
 
         const { rows } = await pool.query(
-            `SELECT u.user_id, u.username, u.role,
+            `SELECT u.user_id, u.username, u.role, u.admin_scope, u.is_active AS admin_active,
                     c.is_active AS customer_active,
                     p.is_active AS partner_active,
                     p.status AS partner_status
@@ -272,13 +277,16 @@ class AuthService {
         if (user.role === 'Partner' && (user.partner_active === false || user.partner_status !== 'Approved')) {
             throw new Error('Partner account is not approved or is locked.');
         }
+        if (user.role === 'Admin' && user.admin_active === false) {
+            throw new Error('Admin account is locked.');
+        }
         const accessToken = this.createAccessToken(user);
         const nextRefreshToken = this.createRefreshToken(user);
         return {
             token: accessToken,
             accessToken,
             refreshToken: nextRefreshToken,
-            user: { id: user.user_id, username: user.username, role: user.role },
+            user: { id: user.user_id, username: user.username, role: user.role, scope: user.admin_scope || null },
         };
     }
 

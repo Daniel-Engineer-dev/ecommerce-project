@@ -6,14 +6,276 @@ import {
     Users, Search, Shield, Building2, User,
     Lock, Unlock, ChevronLeft, ChevronRight,
     X, Phone, Mail, MapPin, Calendar, RefreshCw,
-    AlertTriangle, CheckCircle, Ticket, ArrowRight, Filter
+    AlertTriangle, CheckCircle, Ticket, ArrowRight, Filter, ShieldCheck, UserPlus
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
 import CustomSelect from '../components/CustomSelect';
+import { ASSIGNABLE_SCOPES, SCOPE_LABELS, isSuperAdmin } from '../scopes';
 
 const API = API_ADMIN_URL;
 const getToken = () => localStorage.getItem('adminToken');
+
+// ─── MODAL TẠO ADMIN MỚI ───────────────────────────────────────────────────────
+const CreateAdminModal = ({ onClose, onCreated, onToast }) => {
+    const scopeOptions = ASSIGNABLE_SCOPES.map((s) => ({ value: s, label: SCOPE_LABELS[s] || s }));
+    const [form, setForm] = useState({ username: '', email: '', phone: '', password: '', scope: ASSIGNABLE_SCOPES[1] });
+    const [submitting, setSubmitting] = useState(false);
+
+    const update = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!form.username.trim() || form.password.length < 6) {
+            onToast?.({ type: 'error', message: 'Nhập tên đăng nhập và mật khẩu tối thiểu 6 ký tự' });
+            return;
+        }
+        setSubmitting(true);
+        try {
+            const res = await apiFetch(`${API}/admins`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify(form),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                onToast?.({ type: 'success', message: `Đã tạo admin "${form.username}"` });
+                onCreated?.();
+                onClose();
+            } else {
+                onToast?.({ type: 'error', message: data.error || 'Tạo admin thất bại' });
+            }
+        } catch {
+            onToast?.({ type: 'error', message: 'Lỗi kết nối máy chủ' });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return createPortal(
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-[9999] flex items-center justify-center p-4">
+            <motion.form
+                onSubmit={handleSubmit}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden border border-slate-100"
+            >
+                <div className="flex justify-between items-center px-6 py-5 bg-[#1a3a5c] text-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                            <UserPlus size={18} className="text-[#6ec6a0]" />
+                        </div>
+                        <h3 className="font-bold text-base tracking-tight">Tạo tài khoản Quản trị viên</h3>
+                    </div>
+                    <button type="button" onClick={onClose} className="text-slate-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                    {[
+                        { key: 'username', label: 'Tên đăng nhập *', type: 'text', placeholder: 'vd: content_editor2' },
+                        { key: 'email', label: 'Email', type: 'email', placeholder: 'admin@dealzy.vn' },
+                        { key: 'phone', label: 'Số điện thoại', type: 'text', placeholder: 'Không bắt buộc' },
+                        { key: 'password', label: 'Mật khẩu * (≥ 6 ký tự)', type: 'password', placeholder: '••••••••' },
+                    ].map((f) => (
+                        <div key={f.key} className="space-y-1.5">
+                            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{f.label}</label>
+                            <input
+                                type={f.type}
+                                value={form[f.key]}
+                                onChange={update(f.key)}
+                                placeholder={f.placeholder}
+                                className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm font-medium text-slate-800 outline-none focus:bg-white focus:border-[#1a3a5c] transition-all"
+                            />
+                        </div>
+                    ))}
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Phạm vi quản trị</label>
+                        <CustomSelect
+                            className="w-full"
+                            buttonClassName="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-slate-200 text-sm font-semibold bg-slate-50 text-slate-700"
+                            value={form.scope}
+                            onChange={(val) => setForm((prev) => ({ ...prev, scope: val }))}
+                            options={scopeOptions}
+                        />
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2.5">
+                    <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-4 py-2.5 hover:bg-slate-50">
+                        Hủy
+                    </button>
+                    <button type="submit" disabled={submitting} className="text-sm font-semibold text-white bg-[#6ec6a0] rounded-xl px-5 py-2.5 hover:bg-[#5bb890] disabled:opacity-50">
+                        {submitting ? 'Đang tạo...' : 'Tạo tài khoản'}
+                    </button>
+                </div>
+            </motion.form>
+        </div>,
+        document.body
+    );
+};
+
+// ─── PANEL PHÂN QUYỀN QUẢN TRỊ VIÊN (chỉ SuperAdmin) ───────────────────────────
+const AdminRolePanel = ({ onToast }) => {
+    const [admins, setAdmins] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [savingId, setSavingId] = useState(null);
+    const [lockingId, setLockingId] = useState(null);
+    const [drafts, setDrafts] = useState({});
+    const [showCreate, setShowCreate] = useState(false);
+
+    const scopeOptions = ASSIGNABLE_SCOPES.map((s) => ({ value: s, label: SCOPE_LABELS[s] || s }));
+
+    const fetchAdmins = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await apiFetch(`${API}/admins`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const data = await res.json();
+            if (res.ok) setAdmins(data.admins || []);
+        } catch (err) { console.error(err); } finally { setLoading(false); }
+    }, []);
+
+    useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
+
+    const handleSave = async (admin) => {
+        const nextScope = drafts[admin.user_id] ?? admin.admin_scope;
+        if (nextScope === admin.admin_scope) return;
+        setSavingId(admin.user_id);
+        try {
+            const res = await apiFetch(`${API}/users/${admin.user_id}/admin-scope`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify({ scope: nextScope }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setAdmins((prev) => prev.map((a) => a.user_id === admin.user_id ? { ...a, admin_scope: nextScope } : a));
+                setDrafts((prev) => { const n = { ...prev }; delete n[admin.user_id]; return n; });
+                onToast?.({ type: 'success', message: `Đã cập nhật quyền cho ${admin.username}` });
+            } else {
+                onToast?.({ type: 'error', message: data.error || 'Cập nhật quyền thất bại' });
+            }
+        } catch {
+            onToast?.({ type: 'error', message: 'Lỗi kết nối máy chủ' });
+        } finally {
+            setSavingId(null);
+        }
+    };
+
+    const handleToggleLock = async (admin) => {
+        setLockingId(admin.user_id);
+        try {
+            const res = await apiFetch(`${API}/admins/${admin.user_id}/toggle-lock`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setAdmins((prev) => prev.map((a) => a.user_id === admin.user_id ? { ...a, is_active: data.is_active } : a));
+                onToast?.({ type: 'success', message: data.is_active ? `Đã mở khóa ${admin.username}` : `Đã khóa ${admin.username}` });
+            } else {
+                onToast?.({ type: 'error', message: data.error || 'Thao tác thất bại' });
+            }
+        } catch {
+            onToast?.({ type: 'error', message: 'Lỗi kết nối máy chủ' });
+        } finally {
+            setLockingId(null);
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-[#1a3a5c] text-white">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                        <ShieldCheck size={18} className="text-[#6ec6a0]" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-base tracking-tight">Phân quyền Quản trị viên</h3>
+                        <p className="text-xs text-slate-300 mt-0.5">Tạo, khóa và giới hạn phạm vi thao tác của từng admin</p>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setShowCreate(true)}
+                    className="flex items-center gap-2 text-xs font-bold text-[#1a3a5c] bg-[#6ec6a0] rounded-xl px-4 py-2.5 hover:bg-[#5bb890] transition-all shrink-0"
+                >
+                    <UserPlus size={15} /> Tạo admin
+                </button>
+            </div>
+
+            <div className="divide-y divide-slate-50">
+                {loading ? (
+                    <div className="py-14 text-center text-slate-400">
+                        <RefreshCw className="animate-spin text-[#6ec6a0] mx-auto mb-3" size={22} />
+                        <p className="text-xs font-medium">Đang tải danh sách admin...</p>
+                    </div>
+                ) : admins.map((admin) => {
+                    const draft = drafts[admin.user_id] ?? admin.admin_scope;
+                    const dirty = draft !== admin.admin_scope;
+                    const locked = admin.is_active === false;
+                    return (
+                        <div key={admin.user_id} className={`px-6 py-4 flex flex-col md:flex-row md:items-center gap-4 ${locked ? 'bg-rose-50/40' : ''}`}>
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${locked ? 'bg-rose-50 text-rose-400' : 'bg-indigo-50 text-indigo-500'}`}>
+                                    <Shield size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="font-semibold text-slate-800 flex items-center gap-2">
+                                        {admin.username}
+                                        {admin.is_self && (
+                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 uppercase tracking-wider">Bạn</span>
+                                        )}
+                                        {locked && (
+                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-rose-100 text-rose-600 uppercase tracking-wider">Đã khóa</span>
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-slate-400 truncate">{admin.email || '---'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2.5">
+                                <CustomSelect
+                                    className="w-52"
+                                    value={draft}
+                                    disabled={admin.is_self}
+                                    onChange={(val) => setDrafts((prev) => ({ ...prev, [admin.user_id]: val }))}
+                                    options={scopeOptions}
+                                />
+                                <button
+                                    disabled={!dirty || admin.is_self || savingId === admin.user_id}
+                                    onClick={() => handleSave(admin)}
+                                    className="text-xs font-semibold text-white bg-[#6ec6a0] rounded-xl px-4 py-2.5 hover:bg-[#5bb890] transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                >
+                                    {savingId === admin.user_id ? '...' : 'Lưu'}
+                                </button>
+                                <button
+                                    disabled={admin.is_self || lockingId === admin.user_id}
+                                    onClick={() => handleToggleLock(admin)}
+                                    title={locked ? 'Mở khóa' : 'Khóa tài khoản'}
+                                    className={`p-2.5 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 border
+                                        ${locked
+                                            ? 'text-emerald-600 bg-emerald-50 border-emerald-100 hover:bg-emerald-100'
+                                            : 'text-rose-600 bg-rose-50 border-rose-100 hover:bg-rose-100'}`}
+                                >
+                                    {lockingId === admin.user_id ? <RefreshCw className="animate-spin" size={15} /> : locked ? <Unlock size={15} /> : <Lock size={15} />}
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="px-6 py-3 bg-slate-50/60 text-[11px] text-slate-400 leading-relaxed border-t border-slate-100">
+                Bạn không thể tự đổi quyền hoặc tự khóa chính mình. Hệ thống luôn giữ tối thiểu một Super Admin đang hoạt động.
+            </div>
+
+            <AnimatePresence>
+                {showCreate && (
+                    <CreateAdminModal onClose={() => setShowCreate(false)} onCreated={fetchAdmins} onToast={onToast} />
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 const Toast = ({ toast, onClose }) => {
@@ -468,6 +730,9 @@ const UserManagement = () => {
                     </div>
                 )}
             </div>
+
+            {/* Phân quyền quản trị viên — chỉ SuperAdmin */}
+            {isSuperAdmin() && <AdminRolePanel onToast={setToast} />}
 
             {/* Modal Detail rendering */}
             <AnimatePresence>

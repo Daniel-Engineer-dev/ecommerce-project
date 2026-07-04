@@ -1,8 +1,10 @@
 const pool = require('../../config/db');
+const bcrypt = require('bcryptjs');
 const { sendEmail } = require('../../utils/sendEmail');
 const { logAction } = require('../../utils/systemLog');
 const orderService = require('../customer/orderService');
 const { contentTemplates, getContentTemplate } = require('../shared/contentDefinitions');
+const { ALL_SCOPES, ADMIN_SCOPES } = require('../../middleware/adminScope');
 
 const COMPLAINT_STATUSES = ['Pending', 'Processing', 'Resolved', 'Rejected'];
 const CLOSED_COMPLAINT_STATUSES = ['Resolved', 'Rejected'];
@@ -259,6 +261,171 @@ class AdminService {
         }
         await logAction(adminId, `CHANGE_USER_ROLE:${newRole}`, 'Users', id);
         return { success: true };
+    }
+
+    /**
+     * Danh sách tài khoản Admin kèm phạm vi quản trị (admin_scope).
+     * Chỉ SuperAdmin được gọi (kiểm soát ở tầng route).
+     */
+    async getAdmins(currentAdminId = null) {
+        const result = await pool.query(
+            `SELECT user_id, username, email, phone,
+                    COALESCE(admin_scope, 'SuperAdmin') AS admin_scope,
+                    COALESCE(is_active, TRUE) AS is_active,
+                    create_at
+             FROM Users
+             WHERE role = 'Admin'
+             ORDER BY user_id ASC`
+        );
+        return result.rows.map((row) => ({
+            ...row,
+            is_self: Number(row.user_id) === Number(currentAdminId),
+        }));
+    }
+
+    /**
+     * Tạo tài khoản Admin mới (chỉ SuperAdmin). Kiểm tra trùng username/email/phone,
+     * băm mật khẩu bằng bcrypt và gán scope.
+     */
+    async createAdmin(data, currentAdminId = null) {
+        const username = String(data.username || '').trim();
+        const email = data.email ? String(data.email).trim() : null;
+        const phone = data.phone ? String(data.phone).trim() : null;
+        const password = String(data.password || '');
+        const scope = data.scope || ADMIN_SCOPES.SUPER_ADMIN;
+
+        if (!username) throw new Error('Tên đăng nhập là bắt buộc');
+        if (password.length < 6) throw new Error('Mật khẩu phải có ít nhất 6 ký tự');
+        if (!ALL_SCOPES.includes(scope)) throw new Error('Phạm vi quản trị không hợp lệ');
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+
+            const dupUser = await client.query('SELECT 1 FROM Users WHERE username = $1', [username]);
+            if (dupUser.rowCount > 0) throw new Error(`Tên đăng nhập "${username}" đã tồn tại`);
+            if (email) {
+                const dupEmail = await client.query('SELECT 1 FROM Users WHERE lower(email) = lower($1)', [email]);
+                if (dupEmail.rowCount > 0) throw new Error('Email này đã được sử dụng');
+            }
+            if (phone) {
+                const dupPhone = await client.query('SELECT 1 FROM Users WHERE phone = $1', [phone]);
+                if (dupPhone.rowCount > 0) throw new Error('Số điện thoại này đã được sử dụng');
+            }
+
+            const hashed = await bcrypt.hash(password, 10);
+            const inserted = await client.query(
+                `INSERT INTO Users (username, password, email, phone, role, admin_scope, is_active)
+                 VALUES ($1, $2, $3, $4, 'Admin', $5, TRUE)
+                 RETURNING user_id, username, email, phone, admin_scope, is_active`,
+                [username, hashed, email, phone, scope]
+            );
+
+            await client.query('COMMIT');
+            await logAction(currentAdminId, `CREATE_ADMIN:${scope}`, 'Users', inserted.rows[0].user_id);
+            return inserted.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Khóa/mở tài khoản Admin (chỉ SuperAdmin). Không tự khóa mình và không khóa
+     * SuperAdmin đang hoạt động cuối cùng để tránh mất toàn bộ quyền hệ thống.
+     */
+    async toggleAdminLock(targetId, currentAdminId = null) {
+        if (Number(targetId) === Number(currentAdminId)) {
+            throw new Error('Không thể tự khóa tài khoản của chính mình');
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const targetRes = await client.query(
+                `SELECT role, COALESCE(admin_scope, 'SuperAdmin') AS admin_scope, COALESCE(is_active, TRUE) AS is_active
+                 FROM Users WHERE user_id = $1 FOR UPDATE`,
+                [targetId]
+            );
+            if (targetRes.rowCount === 0) throw new Error('Tài khoản không tồn tại');
+            const target = targetRes.rows[0];
+            if (target.role !== 'Admin') throw new Error('Chức năng này chỉ áp dụng cho tài khoản Admin');
+
+            const willLock = target.is_active === true;
+            // Chặn khóa SuperAdmin đang hoạt động cuối cùng
+            if (willLock && target.admin_scope === ADMIN_SCOPES.SUPER_ADMIN) {
+                const activeSupers = await client.query(
+                    "SELECT COUNT(*)::int AS c FROM Users WHERE role = 'Admin' AND COALESCE(admin_scope, 'SuperAdmin') = 'SuperAdmin' AND COALESCE(is_active, TRUE) = TRUE"
+                );
+                if (Number(activeSupers.rows[0].c) <= 1) {
+                    throw new Error('Phải giữ lại ít nhất một SuperAdmin đang hoạt động');
+                }
+            }
+
+            const updated = await client.query(
+                'UPDATE Users SET is_active = NOT COALESCE(is_active, TRUE) WHERE user_id = $1 RETURNING user_id, username, is_active',
+                [targetId]
+            );
+            await client.query('COMMIT');
+            await logAction(currentAdminId, updated.rows[0].is_active ? 'UNLOCK_ADMIN' : 'LOCK_ADMIN', 'Users', targetId);
+            return updated.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Gán phạm vi quản trị cho một tài khoản Admin.
+     * Ràng buộc an toàn: không tự đổi scope của chính mình và không hạ cấp
+     * SuperAdmin cuối cùng (tránh khóa toàn bộ quyền hệ thống).
+     */
+    async setAdminScope(targetId, newScope, currentAdminId = null) {
+        if (!ALL_SCOPES.includes(newScope)) {
+            throw new Error('Phạm vi quản trị không hợp lệ');
+        }
+        if (Number(targetId) === Number(currentAdminId)) {
+            throw new Error('Không thể tự thay đổi phạm vi quản trị của chính mình');
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const targetRes = await client.query(
+                'SELECT role, COALESCE(admin_scope, \'SuperAdmin\') AS admin_scope FROM Users WHERE user_id = $1 FOR UPDATE',
+                [targetId]
+            );
+            if (targetRes.rowCount === 0) throw new Error('Tài khoản không tồn tại');
+            const target = targetRes.rows[0];
+            if (target.role !== 'Admin') throw new Error('Chỉ có thể phân quyền cho tài khoản Admin');
+
+            // Chặn hạ cấp SuperAdmin cuối cùng còn lại
+            if (target.admin_scope === ADMIN_SCOPES.SUPER_ADMIN && newScope !== ADMIN_SCOPES.SUPER_ADMIN) {
+                const superCount = await client.query(
+                    "SELECT COUNT(*)::int AS c FROM Users WHERE role = 'Admin' AND COALESCE(admin_scope, 'SuperAdmin') = 'SuperAdmin'"
+                );
+                if (Number(superCount.rows[0].c) <= 1) {
+                    throw new Error('Phải giữ lại ít nhất một SuperAdmin trong hệ thống');
+                }
+            }
+
+            const updated = await client.query(
+                'UPDATE Users SET admin_scope = $1 WHERE user_id = $2 RETURNING user_id, username, admin_scope',
+                [newScope, targetId]
+            );
+            await client.query('COMMIT');
+            await logAction(currentAdminId, `SET_ADMIN_SCOPE:${newScope}`, 'Users', targetId);
+            return updated.rows[0];
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
     }
 
     async getUserStats() {
