@@ -58,9 +58,9 @@ const CreateAdminModal = ({ onClose, onCreated, onToast }) => {
                 onSubmit={handleSubmit}
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden border border-slate-100"
+                className="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-visible border border-slate-100"
             >
-                <div className="flex justify-between items-center px-6 py-5 bg-[#1a3a5c] text-white">
+                <div className="flex justify-between items-center px-6 py-5 bg-[#1a3a5c] text-white rounded-t-[24px]">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
                             <UserPlus size={18} className="text-[#6ec6a0]" />
@@ -102,7 +102,7 @@ const CreateAdminModal = ({ onClose, onCreated, onToast }) => {
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2.5">
+                <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2.5 rounded-b-[24px]">
                     <button type="button" onClick={onClose} className="text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl px-4 py-2.5 hover:bg-slate-50">
                         Hủy
                     </button>
