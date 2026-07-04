@@ -9,7 +9,8 @@ const CustomSelect = ({
   className = '',
   buttonClassName = '',
   placeholder = '',
-  disabled = false
+  disabled = false,
+  direction = 'down'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -56,11 +57,13 @@ const CustomSelect = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            initial={{ opacity: 0, y: direction === 'up' ? -8 : 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.95 }}
+            exit={{ opacity: 0, y: direction === 'up' ? -4 : 4, scale: 0.95 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-0 z-50 mt-1.5 w-full min-w-[180px] max-h-60 overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md p-1.5 shadow-xl shadow-slate-200/50 outline-none scrollbar-thin"
+            className={`absolute right-0 z-50 w-full min-w-[180px] max-h-60 overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md p-1.5 shadow-xl shadow-slate-200/50 outline-none scrollbar-thin ${
+              direction === 'up' ? 'bottom-full mb-1.5' : 'mt-1.5'
+            }`}
           >
             {normalizedOptions.map((opt) => {
               const isSelected = opt.value === value;

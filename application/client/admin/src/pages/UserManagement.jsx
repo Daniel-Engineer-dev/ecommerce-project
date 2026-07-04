@@ -98,6 +98,7 @@ const CreateAdminModal = ({ onClose, onCreated, onToast }) => {
                             value={form.scope}
                             onChange={(val) => setForm((prev) => ({ ...prev, scope: val }))}
                             options={scopeOptions}
+                            direction="up"
                         />
                     </div>
                 </div>
