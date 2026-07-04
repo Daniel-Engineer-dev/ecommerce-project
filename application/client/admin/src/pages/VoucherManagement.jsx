@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { 
   Ticket, Search, Check, X, Eye, ShieldAlert, AlertCircle,
   Clock, CheckCircle2, Ban, EyeOff, Calendar, Tag, Building2,
-  Package, Info, HelpCircle, ChevronLeft, ChevronRight
+  Package, Info, HelpCircle, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import { API_ADMIN_URL } from '../config';
 import { apiFetch } from '../apiClient';
@@ -28,6 +28,7 @@ const VoucherManagement = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [toast, setToast] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -87,6 +88,7 @@ const VoucherManagement = () => {
 
   const handleApprove = async (id) => {
     try {
+      setSubmitting(true);
       const res = await apiFetch(`${API}/vouchers/${id}/approve`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -100,6 +102,8 @@ const VoucherManagement = () => {
       }
     } catch (err) {
       showToast('error', err.message || 'Thao tác phê duyệt thất bại');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -109,6 +113,7 @@ const VoucherManagement = () => {
       return;
     }
     try {
+      setSubmitting(true);
       const res = await apiFetch(`${API}/vouchers/${id}/reject`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
@@ -125,6 +130,8 @@ const VoucherManagement = () => {
       }
     } catch (err) {
       showToast('error', err.message || 'Thao tác từ chối thất bại');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -362,13 +369,51 @@ const VoucherManagement = () => {
                   <>
                     {!showRejectInput ? (
                       <>
-                        <button onClick={() => handleApprove(selectedVoucher.voucher_id)} className="flex-1 flex items-center justify-center gap-2 bg-[#6ec6a0] text-white py-3 rounded-xl font-semibold hover:bg-[#5bb890] text-sm shadow-sm transition-all"><Check size={16}/> Phê duyệt phát hành</button>
-                        <button onClick={() => setShowRejectInput(true)} className="flex-1 flex items-center justify-center gap-2 bg-white text-rose-600 border border-rose-100 py-3 rounded-xl font-semibold hover:bg-rose-50 text-sm shadow-sm transition-all">Từ chối duyệt</button>
+                        <button
+                          onClick={() => handleApprove(selectedVoucher.voucher_id)}
+                          disabled={submitting}
+                          className="flex-1 flex items-center justify-center gap-2 bg-[#6ec6a0] text-white py-3 rounded-xl font-semibold hover:bg-[#5bb890] text-sm shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" /> Đang xử lý...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={16}/> Phê duyệt phát hành
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowRejectInput(true)}
+                          disabled={submitting}
+                          className="flex-1 flex items-center justify-center gap-2 bg-white text-rose-600 border border-rose-100 py-3 rounded-xl font-semibold hover:bg-rose-50 text-sm shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Từ chối duyệt
+                        </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleReject(selectedVoucher.voucher_id)} className="flex-1 bg-rose-500 text-white py-3 rounded-xl font-semibold hover:bg-rose-600 text-sm shadow-sm transition-all">Xác nhận Từ chối</button>
-                        <button onClick={() => setShowRejectInput(false)} className="px-6 bg-slate-50 border border-slate-100 text-slate-600 py-3 rounded-xl font-semibold hover:bg-slate-100 text-sm transition-all">Quay lại</button>
+                        <button
+                          onClick={() => handleReject(selectedVoucher.voucher_id)}
+                          disabled={submitting}
+                          className="flex-1 flex items-center justify-center gap-2 bg-rose-500 text-white py-3 rounded-xl font-semibold hover:bg-rose-600 text-sm shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" /> Đang xử lý...
+                            </>
+                          ) : (
+                            "Xác nhận Từ chối"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setShowRejectInput(false)}
+                          disabled={submitting}
+                          className="px-6 bg-slate-50 border border-slate-100 text-slate-600 py-3 rounded-xl font-semibold hover:bg-slate-100 text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Quay lại
+                        </button>
                       </>
                     )}
                   </>

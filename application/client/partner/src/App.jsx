@@ -312,6 +312,7 @@ function VoucherManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const emptyForm = useMemo(() => ({
     category_id: '',
@@ -399,6 +400,7 @@ function VoucherManagement() {
       return;
     }
     try {
+      setSubmitting(true);
       setError('');
       setSuccess('');
       const path = editing ? `/api/partner/vouchers/${editing.voucher_id}` : '/api/partner/vouchers';
@@ -409,6 +411,8 @@ function VoucherManagement() {
       await load();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -575,19 +579,41 @@ function VoucherManagement() {
               {isVoucherFormComplete ? 'Thông tin đã sẵn sàng để gửi duyệt.' : 'Nút gửi duyệt sẽ được mở khi tất cả trường đã được điền.'}
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="button" onClick={() => setFormOpen(false)} style={{ ...shell.button, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0' }}><XCircle size={18} /> Hủy</button>
               <button
-                type="submit"
-                disabled={!isVoucherFormComplete}
+                type="button"
+                disabled={submitting}
+                onClick={() => setFormOpen(false)}
                 style={{
                   ...shell.button,
-                  background: isVoucherFormComplete ? '#16a34a' : '#cbd5e1',
-                  color: isVoucherFormComplete ? 'white' : '#64748b',
-                  cursor: isVoucherFormComplete ? 'pointer' : 'not-allowed',
-                  opacity: isVoucherFormComplete ? 1 : 0.82,
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1px solid #e2e8f0',
+                  cursor: submitting ? 'not-allowed' : 'pointer'
                 }}
               >
-                <Save size={18} /> {editing ? 'Lưu thay đổi' : 'Tạo và gửi duyệt'}
+                <XCircle size={18} /> Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={!isVoucherFormComplete || submitting}
+                style={{
+                  ...shell.button,
+                  background: isVoucherFormComplete && !submitting ? '#16a34a' : '#cbd5e1',
+                  color: isVoucherFormComplete && !submitting ? 'white' : '#64748b',
+                  cursor: isVoucherFormComplete && !submitting ? 'pointer' : 'not-allowed',
+                  opacity: isVoucherFormComplete && !submitting ? 1 : 0.82,
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    Đang gửi...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} /> {editing ? 'Lưu thay đổi' : 'Tạo và gửi duyệt'}
+                  </>
+                )}
               </button>
             </div>
           </div>
