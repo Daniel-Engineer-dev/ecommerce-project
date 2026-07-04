@@ -613,28 +613,44 @@ const CustomerRegistration = () => {
                     gap: "1.25rem",
                   }}
                 >
-                  <div
-                    style={{
-                      padding: "1rem",
-                      borderRadius: "16px",
-                      background: "#eff6ff",
-                      border: "1px solid #bfdbfe",
-                      color: "#1e3a8a",
-                      lineHeight: 1.6,
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Vì quy định của các nhà mạng Việt Nam yêu cầu đăng ký Brandname nghiêm ngặt để gửi tin nhắn SMS, chúng tôi hiển thị mã OTP mô phỏng để bạn kiểm thử luồng này. Mã OTP của bạn là:{" "}
-                    <strong
+                  {regMethod === "phone" ? (
+                    <div
                       style={{
-                        fontFamily: "inherit",
-                        fontSize: "1.1rem",
-                        letterSpacing: "0.08em",
+                        padding: "1rem",
+                        borderRadius: "16px",
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        color: "#1e3a8a",
+                        lineHeight: 1.6,
+                        fontSize: "0.9rem",
                       }}
                     >
-                      {verificationCode}
-                    </strong>
-                  </div>
+                      Đây là chức năng mô phỏng, không gửi sms thật vì đa số dịch vụ sms đều yêu cầu đăng ký doanh nghiệp thật sự. Mã OTP của bạn là:{" "}
+                      <strong
+                        style={{
+                          fontFamily: "inherit",
+                          fontSize: "1.1rem",
+                          letterSpacing: "0.08em",
+                        }}
+                      >
+                        {verificationCode}
+                      </strong>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "1rem",
+                        borderRadius: "16px",
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        color: "#1e3a8a",
+                        lineHeight: 1.6,
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      Mã xác minh (OTP) đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến (hoặc hòm thư Spam) để lấy mã.
+                    </div>
+                  )}
                   <div className="input-group">
                     <CheckCircle2 size={18} className="input-icon" />
                     <input

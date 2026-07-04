@@ -591,10 +591,12 @@ class AuthService {
 
         const smsContent = `Ma xac minh dang ky Dealzy cua ban la: ${otp}`;
         const sent = await sendSms({ phone, content: smsContent });
-        if (!sent) {
-            throw new Error('Không thể gửi tin nhắn SMS xác thực. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.');
-        }
-        return { message: 'Mã xác minh đã được gửi đến SĐT' };
+        return {
+            message: sent 
+                ? 'Mã xác minh đã được gửi đến SĐT' 
+                : 'Đây là chức năng mô phỏng, không gửi sms thật vì đa số dịch vụ sms đều yêu cầu đăng ký doanh nghiệp thật sự',
+            otp: otp
+        };
     }
 }
 
